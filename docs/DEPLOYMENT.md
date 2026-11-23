@@ -64,6 +64,22 @@ Configuration de référence du cahier des charges (section 4.2). Les limites de
 concurrence (générations simultanées, tâches d'ingestion parallèles) sont des
 paramètres ; le rapport de tests de charge fixera les valeurs par défaut.
 
+**Client type retenu (décision Q6)** : 50 000 à 500 000 documents, dont 20 à 60 %
+de scans. Ordres de grandeur **à confirmer par mesure en phase 2** :
+
+| Élément | Hypothèse | Estimation pour 500 000 documents |
+|---|---|---|
+| Fragments | ≈ 20 par document | ≈ 10 millions |
+| Vecteurs BGE-M3 (1024 dimensions) | 4 Ko par vecteur en clair | ≈ 40 Go ; ≈ 10 Go avec quantification int8 de Qdrant (à activer) |
+| Texte des fragments + index plein texte | — | plusieurs dizaines de Go dans PostgreSQL |
+| Pages à passer en OCR | 20 à 60 % des documents, ≈ 5 pages chacun | 0,5 à 1,5 million de pages |
+| Durée de l'OCR initial | 1 à 2 s par page sur un cœur CPU (à mesurer) | plusieurs jours, même en parallèle sur 16 cœurs ; fortement réduite avec GPU |
+
+Conséquences : quantification des vecteurs dans Qdrant dès la phase 1 ; ingestion
+par priorité (documents récents d'abord) pour rendre le logiciel utile avant la fin
+de l'indexation initiale ; durée d'indexation annoncée au client à partir de la
+mesure réelle.
+
 ---
 
 ## 3. Mode Desktop

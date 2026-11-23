@@ -213,6 +213,11 @@ sur un coffre de test.
 
 ### 4.5 Plan de développement
 
+Décision Q8 : **aucun coffre M-Files n'est disponible pour l'instant.** Les étapes
+1 et 2 avancent ; les étapes 3 et 4 attendent un coffre de test. D'ici là, le
+connecteur M-Files est présenté comme « en développement, non validé ».
+
+
 1. Implémenter le connecteur contre un **simulateur** qui respecte le contrat
    (permet de tester tout le cœur sans M-Files).
 2. Étude de l'API sur la documentation officielle de la version cible ; ADR du

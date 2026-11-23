@@ -165,10 +165,14 @@ d'un document ou d'un extrait), requêtes IA (sans le texte par défaut),
 utilisation d'API externes, modifications de paramètres, sauvegardes et
 restaurations.
 
-- **Jamais** de contenu documentaire, de mot de passe ou de secret dans `details`.
-- Le texte des questions n'est journalisé que si l'organisation l'active.
+- **Jamais** de contenu documentaire (réponses, extraits), de mot de passe ou de secret dans `details`.
+- Le **texte des questions est journalisé par défaut** (décision Q5), désactivable
+  par organisation. Une question peut contenir des informations sensibles : la
+  lecture du journal est réservée aux rôles `auditor`, `org_admin` et
+  `super_admin`, et les questions sont purgées avec le journal (12 mois par défaut).
 - Ajout seul ; purge uniquement par le rôle de maintenance, au-delà d'une durée
-  de conservation configurable (minimum 30 jours).
+  de conservation configurable : **12 mois par défaut** (minimum 30 jours).
+- Conversations : conservées **12 mois par défaut**, durée réglable par organisation.
 
 ---
 
