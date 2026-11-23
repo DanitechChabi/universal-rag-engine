@@ -61,6 +61,7 @@ def require(*roles: str):
         if not user.has(*roles):
             raise problem(403, "auth.forbidden", "Droits insuffisants")
         return user
+
     return checker
 
 

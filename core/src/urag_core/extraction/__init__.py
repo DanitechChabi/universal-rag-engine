@@ -10,8 +10,8 @@ import csv
 import io
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
 from importlib.metadata import version as _version
+from pathlib import Path
 from typing import Literal
 
 BlockKind = Literal["heading", "paragraph", "table", "list"]
@@ -146,8 +146,9 @@ def extract_docx(path: Path) -> ExtractedDocument:
                 rows.append(" | ".join(dedup))
             if any(r.strip(" |") for r in rows):
                 blocks.append(Block("\n".join(rows), "table"))
-    return ExtractedDocument(blocks, None, [], "python-docx",
-                             ["pas de numéros de page dans un fichier Word"] if blocks else [])
+    return ExtractedDocument(
+        blocks, None, [], "python-docx", ["pas de numéros de page dans un fichier Word"] if blocks else []
+    )
 
 
 def extract_text_file(path: Path) -> ExtractedDocument:
@@ -175,8 +176,13 @@ def extract_text_file(path: Path) -> ExtractedDocument:
     return ExtractedDocument(blocks, None, [], "text")
 
 
-EXTRACTORS = {".pdf": extract_pdf, ".docx": extract_docx, ".txt": extract_text_file,
-              ".md": extract_text_file, ".csv": extract_text_file}
+EXTRACTORS = {
+    ".pdf": extract_pdf,
+    ".docx": extract_docx,
+    ".txt": extract_text_file,
+    ".md": extract_text_file,
+    ".csv": extract_text_file,
+}
 
 
 def extract(path: Path) -> ExtractedDocument:

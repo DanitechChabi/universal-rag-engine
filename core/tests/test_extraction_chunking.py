@@ -1,6 +1,7 @@
-from tests.fixtures.documents import CONTRACT_PAGE_1, CONTRACT_PAGE_2, write_blank_pdf, write_docx, write_pdf
 from urag_core.chunking import ChunkingProfile, chunk_document
 from urag_core.extraction import Block, ExtractedDocument, clean_text, detect_language, extract
+
+from tests.fixtures.documents import CONTRACT_PAGE_1, CONTRACT_PAGE_2, write_blank_pdf, write_docx, write_pdf
 
 
 def test_pdf_pages_conservees(tmp_path):
@@ -32,7 +33,9 @@ def test_decoupage_conserve_sections_et_tableaux(tmp_path):
     table = [c for c in chunks if c.kind == "table"]
     assert len(table) == 1 and "Ancienneté" in table[0].text
     assert table[0].section_path == ("Note de service RH", "Congés annuels")
-    teletravail = next(c for c in chunks if "Télétravail est autorisé" in c.text or "télétravail est autorisé" in c.text)
+    teletravail = next(
+        c for c in chunks if "Télétravail est autorisé" in c.text or "télétravail est autorisé" in c.text
+    )
     assert teletravail.section_path == ("Note de service RH", "Télétravail")
     assert "Congés" not in teletravail.text  # un changement de section coupe le fragment
 
@@ -44,7 +47,8 @@ def test_decoupage_taille_chevauchement_et_pages():
     assert len(chunks) > 5
     assert all(len(c.text) <= 500 + 80 + 10 for c in chunks)
     assert chunks[1].text.startswith("…")  # chevauchement avec le fragment précédent
-    assert chunks[0].page_start == 3 and chunks[-1].page_end == 4
+    assert chunks[0].page_start == 3 and chunks[-1].page_start == chunks[-1].page_end == 4
+    assert all(c.page_start == c.page_end for c in chunks)  # jamais à cheval sur deux pages
     assert [c.ordinal for c in chunks] == list(range(len(chunks)))
 
 

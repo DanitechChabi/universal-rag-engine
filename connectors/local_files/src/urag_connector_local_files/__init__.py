@@ -38,8 +38,22 @@ from urag_connectors_base import (
 )
 
 DEFAULT_EXTENSIONS = (
-    ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".txt", ".csv", ".rtf",
-    ".html", ".htm", ".png", ".jpg", ".jpeg", ".md",
+    ".pdf",
+    ".docx",
+    ".doc",
+    ".xlsx",
+    ".xls",
+    ".pptx",
+    ".ppt",
+    ".txt",
+    ".csv",
+    ".rtf",
+    ".html",
+    ".htm",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".md",
 )
 IGNORED_NAMES = {"thumbs.db", "desktop.ini", ".ds_store"}
 IGNORED_PREFIXES = ("~$", ".~lock.", "._")
@@ -93,8 +107,9 @@ class LocalFilesConnector(BaseConnector):
         missing = [str(r) for r in self.roots if not r.is_dir()]
         unreadable = [str(r) for r in self.roots if r.is_dir() and not os.access(r, os.R_OK | os.X_OK)]
         if missing or unreadable:
-            return ConnectionReport(False, "dossier introuvable ou illisible",
-                                    {"missing": missing, "unreadable": unreadable})
+            return ConnectionReport(
+                False, "dossier introuvable ou illisible", {"missing": missing, "unreadable": unreadable}
+            )
         return ConnectionReport(True, f"{len(self.roots)} dossier(s) accessible(s)")
 
     def _excluded(self, rel: str) -> bool:
@@ -107,8 +122,10 @@ class LocalFilesConnector(BaseConnector):
             for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
                 current = Path(dirpath)
                 dirnames[:] = sorted(
-                    d for d in dirnames
-                    if d.lower() not in IGNORED_DIRS and not d.startswith(".")
+                    d
+                    for d in dirnames
+                    if d.lower() not in IGNORED_DIRS
+                    and not d.startswith(".")
                     and not self._excluded((current / d).relative_to(root).as_posix() + "/")
                 )
                 for name in sorted(filenames):

@@ -4,7 +4,7 @@
 - les paragraphes sont regroupés jusqu'à ``max_chars`` ;
 - un tableau n'est jamais mélangé à du texte ; un très grand tableau est découpé
   par lignes en répétant la ligne d'en-tête ;
-- les pages couvertes sont conservées ;
+- un fragment ne chevauche jamais deux pages : la citation désigne une page précise ;
 - un chevauchement (fin du fragment précédent) relie deux fragments d'une même section.
 """
 
@@ -49,9 +49,9 @@ def _tail(text: str, size: int) -> str:
     tail = text[-size:]
     m = re.search(r"(?<=[.!?;:])\s+", tail)
     if m and m.end() < len(tail) - 20:
-        return tail[m.end():]
+        return tail[m.end() :]
     space = tail.find(" ")
-    return tail[space + 1:] if space != -1 else tail
+    return tail[space + 1 :] if space != -1 else tail
 
 
 def _split_long(text: str, max_chars: int) -> list[str]:
@@ -143,6 +143,8 @@ def chunk_document(doc: ExtractedDocument, profile: ChunkingProfile = ChunkingPr
             for part in _split_table(block, profile.max_chars):
                 emit(part, "table", [block])
         else:
+            if buffer and block.page is not None and buffer[-1].page is not None and block.page != buffer[-1].page:
+                flush()  # changement de page : nouveau fragment (le chevauchement garde le contexte)
             buffer.append(block)
     flush()
     return chunks

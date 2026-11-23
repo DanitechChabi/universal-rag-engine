@@ -40,11 +40,8 @@ class Policy:
             return False
         if DataKind.DOCUMENTS in kinds and not self.allow_external_documents:
             return False
-        if (DataKind.QUESTION in kinds or DataKind.HISTORY in kinds) and not (
-            self.allow_external_questions or self.mode == "cloud_allowed"
-        ):
-            return False
-        return True
+        sends_text = DataKind.QUESTION in kinds or DataKind.HISTORY in kinds
+        return not sends_text or self.allow_external_questions or self.mode == "cloud_allowed"
 
 
 @dataclass(frozen=True)
@@ -105,10 +102,14 @@ class OllamaAdapter:
 
     def chat(self, model: ModelSpec, messages: list[ChatMessage], result: ChatResult) -> Iterator[str]:
         body = {
-            "model": model.name, "stream": True,
+            "model": model.name,
+            "stream": True,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "options": {"temperature": model.temperature, "num_predict": model.max_output_tokens,
-                        "num_ctx": model.context_window},
+            "options": {
+                "temperature": model.temperature,
+                "num_predict": model.max_output_tokens,
+                "num_ctx": model.context_window,
+            },
         }
         try:
             with httpx.stream("POST", f"{self.base_url}/api/chat", json=body, timeout=model.timeout_s) as r:
@@ -144,8 +145,14 @@ class ModelRouter:
         allowed.sort(key=lambda m: (m.id != requested, m.priority))
         return allowed
 
-    def chat(self, policy: Policy, kinds: set[DataKind], messages: list[ChatMessage],
-             requested: str | None = None, queue_timeout_s: float = 120.0) -> tuple[ChatResult, Iterator[str]]:
+    def chat(
+        self,
+        policy: Policy,
+        kinds: set[DataKind],
+        messages: list[ChatMessage],
+        requested: str | None = None,
+        queue_timeout_s: float = 120.0,
+    ) -> tuple[ChatResult, Iterator[str]]:
         """Choisit le modèle autorisé et renvoie (résultat, flux de texte).
 
         Si le modèle préféré échoue avant d'avoir produit du texte, le suivant est

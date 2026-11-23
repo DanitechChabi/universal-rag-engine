@@ -53,24 +53,33 @@ def bootstrap(url: str, org_name: str, org_slug: str, login: str, password: str,
     """Crée l'organisation, sa politique (local uniquement), et le premier administrateur."""
     hashed = PasswordHasher().hash(password)
     with create_engine(url).begin() as conn:
-        org_id = conn.execute(text("INSERT INTO organizations (name, slug) VALUES (:n, :s) RETURNING id"),
-                              {"n": org_name, "s": org_slug}).scalar_one()
+        org_id = conn.execute(
+            text("INSERT INTO organizations (name, slug) VALUES (:n, :s) RETURNING id"), {"n": org_name, "s": org_slug}
+        ).scalar_one()
         conn.execute(text("INSERT INTO ai_policies (org_id) VALUES (:o)"), {"o": org_id})
-        user_id = conn.execute(text("""INSERT INTO users (org_id, login, display_name, password_hash)
+        user_id = conn.execute(
+            text("""INSERT INTO users (org_id, login, display_name, password_hash)
                                        VALUES (:o, :l, :d, :p) RETURNING id"""),
-                               {"o": org_id, "l": login, "d": display_name, "p": hashed}).scalar_one()
+            {"o": org_id, "l": login, "d": display_name, "p": hashed},
+        ).scalar_one()
         for role in ("org_admin", "doc_admin", "user"):
-            conn.execute(text("INSERT INTO user_roles (org_id, user_id, role) VALUES (:o, :u, CAST(:r AS user_role))"),
-                         {"o": org_id, "u": user_id, "r": role})
-        conn.execute(text("""INSERT INTO audit_log (org_id, actor_user_id, action, details)
-                             VALUES (:o, :u, 'install.bootstrap', '{}'::jsonb)"""), {"o": org_id, "u": user_id})
+            conn.execute(
+                text("INSERT INTO user_roles (org_id, user_id, role) VALUES (:o, :u, CAST(:r AS user_role))"),
+                {"o": org_id, "u": user_id, "r": role},
+            )
+        conn.execute(
+            text("""INSERT INTO audit_log (org_id, actor_user_id, action, details)
+                             VALUES (:o, :u, 'install.bootstrap', '{}'::jsonb)"""),
+            {"o": org_id, "u": user_id},
+        )
     return {"org_id": org_id, "user_id": user_id}
 
 
 def cmd_bootstrap(args) -> None:
     password = args.admin_password or getpass.getpass("Mot de passe de l'administrateur : ")
-    ids = bootstrap(admin_url(args), args.org_name, args.org_slug, args.admin_login, password,
-                    args.admin_name or args.admin_login)
+    ids = bootstrap(
+        admin_url(args), args.org_name, args.org_slug, args.admin_login, password, args.admin_name or args.admin_login
+    )
     print(f"organisation {ids['org_id']} et administrateur {ids['user_id']} créés")
 
 

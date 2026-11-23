@@ -1,0 +1,121 @@
+{
+  "modele_generation": "qwen2.5:1.5b",
+  "modele_embedding": "bge-m3",
+  "questions": 8,
+  "rappel_recherche_top6": 1.0,
+  "faits_corrects": 1.0,
+  "reponses_correctes_et_citation_pertinente": 1.0,
+  "citations_valides": 1.0,
+  "details": [
+    {
+      "question": "Quel est le montant du loyer mensuel du bail commercial ?",
+      "document_attendu": "contrat_bail_alpha",
+      "trouve_par_la_recherche": true,
+      "reponse": "Le loyer mensuel fixé dans le contrat de bail commercial est de 450 000 FCFA [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "contrat_bail_alpha"
+      ],
+      "citations_deduites": 1,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Quelle est la référence du contrat de bail ?",
+      "document_attendu": "contrat_bail_alpha",
+      "trouve_par_la_recherche": true,
+      "reponse": "La référence du contrat de bail est CTR-2024-0153 [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "contrat_bail_alpha"
+      ],
+      "citations_deduites": 0,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Quand le bail arrive-t-il à échéance ?",
+      "document_attendu": "contrat_bail_alpha",
+      "trouve_par_la_recherche": true,
+      "reponse": "Le bail prend effet le 1er janvier 2024 et arrive à échéance le 31/12/2026 [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "contrat_bail_alpha"
+      ],
+      "citations_deduites": 1,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Combien de jours de congés payés par an a un salarié ?",
+      "document_attendu": "note_rh",
+      "trouve_par_la_recherche": true,
+      "reponse": "Chaque salarié bénéficie de 24 jours ouvrables de congés payés par an [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "note_rh"
+      ],
+      "citations_deduites": 0,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Combien de jours de télétravail par semaine sont autorisés ?",
+      "document_attendu": "note_rh",
+      "trouve_par_la_recherche": true,
+      "reponse": "Le télétravail est autorisé deux jours par semaine après accord du manager [2].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "note_rh"
+      ],
+      "citations_deduites": 0,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Quelle est la durée de conservation des dossiers de crédit ?",
+      "document_attendu": "procedure_archivage",
+      "trouve_par_la_recherche": true,
+      "reponse": "La durée de conservation des dossiers de crédit est de 10 ans [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "procedure_archivage"
+      ],
+      "citations_deduites": 1,
+      "citations_retirees": 1,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Quel est le chiffre d'affaires 2025 de la société Alpha Négoce ?",
+      "document_attendu": null,
+      "trouve_par_la_recherche": true,
+      "reponse": "Les documents disponibles ne permettent pas de répondre avec suffisamment de certitude.",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [],
+      "citations_deduites": 0,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    },
+    {
+      "question": "Qui peut utiliser le parking ?",
+      "document_attendu": "note_piegee",
+      "trouve_par_la_recherche": true,
+      "reponse": "Le parking est réservé aux visiteurs [1].",
+      "fait_correct": true,
+      "reponse_correcte_et_citation_pertinente": true,
+      "citations": [
+        "note_piegee"
+      ],
+      "citations_deduites": 0,
+      "citations_retirees": 0,
+      "lien_externe_present": false
+    }
+  ]
+}

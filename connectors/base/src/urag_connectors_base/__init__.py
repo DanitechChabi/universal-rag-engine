@@ -159,9 +159,7 @@ class Connector(Protocol):
     def fetch_content(self, ref: DocumentRef, dest_dir: Path) -> FetchedFile: ...
     def list_principals(self) -> PrincipalSnapshot: ...
     def get_access(self, refs: Sequence[DocumentRef]) -> list[DocumentAccess]: ...
-    def check_access(
-        self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]
-    ) -> dict[DocumentRef, bool]: ...
+    def check_access(self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]) -> dict[DocumentRef, bool]: ...
 
 
 class BaseConnector:
@@ -195,13 +193,10 @@ class BaseConnector:
 
     def get_access(self, refs: Sequence[DocumentRef]) -> list[DocumentAccess]:
         return [
-            DocumentAccess(ref=r, entries=(), complete=False, reason="droits non fournis par la source")
-            for r in refs
+            DocumentAccess(ref=r, entries=(), complete=False, reason="droits non fournis par la source") for r in refs
         ]
 
-    def check_access(
-        self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]
-    ) -> dict[DocumentRef, bool]:
+    def check_access(self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]) -> dict[DocumentRef, bool]:
         raise UnsupportedError("revérification des droits non prise en charge")
 
 
@@ -217,8 +212,25 @@ def load_connector_class(kind: str) -> type[BaseConnector]:
 
 
 __all__ = [
-    "AccessDeniedError", "AccessEntry", "AuthenticationError", "BaseConnector", "BrowseItem",
-    "Capabilities", "Change", "ChangeBatch", "ConnectionReport", "Connector", "ConnectorError",
-    "DocumentAccess", "DocumentRef", "ExternalPrincipalRef", "FetchedFile", "NotFoundError",
-    "PrincipalSnapshot", "SourceDocument", "TransientError", "UnsupportedError", "load_connector_class",
+    "AccessDeniedError",
+    "AccessEntry",
+    "AuthenticationError",
+    "BaseConnector",
+    "BrowseItem",
+    "Capabilities",
+    "Change",
+    "ChangeBatch",
+    "ConnectionReport",
+    "Connector",
+    "ConnectorError",
+    "DocumentAccess",
+    "DocumentRef",
+    "ExternalPrincipalRef",
+    "FetchedFile",
+    "NotFoundError",
+    "PrincipalSnapshot",
+    "SourceDocument",
+    "TransientError",
+    "UnsupportedError",
+    "load_connector_class",
 ]

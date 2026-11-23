@@ -28,8 +28,9 @@ class AppState:
 
     @cached_property
     def encoder(self) -> Encoder:
-        return self.encoder_override or OllamaEncoder(self.settings.ollama_url, self.settings.embedding_model,
-                                                      self.settings.embedding_dimension)
+        return self.encoder_override or OllamaEncoder(
+            self.settings.ollama_url, self.settings.embedding_model, self.settings.embedding_dimension
+        )
 
     @cached_property
     def ingestion(self) -> IngestionService:
@@ -50,17 +51,24 @@ class AppState:
 
     @cached_property
     def rag(self) -> RagOrchestrator:
-        return RagOrchestrator(self.db, self.retriever, self.router, self.settings.retrieval_candidates,
-                               self.settings.context_passages)
+        return RagOrchestrator(
+            self.db, self.retriever, self.router, self.settings.retrieval_candidates, self.settings.context_passages
+        )
 
     @classmethod
     def from_settings(cls, settings: Settings) -> AppState:
         if settings.master_key_file is None:
             raise RuntimeError("URAG_MASTER_KEY_FILE est obligatoire")
         box = SecretBox(load_master_key(settings.master_key_file))
-        secret = (settings.token_secret.get_secret_value().encode() if settings.token_secret
-                  else box.derive("access-token-signing"))
-        tokens = TokenService(secret, timedelta(minutes=settings.access_token_ttl_minutes),
-                              timedelta(hours=settings.refresh_token_ttl_hours))
+        secret = (
+            settings.token_secret.get_secret_value().encode()
+            if settings.token_secret
+            else box.derive("access-token-signing")
+        )
+        tokens = TokenService(
+            secret,
+            timedelta(minutes=settings.access_token_ttl_minutes),
+            timedelta(hours=settings.refresh_token_ttl_hours),
+        )
         api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
         return cls(settings, Database(settings.database_url), VectorStore(settings.qdrant_url, api_key), tokens)

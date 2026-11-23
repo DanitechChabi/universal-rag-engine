@@ -29,8 +29,9 @@ class EmbeddingError(Exception):
 
 
 class OllamaEncoder:
-    def __init__(self, base_url: str, model: str = "bge-m3", dimension: int = 1024,
-                 batch_size: int = 16, timeout: float = 300.0) -> None:
+    def __init__(
+        self, base_url: str, model: str = "bge-m3", dimension: int = 1024, batch_size: int = 16, timeout: float = 300.0
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model_name = model
         self.dimension = dimension
@@ -51,10 +52,11 @@ class OllamaEncoder:
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
         vectors: list[list[float]] = []
         for i in range(0, len(texts), self.batch_size):
-            batch = list(texts[i:i + self.batch_size])
+            batch = list(texts[i : i + self.batch_size])
             try:
-                r = self._client.post(f"{self.base_url}/api/embed",
-                                      json={"model": self.model_name, "input": batch, "truncate": True})
+                r = self._client.post(
+                    f"{self.base_url}/api/embed", json={"model": self.model_name, "input": batch, "truncate": True}
+                )
                 r.raise_for_status()
             except httpx.HTTPError as e:
                 raise EmbeddingError(str(e)) from e

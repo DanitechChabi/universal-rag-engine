@@ -73,65 +73,120 @@ class Retriever:
 
     def dense(self, scope: AccessScope, query: str, limit: int, filters: SearchFilters) -> list[uuid.UUID]:
         vector = self.encoder.encode([query])[0]
-        hits = self.vectors.search(self.collection, scope.org_id, vector, scope.keys, limit,
-                                   source_ids=filters.source_ids or None, doc_classes=filters.doc_classes or None)
+        hits = self.vectors.search(
+            self.collection,
+            scope.org_id,
+            vector,
+            scope.keys,
+            limit,
+            source_ids=filters.source_ids or None,
+            doc_classes=filters.doc_classes or None,
+        )
         return [h.id for h in hits]
 
     @staticmethod
-    def lexical(conn: Connection, scope: AccessScope, query: str, limit: int,
-                filters: SearchFilters) -> list[uuid.UUID]:
+    def lexical(
+        conn: Connection, scope: AccessScope, query: str, limit: int, filters: SearchFilters
+    ) -> list[uuid.UUID]:
         if not scope.keys:
             return []
         config = "english" if detect_language(query) == "en" else "urag_fr"
-        params = {"keys": list(scope.keys), "q": query, "lim": limit,
-                  "src": [str(s) for s in filters.source_ids] or None, "cls": list(filters.doc_classes) or None}
+        params = {
+            "keys": list(scope.keys),
+            "q": query,
+            "lim": limit,
+            "src": [str(s) for s in filters.source_ids] or None,
+            "cls": list(filters.doc_classes) or None,
+        }
         common = """access_keys && CAST(:keys AS text[])
                     AND (CAST(:src AS uuid[]) IS NULL OR source_id = ANY(CAST(:src AS uuid[])))
                     AND (CAST(:cls AS text[]) IS NULL OR doc_class = ANY(CAST(:cls AS text[])))"""
-        rows = conn.execute(text(f"""
+        rows = (
+            conn.execute(
+                text(f"""
             SELECT id FROM searchable_chunks
             WHERE {common} AND tsv @@ websearch_to_tsquery('{config}', :q)
             ORDER BY ts_rank_cd(tsv, websearch_to_tsquery('{config}', :q)) DESC, id
-            LIMIT :lim"""), params).scalars().all()
+            LIMIT :lim"""),
+                params,
+            )
+            .scalars()
+            .all()
+        )
         exact: list[uuid.UUID] = []
         for i, ref in enumerate(references_in(query)):
             params[f"r{i}"] = f"%{ref}%"
-            exact += conn.execute(text(f"""
+            exact += (
+                conn.execute(
+                    text(f"""
                 SELECT id FROM searchable_chunks WHERE {common} AND text ILIKE :r{i}
-                ORDER BY id LIMIT :lim"""), params).scalars().all()
+                ORDER BY id LIMIT :lim"""),
+                    params,
+                )
+                .scalars()
+                .all()
+            )
         # Les correspondances exactes passent devant.
         return list(dict.fromkeys([*exact, *rows]))[:limit]
 
     @staticmethod
-    def load(conn: Connection, scope: AccessScope, ranked: list[tuple[uuid.UUID, float, tuple[str, ...]]]
-             ) -> list[Passage]:
+    def load(
+        conn: Connection, scope: AccessScope, ranked: list[tuple[uuid.UUID, float, tuple[str, ...]]]
+    ) -> list[Passage]:
         """Relit les passages en revérifiant les droits ; conserve l'ordre de la fusion."""
         if not ranked or not scope.keys:
             return []
-        rows = conn.execute(text("""
+        rows = conn.execute(
+            text("""
             SELECT c.id, c.document_id, c.version_id, c.title, c.source_id, s.name AS source_name, c.text,
                    c.page_start, c.page_end, c.section_path, d.source_version
             FROM searchable_chunks c
             JOIN sources s ON s.id = c.source_id
             JOIN documents d ON d.id = c.document_id
             WHERE c.id = ANY(CAST(:ids AS uuid[])) AND c.access_keys && CAST(:keys AS text[])"""),
-            {"ids": [str(cid) for cid, _, _ in ranked], "keys": list(scope.keys)}).all()
+            {"ids": [str(cid) for cid, _, _ in ranked], "keys": list(scope.keys)},
+        ).all()
         by_id = {r.id: r for r in rows}
         passages = []
         for cid, score, channels in ranked:
             r = by_id.get(cid)
             if r is None:
                 continue  # supprimé, ancienne version, droits retirés : exclu
-            passages.append(Passage(r.id, r.document_id, r.version_id, r.title, r.source_id, r.source_name,
-                                    r.text, r.page_start, r.page_end, tuple(r.section_path or ()),
-                                    r.source_version, score, channels))
+            passages.append(
+                Passage(
+                    r.id,
+                    r.document_id,
+                    r.version_id,
+                    r.title,
+                    r.source_id,
+                    r.source_name,
+                    r.text,
+                    r.page_start,
+                    r.page_end,
+                    tuple(r.section_path or ()),
+                    r.source_version,
+                    score,
+                    channels,
+                )
+            )
         return passages
 
-    def search(self, conn: Connection, scope: AccessScope, query: str, limit: int = 10,
-               candidates: int = 30, filters: SearchFilters | None = None) -> list[Passage]:
+    def search(
+        self,
+        conn: Connection,
+        scope: AccessScope,
+        query: str,
+        limit: int = 10,
+        candidates: int = 30,
+        filters: SearchFilters | None = None,
+    ) -> list[Passage]:
         filters = filters or SearchFilters()
         if not scope.keys or not query.strip():
             return []
-        ranked = rrf({"dense": self.dense(scope, query, candidates, filters),
-                      "lexical": self.lexical(conn, scope, query, candidates, filters)})
+        ranked = rrf(
+            {
+                "dense": self.dense(scope, query, candidates, filters),
+                "lexical": self.lexical(conn, scope, query, candidates, filters),
+            }
+        )
         return self.load(conn, scope, ranked[:candidates])[:limit]

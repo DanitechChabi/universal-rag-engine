@@ -73,21 +73,26 @@ class TokenService:
     def issue_access(self, claims: AccessClaims, now: datetime | None = None) -> str:
         now = now or datetime.now(UTC)
         payload = {
-            "sub": str(claims.user_id), "org": str(claims.org_id), "sid": str(claims.session_id),
-            "roles": list(claims.roles), "iat": now, "exp": now + self.access_ttl, "typ": "access",
+            "sub": str(claims.user_id),
+            "org": str(claims.org_id),
+            "sid": str(claims.session_id),
+            "roles": list(claims.roles),
+            "iat": now,
+            "exp": now + self.access_ttl,
+            "typ": "access",
         }
         return jwt.encode(payload, self._secret, algorithm=self.ALGORITHM)
 
     def verify_access(self, token: str) -> AccessClaims:
         try:
-            p = jwt.decode(token, self._secret, algorithms=[self.ALGORITHM],
-                           options={"require": ["exp", "sub", "org", "sid"]})
+            p = jwt.decode(
+                token, self._secret, algorithms=[self.ALGORITHM], options={"require": ["exp", "sub", "org", "sid"]}
+            )
         except jwt.PyJWTError as e:
             raise InvalidTokenError(str(e)) from e
         if p.get("typ") != "access":
             raise InvalidTokenError("type de jeton invalide")
-        return AccessClaims(uuid.UUID(p["sub"]), uuid.UUID(p["org"]), uuid.UUID(p["sid"]),
-                            tuple(p.get("roles", ())))
+        return AccessClaims(uuid.UUID(p["sub"]), uuid.UUID(p["org"]), uuid.UUID(p["sid"]), tuple(p.get("roles", ())))
 
     @staticmethod
     def new_refresh_token() -> tuple[str, bytes]:

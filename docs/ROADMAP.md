@@ -6,8 +6,8 @@ développeur aidé de Claude Code (`AUDIT_FAISABILITE.md` §8).
 
 | Phase | Contenu | Durée | Condition de sortie | État |
 |---|---|---|---|---|
-| 0 | Cadrage : architecture, base, sécurité, connecteurs, IA, API, déploiement, tests, ADR | 2–3 sem. | documents validés par le porteur du projet | **livrée, en attente de validation** |
-| 1 | Prototype RAG : socle Python (uv), FastAPI, authentification, migrations, ingestion locale PDF/DOCX, embeddings, Qdrant, recherche hybride filtrée, réponses avec citations | 3–5 sem. | scénarios 1, 2, 3, 5, 6 automatisés ; tests d'isolation et de permissions passés ; première mesure de qualité | à faire |
+| 0 | Cadrage : architecture, base, sécurité, connecteurs, IA, API, déploiement, tests, ADR | 2–3 sem. | documents validés par le porteur du projet | **livrée** (PR #1) |
+| 1 | Prototype RAG : socle Python (uv), FastAPI, authentification, migrations, ingestion locale PDF/DOCX, embeddings, Qdrant, recherche hybride filtrée, réponses avec citations | 3–5 sem. | scénarios 1, 2, 3, 5, 6 automatisés ; tests d'isolation et de permissions passés ; première mesure de qualité | **livrée** (`docs/reports/PHASE1.md`) ; comparatif du canal lexical reporté en phase 2 |
 | 2 | Moteur documentaire : OCR, Excel/PowerPoint/anciens formats, versions, incrémental, erreurs, reprises | 4–6 sem. | scénarios 4, 8–11, 16 | à faire |
 | 3 | Connecteurs : fichiers locaux complet ; M-Files contre un simulateur (pas de coffre disponible, Q8) ; droits ; correspondance des identités | 6–10 sem. | scénarios 7, 12, 13 ; suite de conformité sur le simulateur ; **validation M-Files réelle reportée** jusqu'à l'obtention d'un coffre | à faire — coffre M-Files à obtenir |
 | 4 | Interface web : chat, conversations, sources, documents, tableau de bord, administration | 6–8 sem. | tests Playwright des parcours principaux | à faire |

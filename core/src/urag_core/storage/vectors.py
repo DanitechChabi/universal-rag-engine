@@ -81,29 +81,36 @@ class VectorStore:
     ) -> list[VectorHit]:
         if not access_keys:
             return []
-        must: list[qm.Condition] = [
-            qm.FieldCondition(key="access_keys", match=qm.MatchAny(any=list(access_keys)))
-        ]
+        must: list[qm.Condition] = [qm.FieldCondition(key="access_keys", match=qm.MatchAny(any=list(access_keys)))]
         if source_ids:
             must.append(qm.FieldCondition(key="source_id", match=qm.MatchAny(any=[str(s) for s in source_ids])))
         if doc_classes:
             must.append(qm.FieldCondition(key="doc_class", match=qm.MatchAny(any=list(doc_classes))))
         result = self.client.query_points(
-            collection_name=collection, query=vector, query_filter=self._org_filter(org_id, *must),
-            limit=limit, with_payload=True,
+            collection_name=collection,
+            query=vector,
+            query_filter=self._org_filter(org_id, *must),
+            limit=limit,
+            with_payload=True,
         )
         return [VectorHit(uuid.UUID(str(p.id)), p.score, p.payload or {}) for p in result.points]
 
     def delete_where(self, collection: str, org_id: uuid.UUID, key: str, value: uuid.UUID) -> None:
         cond = qm.FieldCondition(key=key, match=qm.MatchValue(value=str(value)))
-        self.client.delete(collection_name=collection,
-                           points_selector=qm.FilterSelector(filter=self._org_filter(org_id, cond)), wait=True)
+        self.client.delete(
+            collection_name=collection,
+            points_selector=qm.FilterSelector(filter=self._org_filter(org_id, cond)),
+            wait=True,
+        )
 
-    def set_access_keys(self, collection: str, org_id: uuid.UUID, document_id: uuid.UUID,
-                        keys: Sequence[str]) -> None:
+    def set_access_keys(self, collection: str, org_id: uuid.UUID, document_id: uuid.UUID, keys: Sequence[str]) -> None:
         cond = qm.FieldCondition(key="document_id", match=qm.MatchValue(value=str(document_id)))
-        self.client.set_payload(collection_name=collection, payload={"access_keys": list(keys)},
-                                points=qm.FilterSelector(filter=self._org_filter(org_id, cond)), wait=True)
+        self.client.set_payload(
+            collection_name=collection,
+            payload={"access_keys": list(keys)},
+            points=qm.FilterSelector(filter=self._org_filter(org_id, cond)),
+            wait=True,
+        )
 
     def count(self, collection: str, org_id: uuid.UUID) -> int:
         return self.client.count(collection, count_filter=self._org_filter(org_id), exact=True).count

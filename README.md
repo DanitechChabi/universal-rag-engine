@@ -9,9 +9,10 @@ dépendance obligatoire au cloud.
 
 ## État
 
-**Phase 0 (cadrage technique) livrée, en attente de validation.** Aucune
-fonctionnalité n'est encore développée. Seul le schéma de base de données est
-écrit et testé.
+**Phase 1 (prototype RAG) livrée** : indexation de PDF et de Word depuis des dossiers,
+recherche hybride filtrée par les droits, réponses en flux continu avec citations
+vérifiées, authentification et rôles. Compte rendu : [docs/reports/PHASE1.md](docs/reports/PHASE1.md).
+Démarrage : [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 | Document | Contenu |
 |---|---|
@@ -25,7 +26,9 @@ fonctionnalité n'est encore développée. Seul le schéma de base de données e
 | [Contrats d'API](docs/API.md) | conventions, routes, rôles, flux de réponse |
 | [Déploiement](docs/DEPLOYMENT.md) | Server, Desktop, sauvegarde, supervision |
 | [Plan de tests](docs/TESTING.md) | niveaux, scénarios, qualité RAG, sécurité, charge |
-| [Feuille de route](docs/ROADMAP.md) | phases, conditions de sortie, décisions en attente |
+| [Feuille de route](docs/ROADMAP.md) | phases, conditions de sortie, décisions |
+| [Développement](docs/DEVELOPMENT.md) | lancer la pile, l'API, le worker et les tests |
+| [Compte rendu phase 1](docs/reports/PHASE1.md) | réalisé, tests, mesure de qualité, limites |
 | [Décisions (ADR)](docs/DECISIONS/README.md) | 16 fiches de décision |
 
 ## Tester le schéma de base de données

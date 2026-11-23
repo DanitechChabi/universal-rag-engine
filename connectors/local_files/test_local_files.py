@@ -1,8 +1,8 @@
 import os
 
 import pytest
-from urag_connectors_base import AccessDeniedError, DocumentRef, NotFoundError
 from urag_connector_local_files import LocalFilesConnector, is_ignored_name
+from urag_connectors_base import AccessDeniedError, DocumentRef, NotFoundError
 
 
 def _tree(tmp_path):

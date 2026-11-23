@@ -3,7 +3,16 @@ from datetime import timedelta
 
 import pytest
 from urag_connectors_base import AccessEntry, DocumentAccess, DocumentRef, ExternalPrincipalRef
-from urag_core.ai import ChatMessage, ChatResult, DataKind, ModelRouter, ModelSpec, Policy, PolicyError, ProviderError
+from urag_core.ai import (
+    ChatMessage,
+    ChatResult,
+    DataKind,
+    ModelRouter,
+    ModelSpec,
+    Policy,
+    PolicyError,
+    ProviderError,
+)
 from urag_core.citations import INSUFFICIENT, build_context, sanitize, validate
 from urag_core.permissions import document_keys
 from urag_core.retrieval import Passage, references_in, rrf
@@ -61,7 +70,7 @@ def test_cles_document_ferme_par_defaut():
     assert document_keys(space_only, space, True, {}).keys == (f"sp:{space}",)
     assert document_keys(space_only, space, False, {}).keys == ()  # l'administrateur n'a pas ouvert le dossier
     incomplete = DocumentAccess(ref, (AccessEntry("space"),), complete=False, reason="pseudo-utilisateur")
-    assert document_keys(incomplete, space, True, {}) .complete is False
+    assert document_keys(incomplete, space, True, {}).complete is False
     deny = DocumentAccess(ref, (AccessEntry(ExternalPrincipalRef("user", "7"), allow=False),), complete=True)
     assert document_keys(deny, space, True, {}).keys == ()
     known = uuid.uuid4()
@@ -74,8 +83,9 @@ def test_cles_document_ferme_par_defaut():
 
 
 def _passage(n: int, text: str = "texte") -> Passage:
-    return Passage(uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), f"Doc {n}", uuid.uuid4(), "Source", text,
-                   n, n, ("Section",), "1", 1.0)
+    return Passage(
+        uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), f"Doc {n}", uuid.uuid4(), "Source", text, n, n, ("Section",), "1", 1.0
+    )
 
 
 def test_rrf_deterministe():
@@ -91,7 +101,7 @@ def test_references_exactes():
 
 
 def test_validation_des_citations():
-    passages = [_passage(1), _passage(2)]
+    passages = [_passage(1, "Le loyer mensuel est de 450 000 FCFA."), _passage(2, "Échéance du bail en 2026.")]
     v = validate("Le loyer est de 450 000 FCFA [1]. Échéance en 2026 [2, 7]. Inventé [9].", passages)
     assert [c.rank for c in v.citations] == [1, 2]
     assert v.removed == 2 and "[9]" not in v.text and "[7]" not in v.text
@@ -131,9 +141,13 @@ class _Adapter:
 
 def test_local_uniquement_jamais_d_appel_externe_meme_en_panne():
     local, external = _Adapter(fail=True), _Adapter()
-    router = ModelRouter({"ollama": local, "anthropic": external}, [
-        ModelSpec("l", "qwen", "ollama", "local", priority=1),
-        ModelSpec("e", "claude", "anthropic", "external", priority=2)])
+    router = ModelRouter(
+        {"ollama": local, "anthropic": external},
+        [
+            ModelSpec("l", "qwen", "ollama", "local", priority=1),
+            ModelSpec("e", "claude", "anthropic", "external", priority=2),
+        ],
+    )
     _, stream = router.chat(Policy(), {DataKind.QUESTION, DataKind.DOCUMENTS}, [ChatMessage("user", "q")])
     with pytest.raises(ProviderError):
         list(stream)
@@ -151,7 +165,33 @@ def test_politique_hybride_sans_documents_externes():
 
 def test_bascule_entre_modeles_locaux():
     broken, ok = _Adapter(fail=True), _Adapter()
-    router = ModelRouter({"a": broken, "b": ok}, [ModelSpec("1", "m1", "a", "local", priority=1),
-                                                    ModelSpec("2", "m2", "b", "local", priority=2)])
+    router = ModelRouter(
+        {"a": broken, "b": ok},
+        [ModelSpec("1", "m1", "a", "local", priority=1), ModelSpec("2", "m2", "b", "local", priority=2)],
+    )
     result, stream = router.chat(Policy(), {DataKind.DOCUMENTS}, [ChatMessage("user", "q")])
     assert list(stream) == ["réponse de m2"] and result.model.id == "2"
+
+
+def test_attribution_verifiable_quand_le_modele_ne_cite_pas():
+    passages = [
+        _passage(1, "Le télétravail est autorisé deux jours par semaine."),
+        _passage(2, "Le loyer mensuel est fixé à 450 000 FCFA, payable le 5 de chaque mois."),
+    ]
+    v = validate("Le loyer mensuel est de 450 000 FCFA. Il augmente de 3 % par an.", passages)
+    assert v.text.startswith("Le loyer mensuel est de 450 000 FCFA [2].")
+    assert "3 % par an." in v.text and "[1]" not in v.text  # chiffre absent des extraits : pas de citation
+    assert [(c.rank, c.inferred) for c in v.citations] == [(2, True)]
+    assert validate("Le loyer est de 450 000 FCFA [2].", passages).citations[0].inferred is False
+
+
+def test_citation_qui_ne_justifie_pas_la_phrase_est_corrigee():
+    passages = [
+        _passage(1, "Le loyer mensuel est fixé à 450 000 FCFA."),
+        _passage(2, "La durée de conservation des dossiers de crédit est de 10 ans."),
+    ]
+    v = validate("La durée de conservation des dossiers de crédit est de 10 ans [1].", passages)
+    assert "[2]" in v.text and "[1]" not in v.text
+    assert [(c.rank, c.inferred) for c in v.citations] == [(2, True)] and v.removed == 1
+    gone = validate("Le délai de recours est de 45 jours [1].", passages)
+    assert gone.citations == [] and "[1]" not in gone.text  # aucun extrait ne le justifie
