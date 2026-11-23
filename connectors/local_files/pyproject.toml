@@ -1,0 +1,13 @@
+[project]
+name = "urag-connector-local-files"
+version = "0.1.0"
+description = "Connecteur de fichiers locaux"
+requires-python = ">=3.12"
+dependencies = ["urag-connectors-base"]
+
+[project.entry-points."urag.connectors"]
+local_files = "urag_connector_local_files:LocalFilesConnector"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

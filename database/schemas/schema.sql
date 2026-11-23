@@ -656,6 +656,15 @@ CREATE FUNCTION urag_auth_lookup(p_login text)
 $$;
 
 -- -----------------------------------------------------------------------------
+-- Worker : organisations ayant des tâches prêtes (identifiants seulement).
+-- Le worker traite ensuite chaque organisation dans sa propre transaction (RLS).
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION urag_orgs_with_ready_jobs() RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+    SELECT DISTINCT org_id FROM jobs WHERE status = 'queued' AND run_after <= now()
+$$;
+
+-- -----------------------------------------------------------------------------
 -- Row Level Security : isolation stricte par organisation
 -- -----------------------------------------------------------------------------
 DO $$
@@ -698,6 +707,8 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO urag_maintenance;
 GRANT INSERT ON organizations TO urag_maintenance;
 GRANT DELETE ON audit_log TO urag_maintenance;
 ALTER FUNCTION urag_audit_purge(interval) OWNER TO urag_maintenance;
+GRANT SELECT ON jobs TO urag_maintenance;
+ALTER FUNCTION urag_orgs_with_ready_jobs() OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_audit_purge(interval) FROM PUBLIC, urag_app;
 
 COMMIT;

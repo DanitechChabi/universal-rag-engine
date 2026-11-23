@@ -199,6 +199,16 @@ WITH next AS (
         FROM next WHERE jobs.id = next.id RETURNING jobs.status)
 SELECT pg_temp.check(count(*) = 1 AND bool_and(status = 'running'), 'prise d''une tâche avec SKIP LOCKED') FROM taken;
 
+SET urag.org_id = '';
+SELECT pg_temp.check((SELECT count(*) FROM jobs) = 0, 'worker sans organisation : aucune tâche visible');
+SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM urag_orgs_with_ready_jobs()),
+    'aucune organisation listée quand aucune tâche n''est prête');
+SET urag.org_id = 'a0000000-0000-0000-0000-000000000001';
+INSERT INTO jobs (org_id, kind) VALUES ('a0000000-0000-0000-0000-000000000001', 'ingest_document');
+SET urag.org_id = '';
+SELECT pg_temp.check((SELECT array_agg(o) FROM urag_orgs_with_ready_jobs() o) = ARRAY['a0000000-0000-0000-0000-000000000001'::uuid],
+    'le worker trouve l''organisation qui a une tâche prête');
+
 -- 14. Organisation B : isolée de A.
 SET urag.org_id = 'b0000000-0000-0000-0000-000000000001';
 SELECT pg_temp.check((SELECT count(*) FROM documents) = 1, 'B ne voit que son document');
