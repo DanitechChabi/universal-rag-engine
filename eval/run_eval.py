@@ -67,6 +67,7 @@ def main() -> int:
     p.add_argument("--chat-provider", choices=("ollama", "gemini"), default="ollama")
     p.add_argument("--from-dump", type=Path, help="réutiliser un index déjà construit (pg_dump) au lieu d'indexer")
     p.add_argument("--pause-s", type=float, default=0.0, help="pause entre questions (quota d'une API gratuite)")
+    p.add_argument("--dump", type=Path, help="copier l'index (pg_dump) juste après l'indexation")
     p.add_argument("--keep-db", action="store_true")
     args = p.parse_args()
 
@@ -90,6 +91,7 @@ def main() -> int:
         c.execute(text(f'CREATE DATABASE "{name}"'))
     admin_db = make_url(args.admin_url).set(database=name).render_as_string(hide_password=False)
     app_password = "app-" + secrets.token_hex(8)
+    app_role = f"urag_run_{secrets.token_hex(6)}"
     if args.from_dump:
         import subprocess
 
@@ -117,8 +119,8 @@ def main() -> int:
             print("pg_restore :", restored.stderr.strip().splitlines()[-1:], flush=True)
     else:
         cli.main(["--admin-url", admin_db, "migrate"])
-    cli.main(["--admin-url", admin_db, "app-password", "--password", app_password])
-    app_url = make_url(admin_db).set(username="urag_app", password=app_password).render_as_string(hide_password=False)
+    cli.create_run_role(admin_db, app_role, app_password)
+    app_url = make_url(admin_db).set(username=app_role, password=app_password).render_as_string(hide_password=False)
     try:
         password = secrets.token_urlsafe(18)
         from urag_core.security import PasswordHasher
@@ -210,6 +212,27 @@ def main() -> int:
             client.post(f"/api/v1/sources/{source}/sync", headers=h)
             Worker(state.db, state.ingestion).run_until_idle(max_rounds=1000)
         indexing_s = time.monotonic() - started
+        if args.dump and not args.from_dump:
+            import subprocess
+
+            url = make_url(admin_db)
+            subprocess.run(  # noqa: S603 - arguments construits ici
+                [  # noqa: S607 - outil PostgreSQL standard
+                    "pg_dump",
+                    "-h",
+                    url.host or "127.0.0.1",
+                    "-U",
+                    url.username or "postgres",
+                    "-Fc",
+                    "-d",
+                    name,
+                    "-f",
+                    str(args.dump),
+                ],
+                check=True,
+                env={**os.environ, "PGPASSWORD": url.password or ""},
+            )
+            print(f"index copié dans {args.dump}", flush=True)
         docs = client.get("/api/v1/documents", headers=h).json()["items"]
         status_counts: dict[str, int] = defaultdict(int)
         for d in docs:
@@ -317,6 +340,7 @@ def main() -> int:
             with admin.connect() as c:
                 c.execute(text(f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{name}'"))
                 c.execute(text(f'DROP DATABASE "{name}"'))
+        cli.drop_run_role(args.admin_url, app_role)
 
 
 if __name__ == "__main__":
