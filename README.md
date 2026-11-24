@@ -28,6 +28,7 @@ Démarrage : [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 | [Plan de tests](docs/TESTING.md) | niveaux, scénarios, qualité RAG, sécurité, charge |
 | [Feuille de route](docs/ROADMAP.md) | phases, conditions de sortie, décisions |
 | [Développement](docs/DEVELOPMENT.md) | lancer la pile, l'API, le worker et les tests |
+| [Tester sur son PC](docs/TESTER.md) | guide pas à pas Windows, page de test dans le navigateur |
 | [Compte rendu phase 1](docs/reports/PHASE1.md) | réalisé, tests, mesure de qualité, limites |
 | [Décisions (ADR)](docs/DECISIONS/README.md) | 16 fiches de décision |
 
