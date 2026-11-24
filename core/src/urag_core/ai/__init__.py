@@ -130,6 +130,90 @@ class OllamaAdapter:
             raise ProviderError(f"Ollama : {e}") from e
 
 
+class GeminiAdapter:
+    """API Gemini (externe). La clé n'est jamais journalisée ni renvoyée au frontend.
+
+    Reprises automatiques sur 429 / 5xx (quota ou forte demande) avant le premier jeton.
+    """
+
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+    RETRYABLE = {429, 500, 502, 503, 504}
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = BASE_URL,
+        max_attempts: int = 5,
+        backoff_s: float = 4.0,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
+        if not api_key:
+            raise ValueError("clé d'API Gemini manquante")
+        self._key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.max_attempts = max_attempts
+        self.backoff_s = backoff_s
+        self._client = httpx.Client(transport=transport, timeout=300.0)
+
+    def _headers(self) -> dict[str, str]:
+        return {"x-goog-api-key": self._key, "content-type": "application/json"}
+
+    def health(self) -> bool:
+        try:
+            return self._client.get(f"{self.base_url}/models?pageSize=1", headers=self._headers()).status_code == 200
+        except httpx.HTTPError:
+            return False
+
+    @staticmethod
+    def body(model: ModelSpec, messages: list[ChatMessage]) -> dict:
+        system = "\n\n".join(m.content for m in messages if m.role == "system")
+        contents = [
+            {"role": "model" if m.role == "assistant" else "user", "parts": [{"text": m.content}]}
+            for m in messages
+            if m.role != "system"
+        ]
+        body: dict = {
+            "contents": contents,
+            "generationConfig": {"temperature": model.temperature, "maxOutputTokens": model.max_output_tokens},
+        }
+        if system:
+            body["systemInstruction"] = {"parts": [{"text": system}]}
+        return body
+
+    def chat(self, model: ModelSpec, messages: list[ChatMessage], result: ChatResult) -> Iterator[str]:
+        url = f"{self.base_url}/models/{model.name}:streamGenerateContent?alt=sse"
+        payload = self.body(model, messages)
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                with self._client.stream(
+                    "POST", url, headers=self._headers(), json=payload, timeout=model.timeout_s
+                ) as r:
+                    if r.status_code in self.RETRYABLE and attempt < self.max_attempts:
+                        r.read()
+                        time.sleep(self.backoff_s * attempt)
+                        continue
+                    if r.status_code != 200:
+                        r.read()
+                        raise ProviderError(f"Gemini : HTTP {r.status_code}")
+                    for line in r.iter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        chunk = json.loads(line[6:])
+                        usage = chunk.get("usageMetadata") or {}
+                        result.tokens_in = usage.get("promptTokenCount", result.tokens_in)
+                        result.tokens_out = usage.get("candidatesTokenCount", result.tokens_out)
+                        for cand in chunk.get("candidates", [])[:1]:
+                            for part in cand.get("content", {}).get("parts", []):
+                                if part.get("text") and not part.get("thought"):
+                                    yield part["text"]
+                    return
+            except httpx.HTTPError as e:
+                if attempt == self.max_attempts:
+                    raise ProviderError(f"Gemini : {type(e).__name__}") from e
+                time.sleep(self.backoff_s * attempt)
+        raise ProviderError("Gemini : indisponible après plusieurs tentatives")
+
+
 @dataclass
 class ModelRouter:
     adapters: dict[str, ProviderAdapter]

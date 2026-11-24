@@ -64,13 +64,16 @@ def main() -> int:
     p.add_argument("--qdrant-key", default="dev-qdrant-key")
     p.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     p.add_argument("--chat-model", default="qwen2.5:1.5b")
+    p.add_argument("--chat-provider", choices=("ollama", "gemini"), default="ollama")
+    p.add_argument("--from-dump", type=Path, help="réutiliser un index déjà construit (pg_dump) au lieu d'indexer")
+    p.add_argument("--pause-s", type=float, default=0.0, help="pause entre questions (quota d'une API gratuite)")
     p.add_argument("--keep-db", action="store_true")
     args = p.parse_args()
 
     from urag_api import cli
     from urag_api.main import create_app
     from urag_api.state import AppState
-    from urag_core.ai import ModelRouter, ModelSpec, OllamaAdapter
+    from urag_core.ai import GeminiAdapter, ModelRouter, ModelSpec, OllamaAdapter
     from urag_core.config import Settings
     from urag_core.embeddings import OllamaEncoder
     from urag_core.security import TokenService
@@ -87,12 +90,60 @@ def main() -> int:
         c.execute(text(f'CREATE DATABASE "{name}"'))
     admin_db = make_url(args.admin_url).set(database=name).render_as_string(hide_password=False)
     app_password = "app-" + secrets.token_hex(8)
-    cli.main(["--admin-url", admin_db, "migrate"])
+    if args.from_dump:
+        import subprocess
+
+        url = make_url(admin_db)
+        env = {**os.environ, "PGPASSWORD": url.password or ""}
+        restored = subprocess.run(  # noqa: S603 - arguments construits ici, aucune entrée externe
+            [  # noqa: S607 - outil PostgreSQL standard
+                "pg_restore",
+                "-h",
+                url.host or "127.0.0.1",
+                "-U",
+                url.username or "postgres",
+                "-d",
+                name,
+                "--no-owner",
+                "--role=postgres",
+                str(args.from_dump),
+            ],
+            check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if restored.returncode != 0:  # avertissements de pg_restore (extensions déjà présentes…)
+            print("pg_restore :", restored.stderr.strip().splitlines()[-1:], flush=True)
+    else:
+        cli.main(["--admin-url", admin_db, "migrate"])
     cli.main(["--admin-url", admin_db, "app-password", "--password", app_password])
     app_url = make_url(admin_db).set(username="urag_app", password=app_password).render_as_string(hide_password=False)
     try:
         password = secrets.token_urlsafe(18)
-        ids = cli.bootstrap(admin_db, "Évaluation", "evaluation", "eval.admin", password, "Évaluation")
+        from urag_core.security import PasswordHasher
+
+        with create_engine(admin_db).begin() as c:
+            existing = c.execute(text("SELECT id, org_id FROM users WHERE login = 'eval.admin'")).first()
+            if existing:
+                c.execute(
+                    text("UPDATE users SET password_hash = :h WHERE id = :u"),
+                    {"h": PasswordHasher().hash(password), "u": existing.id},
+                )
+        ids = (
+            {"user_id": existing.id, "org_id": existing.org_id}
+            if existing
+            else cli.bootstrap(admin_db, "Évaluation", "evaluation", "eval.admin", password, "Évaluation")
+        )
+        external = args.chat_provider != "ollama"
+        if external:
+            # Corpus public : envoi d'extraits vers un fournisseur externe autorisé explicitement pour ce test.
+            with create_engine(admin_db).begin() as c:
+                c.execute(
+                    text("""UPDATE ai_policies SET mode = 'cloud_allowed', allow_external_questions = true,
+                                  allow_external_documents = true WHERE org_id = :o"""),
+                    {"o": ids["org_id"]},
+                )
         settings = Settings(
             database_url=app_url,
             qdrant_url=args.qdrant_url,
@@ -100,21 +151,31 @@ def main() -> int:
             cookie_secure=False,
             tmp_dir=Path(tempfile.gettempdir()) / name,
         )
-        router = ModelRouter(
-            {"ollama": OllamaAdapter(args.ollama_url)},
-            [
-                ModelSpec(
-                    "local",
-                    args.chat_model,
-                    "ollama",
-                    "local",
-                    temperature=0.0,
-                    max_output_tokens=350,
-                    context_window=6144,
-                    timeout_s=900,
-                )
-            ],
-        )
+        if external:
+            adapter = GeminiAdapter(os.environ["URAG_GEMINI_API_KEY"])
+            spec = ModelSpec(
+                "externe",
+                args.chat_model,
+                "gemini",
+                "external",
+                temperature=0.0,
+                max_output_tokens=600,
+                context_window=32768,
+                timeout_s=300,
+            )
+        else:
+            adapter = OllamaAdapter(args.ollama_url)
+            spec = ModelSpec(
+                "local",
+                args.chat_model,
+                "ollama",
+                "local",
+                temperature=0.0,
+                max_output_tokens=350,
+                context_window=6144,
+                timeout_s=900,
+            )
+        router = ModelRouter({spec.provider: adapter}, [spec])
         state = AppState(
             settings,
             Database(app_url),
@@ -126,30 +187,28 @@ def main() -> int:
         client = TestClient(create_app(state))
         token = client.post("/api/v1/auth/login", json={"login": "eval.admin", "password": password}).json()
         h = {"Authorization": f"Bearer {token['access_token']}"}
-        space = client.post("/api/v1/spaces", headers=h, json={"name": "Corpus public"}).json()["id"]
-        client.put(
-            f"/api/v1/spaces/{space}/grants",
-            headers=h,
-            json=[{"principal_type": "user", "principal_id": str(ids["user_id"])}],
-        )
-        source = client.post(
-            "/api/v1/sources",
-            headers=h,
-            json={
-                "kind": "local_files",
-                "name": "Corpus public",
-                "space_id": space,
-                "inherit_space_access": True,
-                "config": {
-                    "roots": [str(args.files.resolve()), str((EVAL / "corpus" / "synthetic").resolve())],
-                    "exclude_globs": excluded,
-                },
-            },
-        ).json()["id"]
-
         started = time.monotonic()
-        client.post(f"/api/v1/sources/{source}/sync", headers=h)
-        Worker(state.db, state.ingestion).run_until_idle(max_rounds=1000)
+        if not args.from_dump:
+            space = client.post("/api/v1/spaces", headers=h, json={"name": "Corpus public"}).json()["id"]
+            client.put(
+                f"/api/v1/spaces/{space}/grants",
+                headers=h,
+                json=[{"principal_type": "user", "principal_id": str(ids["user_id"])}],
+            )
+            roots = [str(args.files.resolve()), str((EVAL / "corpus" / "synthetic").resolve())]
+            source = client.post(
+                "/api/v1/sources",
+                headers=h,
+                json={
+                    "kind": "local_files",
+                    "name": "Corpus public",
+                    "space_id": space,
+                    "inherit_space_access": True,
+                    "config": {"roots": roots, "exclude_globs": excluded},
+                },
+            ).json()["id"]
+            client.post(f"/api/v1/sources/{source}/sync", headers=h)
+            Worker(state.db, state.ingestion).run_until_idle(max_rounds=1000)
         indexing_s = time.monotonic() - started
         docs = client.get("/api/v1/documents", headers=h).json()["items"]
         status_counts: dict[str, int] = defaultdict(int)
@@ -163,6 +222,7 @@ def main() -> int:
 
         rows = []
         for q in questions:
+            time.sleep(args.pause_s)
             t0 = time.monotonic()
             hits = client.post("/api/v1/search", headers=h, json={"query": q["question"], "limit": 6}).json()["items"]
             found_titles = [x["title"] for x in hits]
@@ -222,6 +282,9 @@ def main() -> int:
             "label": args.label,
             "date": time.strftime("%Y-%m-%d"),
             "modele_generation": args.chat_model,
+            "fournisseur": args.chat_provider,
+            "politique": "cloud_allowed (corpus public, test explicite)" if external else "local_only",
+            "index_reutilise": bool(args.from_dump),
             "modele_embedding": "bge-m3",
             "indexation": {
                 "documents": len(docs),
