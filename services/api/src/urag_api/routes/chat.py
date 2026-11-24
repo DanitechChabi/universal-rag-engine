@@ -58,6 +58,7 @@ def search(body: SearchIn, user: CurrentUser = Depends(require(*CAN_ASK)), state
                 "section": list(p.section_path),
                 "excerpt": p.text[:600],
                 "score": round(p.score, 5),
+                "suspect": p.suspicious,
                 "channels": list(p.channels),
             }
             for p in passages

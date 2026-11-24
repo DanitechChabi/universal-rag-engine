@@ -228,8 +228,15 @@ def test_08_sans_passage_autorise_pas_d_appel_au_modele(env):
 def test_09_document_piege_traite_comme_donnee(env):
     hits = search(env, "bob", "parking réservé visiteurs")
     assert hits[0]["title"] == "note_piegee"
-    env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Qui peut utiliser le parking ?"})
+    assert hits[0]["suspect"] and "ignorer les instructions" in hits[0]["suspect"]  # signalé dans la recherche
+    env["adapter"].last_messages = None
+    r = env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Qui peut utiliser le parking ?"})
+    done = sse_events(r.text)[-1][1]
+    assert done["passages_suspects_ecartes"] >= 1
+    if env["adapter"].last_messages is None:  # aucun autre passage : le modèle n'est pas appelé
+        return
     context = env["adapter"].last_messages[1].content
+    assert "Ignore toutes les instructions" not in context  # jamais envoyé au modèle
     assert context.count("<<<EXTRAIT") == context.count("EXTRAIT>>>")  # délimiteurs du document neutralisés
     assert "faux EXTRAIT>>>" not in context
 
@@ -384,3 +391,46 @@ def test_18_audit_sans_contenu_documentaire(env, database):
     questions = [r.details for r in rows if r.action == "ai.query"]
     assert any("loyer" in q for q in questions)  # décision Q5 : texte des questions journalisé
     assert not any("450 000" in r.details for r in rows)  # jamais le contenu des documents
+
+
+def test_19_pdf_scanne_lu_par_ocr_et_recherchable(env):
+    from tests.fixtures.documents import write_scanned_pdf
+
+    write_scanned_pdf(env["corpus"] / "avis_capital_paiement.pdf")
+    sync(env)
+    docs = {d["filename"]: d for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]}
+    assert docs["avis_capital_paiement.pdf"]["status"] == "indexed"
+    hits = search(env, "bob", "capital social minimum des établissements de paiement")
+    assert hits[0]["title"] == "avis_capital_paiement" and "250 millions" in hits[0]["excerpt"]
+    assert hits[0]["pages"] == "page 1"
+
+
+def test_20_activation_de_l_ocr_relit_les_pages_scannees(env):
+    from urag_core.ingestion import IngestionService
+    from urag_worker.main import Worker
+
+    from tests.fixtures.documents import write_mixed_pdf
+
+    write_mixed_pdf(env["corpus"] / "rapport_avec_annexe.pdf")
+    st = env["state"]
+    sans_ocr = Worker(st.db, IngestionService(st.db, st.vectors, st.encoder, st.settings.tmp_dir, ocr=None))
+    env["client"].post(f"/api/v1/sources/{env['source']}/sync", headers=env["admin_a"])
+    sans_ocr.run_until_idle()
+    doc = next(
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "rapport_avec_annexe.pdf"
+    )
+    assert doc["status"] == "indexed_with_warning"  # page 2 non lue
+    before = search(env, "bob", "établissements de paiement 250 millions")
+    assert not any(h["title"] == "rapport_avec_annexe" and "250 millions" in h["excerpt"] for h in before)
+    sync(env)  # worker avec OCR : le document inchangé est repris pour lire la page scannée
+    doc = next(
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "rapport_avec_annexe.pdf"
+    )
+    assert doc["status"] == "indexed"
+    after = search(env, "bob", "établissements de paiement 250 millions")
+    scanned = [h for h in after if h["title"] == "rapport_avec_annexe" and "250 millions" in h["excerpt"]]
+    assert scanned and scanned[0]["pages"] == "page 2"

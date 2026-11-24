@@ -105,9 +105,12 @@ class RagOrchestrator:
                 text("INSERT INTO messages (org_id, conversation_id, role, content) VALUES (:o, :c, 'user', :q)"),
                 {"o": org_id, "c": conversation_id, "q": question},
             )
-            passages = self.retriever.search(
-                conn, scope, question, limit=self.context_passages, candidates=self.candidates, filters=filters
+            found = self.retriever.search(
+                conn, scope, question, limit=self.context_passages * 2, candidates=self.candidates, filters=filters
             )
+            # Passages contenant des consignes adressées à une IA : jamais envoyés au modèle.
+            suspicious = [p for p in found if p.suspicious]
+            passages = [p for p in found if not p.suspicious][: self.context_passages]
             policy = load_policy(conn, org_id)
             record(
                 conn,
@@ -118,13 +121,25 @@ class RagOrchestrator:
                 target_id=str(conversation_id),
                 details={"question": question} if log_question_text(conn, org_id) else {},
             )
+            if suspicious:
+                record(
+                    conn,
+                    org_id,
+                    "ai.suspicious_excluded",
+                    actor=user_id,
+                    target_type="conversation",
+                    target_id=str(conversation_id),
+                    details={"chunks": [str(p.chunk_id) for p in suspicious]},
+                )
 
         message_id = uuid.uuid4()
         if not passages:
             yield Event("meta", {"message_id": str(message_id), "conversation_id": str(conversation_id), "model": None})
             yield Event("sources", {"candidates": 0})
             yield Event("token", {"text": INSUFFICIENT})
-            yield from self._finish(org_id, conversation_id, message_id, INSUFFICIENT, [], None, 0, True)
+            yield from self._finish(
+                org_id, conversation_id, message_id, INSUFFICIENT, [], None, 0, True, len(suspicious)
+            )
             return
 
         messages = [
@@ -189,10 +204,11 @@ class RagOrchestrator:
             result,
             validated.removed,
             validated.insufficient,
+            len(suspicious),
         )
 
     def _finish(
-        self, org_id, conversation_id, message_id, answer, citations, result, removed, insufficient
+        self, org_id, conversation_id, message_id, answer, citations, result, removed, insufficient, excluded=0
     ) -> Iterator[Event]:
         with self.db.org(org_id) as conn:
             conn.execute(
@@ -240,5 +256,6 @@ class RagOrchestrator:
                 "tokens_out": result.tokens_out if result else 0,
                 "removed_citations": removed,
                 "prompt_version": PROMPT_VERSION,
+                "passages_suspects_ecartes": excluded,
             },
         )

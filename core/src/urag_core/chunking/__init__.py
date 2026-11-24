@@ -126,7 +126,7 @@ def chunk_document(doc: ExtractedDocument, profile: ChunkingProfile = ChunkingPr
         for text, blocks in pieces:
             if previous_tail:
                 text = f"… {previous_tail}\n\n{text}"
-            emit(text, "text", blocks)
+            emit(text, "ocr" if any(b.ocr for b in blocks) else "text", blocks)
             previous_tail = _tail(text, profile.overlap_chars)
         buffer = []
 

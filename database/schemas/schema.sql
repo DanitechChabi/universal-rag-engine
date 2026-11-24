@@ -312,9 +312,11 @@ CREATE TABLE document_versions (
     indexed_at            timestamptz,
     superseded_at         timestamptz,         -- remplacée par une version plus récente (traçabilité)
     UNIQUE (org_id, id),
-    UNIQUE (document_id, sha256, embedding_profile_id),   -- idempotence
     FOREIGN KEY (org_id, document_id) REFERENCES documents(org_id, id) ON DELETE CASCADE
 );
+-- Idempotence : une version par contenu, profil d'embedding et moteur OCR (réindexation si l'OCR change).
+CREATE UNIQUE INDEX document_versions_content_uq
+    ON document_versions (document_id, sha256, embedding_profile_id, coalesce(ocr_engine, ''));
 
 ALTER TABLE documents
     ADD CONSTRAINT documents_current_version_fk
@@ -339,6 +341,9 @@ CREATE TABLE chunks (
     tsv           tsvector GENERATED ALWAYS AS (
                       to_tsvector(CASE WHEN language = 'en' THEN 'english'::regconfig
                                        ELSE 'urag_fr'::regconfig END, text)) STORED,
+    -- Consignes adressées à une IA détectées dans le passage : écarté du contexte (docs/SECURITY.md §6).
+    suspicious        boolean NOT NULL DEFAULT false,
+    suspicious_reason text,
     UNIQUE (org_id, id),
     UNIQUE (version_id, ordinal),
     FOREIGN KEY (org_id, document_id) REFERENCES documents(org_id, id) ON DELETE CASCADE,

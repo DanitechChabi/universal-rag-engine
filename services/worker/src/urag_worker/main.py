@@ -101,7 +101,12 @@ def build(settings: Settings, encoder: Encoder | None = None) -> Worker:
     db = Database(settings.database_url, pool_size=4)
     api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
     encoder = encoder or OllamaEncoder(settings.ollama_url, settings.embedding_model, settings.embedding_dimension)
-    return Worker(db, IngestionService(db, VectorStore(settings.qdrant_url, api_key), encoder, settings.tmp_dir))
+    from urag_core.ocr import build_engine
+
+    ingestion = IngestionService(
+        db, VectorStore(settings.qdrant_url, api_key), encoder, settings.tmp_dir, ocr=build_engine(settings.ocr_engine)
+    )
+    return Worker(db, ingestion)
 
 
 def run() -> None:

@@ -1,4 +1,4 @@
-"""Schéma initial : reproduit exactement database/schemas/schema.sql (testé par test_schema.sh).
+"""Schéma initial (figé) : copie du schéma de référence de la phase 1 dans migrations/sql/.
 
 Revision ID: 0001
 """
@@ -12,7 +12,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-SCHEMAS = Path(__file__).resolve().parents[2] / "schemas"
+SQL = Path(__file__).resolve().parents[1] / "sql"  # copies figées : ne jamais les modifier
 
 
 def _statements(path: Path) -> str:
@@ -23,8 +23,8 @@ def _statements(path: Path) -> str:
 
 
 def upgrade() -> None:
-    op.execute(_statements(SCHEMAS / "roles.sql"))
-    op.execute(_statements(SCHEMAS / "schema.sql"))
+    op.execute(_statements(SQL / "0001_roles.sql"))
+    op.execute(_statements(SQL / "0001_schema.sql"))
 
 
 def downgrade() -> None:

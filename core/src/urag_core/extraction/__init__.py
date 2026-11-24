@@ -1,7 +1,8 @@
 """Extraction du texte, de la structure et des numéros de page (ADR-0008).
 
-Phase 1 : PDF (pypdfium2), DOCX (python-docx), TXT / MD / CSV.
-Les pages PDF sans texte sont signalées (OCR en phase 2).
+PDF (pypdfium2, OCR des pages sans texte), images PNG / JPEG (OCR), DOCX (python-docx),
+XLSX (openpyxl), PPTX (python-pptx), HTML (analyseur de la bibliothèque standard),
+TXT / MD / CSV. Formats anciens (DOC, XLS, PPT, RTF) : Tika, prévu (ADR-0008).
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ class Block:
     kind: BlockKind = "paragraph"
     page: int | None = None
     level: int = 0  # niveau de titre (1 = le plus haut)
+    ocr: bool = False  # texte issu de la reconnaissance optique
 
 
 @dataclass
@@ -34,6 +36,8 @@ class ExtractedDocument:
     pages_without_text: list[int] = field(default_factory=list)
     extractor: str = ""
     warnings: list[str] = field(default_factory=list)
+    ocr_engine: str | None = None
+    ocr_min_confidence: float | None = None
 
     @property
     def text(self) -> str:
@@ -74,8 +78,14 @@ def _paragraphs(text: str, page: int | None) -> list[Block]:
     return blocks
 
 
-def extract_pdf(path: Path) -> ExtractedDocument:
+def _ocr_blocks(page_text: str, page: int | None) -> list[Block]:
+    return [Block(b.text, "paragraph", page, ocr=True) for b in _paragraphs(clean_text(page_text), page)]
+
+
+def extract_pdf(path: Path, ocr=None) -> ExtractedDocument:
     import pypdfium2 as pdfium
+
+    from ..ocr import LOW_CONFIDENCE, RENDER_DPI
 
     try:
         pdf = pdfium.PdfDocument(str(path))
@@ -83,25 +93,47 @@ def extract_pdf(path: Path) -> ExtractedDocument:
         raise ExtractionError(f"PDF illisible : {e}") from e
     blocks: list[Block] = []
     empty: list[int] = []
+    low: list[int] = []
+    confidences: list[float] = []
     try:
         for index in range(len(pdf)):
             page = pdf[index]
             textpage = page.get_textpage()
             raw = textpage.get_text_bounded()
             textpage.close()
-            page.close()
             cleaned = clean_text(raw)
-            if len(cleaned) < MIN_TEXT_CHARS_PER_PAGE:
+            if len(cleaned) >= MIN_TEXT_CHARS_PER_PAGE:
+                blocks.extend(_paragraphs(cleaned, index + 1))
+            elif ocr is not None:
+                result = ocr.recognize(page.render(scale=RENDER_DPI / 72).to_pil())
+                confidences.append(result.confidence)
+                if result.confidence < LOW_CONFIDENCE:
+                    low.append(index + 1)
+                if len(result.text.strip()) >= MIN_TEXT_CHARS_PER_PAGE:
+                    blocks.extend(_ocr_blocks(result.text, index + 1))
+                else:
+                    empty.append(index + 1)
+            else:
                 empty.append(index + 1)
-                continue
-            blocks.extend(_paragraphs(cleaned, index + 1))
+            page.close()
         count = len(pdf)
     finally:
         pdf.close()
     warnings = []
     if empty:
-        warnings.append(f"{len(empty)} page(s) sans texte : OCR nécessaire (phase 2)")
-    return ExtractedDocument(blocks, count, empty, f"pypdfium2/{_version('pypdfium2')}", warnings)
+        reason = "aucun texte reconnu" if ocr is not None else "OCR désactivé"
+        warnings.append(f"{len(empty)} page(s) sans texte ({reason})")
+    if low:
+        warnings.append(f"qualité OCR insuffisante page(s) {', '.join(map(str, low))}")
+    return ExtractedDocument(
+        blocks,
+        count,
+        empty,
+        f"pypdfium2/{_version('pypdfium2')}",
+        warnings,
+        ocr.name if confidences else None,
+        min(confidences) if confidences else None,
+    )
 
 
 def _docx_heading_level(style_name: str) -> int:
@@ -176,20 +208,161 @@ def extract_text_file(path: Path) -> ExtractedDocument:
     return ExtractedDocument(blocks, None, [], "text")
 
 
+def extract_image(path: Path, ocr=None) -> ExtractedDocument:
+    from PIL import Image
+
+    from ..ocr import LOW_CONFIDENCE
+
+    if ocr is None:
+        return ExtractedDocument([], 1, [1], "image", ["image : OCR désactivé"])
+    try:
+        with Image.open(path) as im:
+            result = ocr.recognize(im.convert("RGB"))
+    except OSError as e:
+        raise ExtractionError(f"image illisible : {e}") from e
+    warnings = ["qualité OCR insuffisante"] if result.confidence < LOW_CONFIDENCE else []
+    blocks = _ocr_blocks(result.text, 1) if len(result.text.strip()) >= MIN_TEXT_CHARS_PER_PAGE else []
+    return ExtractedDocument(blocks, 1, [] if blocks else [1], "image", warnings, ocr.name, result.confidence)
+
+
+def extract_xlsx(path: Path) -> ExtractedDocument:
+    """Une feuille = une section ; ses lignes forment un tableau (en-tête répété au découpage)."""
+    import openpyxl
+
+    try:
+        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+    except Exception as e:  # noqa: BLE001 - formats OOXML variés
+        raise ExtractionError(f"XLSX illisible : {e}") from e
+    blocks: list[Block] = []
+    for sheet in wb.worksheets:
+        rows = []
+        for row in sheet.iter_rows(values_only=True):
+            cells = ["" if v is None else clean_text(str(v)).replace("\n", " ") for v in row]
+            while cells and not cells[-1]:
+                cells.pop()
+            if any(cells):
+                rows.append(" | ".join(cells))
+        if rows:
+            blocks.append(Block(sheet.title, "heading", None, 1))
+            blocks.append(Block("\n".join(rows), "table"))
+    wb.close()
+    return ExtractedDocument(blocks, None, [], f"openpyxl/{_version('openpyxl')}")
+
+
+def extract_pptx(path: Path) -> ExtractedDocument:
+    """Une diapositive = une page (numéro de diapositive conservé pour les citations)."""
+    from pptx import Presentation
+
+    try:
+        deck = Presentation(str(path))
+    except Exception as e:  # noqa: BLE001
+        raise ExtractionError(f"PPTX illisible : {e}") from e
+    blocks: list[Block] = []
+    for number, slide in enumerate(deck.slides, start=1):
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                text = clean_text(shape.text_frame.text)
+                if text:
+                    is_title = shape == getattr(slide.shapes, "title", None)
+                    blocks.append(Block(text, "heading" if is_title else "paragraph", number, 2 if is_title else 0))
+            if getattr(shape, "has_table", False) and shape.has_table:
+                rows = [" | ".join(clean_text(c.text) for c in r.cells) for r in shape.table.rows]
+                blocks.append(Block("\n".join(rows), "table", number))
+        if slide.has_notes_slide:
+            notes = clean_text(slide.notes_slide.notes_text_frame.text)
+            if notes:
+                blocks.append(Block(notes, "paragraph", number))
+    return ExtractedDocument(blocks, len(deck.slides), [], f"python-pptx/{_version('python-pptx')}")
+
+
+def extract_html(path: Path) -> ExtractedDocument:
+    """Titres h1-h6, paragraphes, listes et tableaux ; scripts et styles ignorés."""
+    from html.parser import HTMLParser
+
+    raw = path.read_bytes().decode("utf-8", errors="replace")
+    blocks: list[Block] = []
+
+    class Parser(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__(convert_charrefs=True)
+            self.skip = 0
+            self.buf: list[str] = []
+            self.level = 0
+            self.row: list[str] | None = None
+            self.rows: list[str] = []
+
+        def flush(self, kind: str = "paragraph") -> None:
+            text = clean_text(" ".join(self.buf))
+            self.buf = []
+            if text:
+                blocks.append(Block(text, "heading" if self.level else kind, None, self.level))
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ("script", "style", "noscript", "template"):
+                self.skip += 1
+            elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                self.flush()
+                self.level = int(tag[1])
+            elif tag in ("p", "div", "li", "br", "section", "article"):
+                self.flush("list" if tag == "li" else "paragraph")
+            elif tag == "tr":
+                self.row = []
+            elif tag in ("td", "th") and self.row is not None:
+                self.buf = []
+
+        def handle_endtag(self, tag):
+            if tag in ("script", "style", "noscript", "template"):
+                self.skip = max(0, self.skip - 1)
+            elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                self.flush()
+                self.level = 0
+            elif tag in ("td", "th") and self.row is not None:
+                self.row.append(clean_text(" ".join(self.buf)))
+                self.buf = []
+            elif tag == "tr" and self.row is not None:
+                if any(self.row):
+                    self.rows.append(" | ".join(self.row))
+                self.row = None
+            elif tag == "table":
+                if self.rows:
+                    blocks.append(Block("\n".join(self.rows), "table"))
+                self.rows = []
+            elif tag in ("p", "li", "div"):
+                self.flush("list" if tag == "li" else "paragraph")
+
+        def handle_data(self, data):
+            if not self.skip:
+                self.buf.append(data)
+
+    parser = Parser()
+    parser.feed(raw)
+    parser.flush()
+    return ExtractedDocument(blocks, None, [], "html.parser")
+
+
 EXTRACTORS = {
     ".pdf": extract_pdf,
     ".docx": extract_docx,
+    ".xlsx": extract_xlsx,
+    ".pptx": extract_pptx,
+    ".html": extract_html,
+    ".htm": extract_html,
+    ".png": extract_image,
+    ".jpg": extract_image,
+    ".jpeg": extract_image,
     ".txt": extract_text_file,
     ".md": extract_text_file,
     ".csv": extract_text_file,
 }
+OCR_CAPABLE = {extract_pdf, extract_image}
 
 
-def extract(path: Path) -> ExtractedDocument:
+def extract(path: Path, ocr=None) -> ExtractedDocument:
+    """Extrait un document ; ``ocr`` (moteur OCR) est utilisé pour les pages et images sans texte."""
     extractor = EXTRACTORS.get(path.suffix.lower())
     if extractor is None:
-        raise UnsupportedFormatError(f"format non pris en charge en phase 1 : {path.suffix}")
-    return extractor(path)
+        raise UnsupportedFormatError(f"format non pris en charge : {path.suffix}")
+    return extractor(path, ocr) if extractor in OCR_CAPABLE else extractor(path)
 
 
 _FR = {"le", "la", "les", "des", "du", "de", "et", "est", "une", "un", "pour", "dans", "que", "qui", "au", "aux"}

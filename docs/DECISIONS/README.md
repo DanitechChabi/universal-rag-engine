@@ -20,5 +20,6 @@ Une fiche par décision structurante : contexte, décision, alternatives écart�
 | [ADR-0014](ADR-0014-model-router-bibliotheque-pas-service.md) | Model Router : bibliothèque, pas service | acceptée |
 | [ADR-0015](ADR-0015-organisations-org-id-partout-une-seule-organisation-dans-l-i.md) | Organisations : org_id partout, une seule organisation dans l'interface du MVP | acceptée |
 | [ADR-0016](ADR-0016-identites-externes-et-correspondance-des-comptes.md) | Identités externes et correspondance des comptes | acceptée |
+| [ADR-0017](ADR-0017-ocr-tesseract-par-defaut.md) | OCR : Tesseract par défaut, RapidOCR en alternative (mesuré) | acceptée |
 
 Modèle pour une nouvelle fiche : `ADR-XXXX-titre.md` avec les sections Contexte, Décision, Alternatives écartées, Conséquences.

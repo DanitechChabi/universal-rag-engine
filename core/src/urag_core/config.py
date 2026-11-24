@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_hours: int = 12
 
+    ocr_engine: str = "tesseract"  # tesseract | rapidocr | none (ADR-0017)
     tmp_dir: Path = Path("/tmp/urag")  # noqa: S108 - surchargé en production
 
     chunk_max_chars: int = 1200

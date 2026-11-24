@@ -34,7 +34,11 @@ class AppState:
 
     @cached_property
     def ingestion(self) -> IngestionService:
-        return IngestionService(self.db, self.vectors, self.encoder, self.settings.tmp_dir)
+        from urag_core.ocr import build_engine
+
+        return IngestionService(
+            self.db, self.vectors, self.encoder, self.settings.tmp_dir, ocr=build_engine(self.settings.ocr_engine)
+        )
 
     @cached_property
     def retriever(self) -> Retriever:
