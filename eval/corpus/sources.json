@@ -1,0 +1,895 @@
+{
+ "description": "Corpus public de mesure (docs/reports). Les fichiers ne sont pas versionnés : eval/download_corpus.py les télécharge et vérifie leurs empreintes.",
+ "documents": [
+  {
+   "id": "sgg-benin-001",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-11/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-11",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-002",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-12/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-12",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-003",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-13/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-13",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-004",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-14/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-14",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-005",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-15/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-15",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-006",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-16/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-16",
+   "note": "texte officiel (loi ou décret)",
+   "set": "volumineux"
+  },
+  {
+   "id": "sgg-benin-007",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-17/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-17",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-008",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-18/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-18",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-009",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-19/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-19",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-010",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2025-20/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2025-20",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-011",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-12/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-12",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-012",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-13/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-13",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-013",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-14/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-14",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-014",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-15/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-15",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-015",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-16/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-16",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-016",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/loi-2026-17/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "loi-2026-17",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-017",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/decret-2026-704/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "decret-2026-704",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-018",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/decret-2026-706/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "decret-2026-706",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-019",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/decret-2026-707/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "decret-2026-707",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-020",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/decret-2026-709/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "decret-2026-709",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "sgg-benin-021",
+   "source": "sgg-benin",
+   "url": "https://sgg.gouv.bj/doc/decret-2026-766/download",
+   "lang": "fr",
+   "expected_kind": "scan",
+   "title_hint": "decret-2026-766",
+   "note": "texte officiel (loi ou décret)",
+   "set": "base"
+  },
+  {
+   "id": "bceao-024",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-11/ConventionCommissionBancaireUMOA2010.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "ConventionCommissionBancaireUMOA2010.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-025",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-11/StatutsBCEAO2010%20%282%29.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "StatutsBCEAO2010 (2).pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-026",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-11/TraiteUMOA2010%20%281%29.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "TraiteUMOA2010 (1).pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-027",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-11/code_d_ethique0001.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "code_d_ethique0001.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-028",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-11/instruction_no008_05_2015_intranet.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "instruction_no008_05_2015_intranet.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-029",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2017-12/annexe_a_la_convention_regissant_la_cb-umoa_29_septembre_2017_a_publir_sur_le_site_de_la_bceao_.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "annexe_a_la_convention_regissant_la_cb-umoa_29_septembre_2017_a_publir_sur_le_site_de_la_bceao_.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-030",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2021-10/Rapport%20annuel%202019%20de%20la%20BCEAO-compress%C3%A9.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport annuel 2019 de la BCEAO-compressé.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-031",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2021-10/Rapport%20annuel%20de%20la%20BCEAO%202020.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport annuel de la BCEAO 2020.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-032",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2023-03/Rapport%20sur%20la%20politique%20mone%CC%81taire%20-%20D%C3%A9cembre%202022.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport sur la politique monétaire - Décembre 2022.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-033",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2023-03/Rapport%20sur%20la%20politique%20mone%CC%81taire%20-%20Juin%202022.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport sur la politique monétaire - Juin 2022.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-034",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2023-03/Rapport%20sur%20la%20politique%20mone%CC%81taire%20-%20Septembre%202022.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport sur la politique monétaire - Septembre 2022.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-035",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2024-01/D%C3%A9cision%20N%C2%B021%20du%2021%20d%C3%A9cembre%202023%20fixant%20les%20montants%20seuils%20pour%20la%20mise%20en%20oeuvre%20de%20la%20loi%20uniforme%20relative%20%C3%A0%20la%20LBCFTFP.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Décision N°21 du 21 décembre 2023 fixant les montants seuils pour la mise en oeuvre de la loi uniforme relative à la LBC",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-036",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2024-02/AVIS%20N%C2%B0001-01-2024%20FIXANT%20LE%20CAPITAL%20SOCIAL%20MINIMUM%20DES%20BANQUES%20ET%20%C3%89TABLISSEMENTS%20FINANCIERS%20DE%20CR%C3%89DIT%20DANS%20LES%20ETATS%20MEMBRES%20DE%20L%E2%80%99UMOA.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "AVIS N°001-01-2024 FIXANT LE CAPITAL SOCIAL MINIMUM DES BANQUES ET ÉTABLISSEMENTS FINANCIERS DE CRÉDIT DANS LES ETATS ME",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-037",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2024-02/AVIS%20N%C2%B0002-04-2023%20portant%20modification%20temporaire%20de%20la%20norme%20relative%20aux%20pr%C3%AAts%20aux%20principaux%20actionnaires.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "AVIS N°002-04-2023 portant modification temporaire de la norme relative aux prêts aux principaux actionnaires.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-038",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2024-07/Charte%20anti-plagiat%20du%20COFEB.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Charte anti-plagiat du COFEB.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-039",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2024-11/Tableau_Bord_Monetique_2023.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Tableau_Bord_Monetique_2023.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-040",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2025-04/Note%20sur%20la%20Situation%20de%20la%20microfinance%20%C3%A0%20fin%20d%C3%A9cembre%202024_0.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Note sur la Situation de la microfinance à fin décembre 2024_0.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-041",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2025-09/Reglement_PAF_2026_19-08-2025.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Reglement_PAF_2026_19-08-2025.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-042",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2025-12/Situation_de_la_microfinance_fin_juin_2025_0.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Situation_de_la_microfinance_fin_juin_2025_0.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-043",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-01/Annonce%20au%20MTP%20CI%20ES%2020.01.2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Annonce au MTP CI ES 20.01.2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-044",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-01/Annonce%20au%20MTP%20ML%20ES%2021.01.2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Annonce au MTP ML ES 21.01.2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-045",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-05/Situation%20de%20la%20microfinance%20%C3%A0%20fin%20d%C3%A9cembre%202025.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Situation de la microfinance à fin décembre 2025.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-046",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-08/FR_Appel-a-candidatures-PAF26_VDRP310726.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "FR_Appel-a-candidatures-PAF26_VDRP310726.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-047",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-09/R%C3%A9sultat%20global_appel%20d%27offres%20n%C2%B036H%202026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultat global_appel d'offres n°36H 2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-048",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-09/R%C3%A9sultat%20global_appel%20d%27offres%20n%C2%B037H%202026%20%283%29.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultat global_appel d'offres n°37H 2026 (3).pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-049",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-09/R%C3%A9sultat%20global_appel%20d%27offres%20n%C2%B039H%202026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultat global_appel d'offres n°39H 2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-050",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/Note%20de%20conjoncture%20%C3%A9conomique%20des%20pays%20de%20l%27UEMOA_Septembre%202026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Note de conjoncture économique des pays de l'UEMOA_Septembre 2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-051",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/R%C3%A9sultats%20-%20AO_Z00_DBA_002_2026%20-%20am%C3%A9nagement%20et%20de%20la%20valorisation%20de%20l%E2%80%99espace%20d%27exposition%20du%20mus%C3%A9e%20de%20la%20monnaie%20de%20la%20BCEAO.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultats - AO_Z00_DBA_002_2026 - aménagement et de la valorisation de l’espace d'exposition du musée de la monnaie de l",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-052",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/R%C3%A9sultats%20-%20AO_Z00_DBA_054_2026%20-%20Fourniture%20et%20d%C3%A9ploiement%20d%E2%80%99une%20plateforme%20unifi%C3%A9e%20de%20d%C3%A9tection%2C%20d%E2%80%99analyse%20et%20de%20r%C3%A9ponse%20aux%20incidents%20de%20cybers%C3%A9curit%C3%A9%20%C3%A0%20la%20BCEAO.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultats - AO_Z00_DBA_054_2026 - Fourniture et déploiement d’une plateforme unifiée de détection, d’analyse et de répon",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-053",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/R%C3%A9sultats%20-%20AO_Z00_DBA_099_2026%20-%20Fourniture%20et%20installation%20de%20deux%20machines%20de%20tri%20de%20type%20BPS%20C5-9%20dans%20les%20Agences%20Principales%20de%20Dakar%20et%20de%20Cotonou.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Résultats - AO_Z00_DBA_099_2026 - Fourniture et installation de deux machines de tri de type BPS C5-9 dans les Agences P",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-054",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/Rapport_Annuel_Inclusion_Financiere_2025.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Rapport_Annuel_Inclusion_Financiere_2025.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-055",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/Resultats%20-%20Adjudication%20n%C2%B043H2026%20-%2011M2026%20et%2011OdR2026%20du%2026%20octobre%202026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Resultats - Adjudication n°43H2026 - 11M2026 et 11OdR2026 du 26 octobre 2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-056",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-10/Resultats%20-%20DP_Z00_DBA_090_2026%20-%20S%C3%A9lection%20d%27un%20cabinet%20charg%C3%A9%20d%E2%80%99accompagner%20la%20Banque%20Centrale%20dans%20le%20processus%20de%20transition%20du%20Plan%20Comptable%20Bancaire%20%28PCB%29%20de%20l%E2%80%99UMOA%20vers%20les%20normes.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Resultats - DP_Z00_DBA_090_2026 - Sélection d'un cabinet chargé d’accompagner la Banque Centrale dans le processus de tr",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-057",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-11/Bulletin%20mensuel%20des%20statistiques%20-%20Septembre%202026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Bulletin mensuel des statistiques - Septembre 2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-058",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-11/Note_de_conjoncture_economique_des_pays_de_l-UEMOA_Octobre_2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Note_de_conjoncture_economique_des_pays_de_l-UEMOA_Octobre_2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-059",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-11/Resultats-AO_Z00_DBA_066_2026-Fourniture-de-trois-serveurs-physiques-X86-et-d-une-licence-ManageEngine-Applications-Manager-version-entreprise-pour-la-BCEAO.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Resultats-AO_Z00_DBA_066_2026-Fourniture-de-trois-serveurs-physiques-X86-et-d-une-licence-ManageEngine-Applications-Mana",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-060",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/2026-11/liste_des_api-business_pi-spi_homologuees_Nov_2026-11-09.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "liste_des_api-business_pi-spi_homologuees_Nov_2026-11-09.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-061",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/1%20-%20Liste%20B%C3%A9nin_2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "1 - Liste Bénin_2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-062",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/2%20-%20Liste%20Burkina_2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "2 - Liste Burkina_2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-063",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/3%20-%20Liste%20C%C3%B4te%20d_Ivoire_2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "3 - Liste Côte d_Ivoire_2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-064",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Avis%20d%27appel%20%C3%A0%20candidature%20relatif%20au%20lancement%20de%20la%20premi%C3%A8re%20cohorte%20du%20Laboratoire%20d%27Innovation%20Financi%C3%A8re%20de%20la%20BCEAO.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Avis d'appel à candidature relatif au lancement de la première cohorte du Laboratoire d'Innovation Financière de la BCEA",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-065",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Avis-de-prolongation-49e-promotion.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Avis-de-prolongation-49e-promotion.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-066",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Catalogue_des_publications_de_la_BCEAO_2018.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Catalogue_des_publications_de_la_BCEAO_2018.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-067",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/DIF%20-%20Bulletin%20de%20Veille%20Semestriel%20n%C2%B001%20%E2%80%93%202022%20_%20L%E2%80%99actualit%C3%A9%20des%20services%20financiers%20num%C3%A9riques%20et%20des%20innovations%20technologique%20et%20financi%C3%A8re%20%281%29.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "DIF - Bulletin de Veille Semestriel n°01 – 2022 _ L’actualité des services financiers numériques et des innovations tech",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-068",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Guide_du_candidat_au_LIF-BCEAO.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Guide_du_candidat_au_LIF-BCEAO.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-069",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Organigramme_BCEAO_2-11-2026.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Organigramme_BCEAO_2-11-2026.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-070",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Recueil%20des%20textes%20l%C3%A9gaux%20et%20r%C3%A9glementaires%20r%C3%A9gissant%20l%27activit%C3%A9%20bancaire%20et%20financi%C3%A8re%20dans%20l%27UMOA%2C%20Vol.%20I%2C%20%C3%A9d.%202018.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Recueil des textes légaux et réglementaires régissant l'activité bancaire et financière dans l'UMOA, Vol. I, éd. 2018.pd",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-071",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Recueil%20des%20textes%20l%C3%A9gaux%20et%20r%C3%A9glementaires%20r%C3%A9gissant%20l%27activit%C3%A9%20bancaire%20et%20financi%C3%A8re%20dans%20l%27UMOA%2C%20Vol.%20II%2C%20%C3%A9d.%202018.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Recueil des textes légaux et réglementaires régissant l'activité bancaire et financière dans l'UMOA, Vol. II, éd. 2018.p",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-072",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/StatutsBCEAO2010%20%281%29.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "StatutsBCEAO2010 (1).pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-073",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/TOME-II_Histoire_de_l-UMOA.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "TOME-II_Histoire_de_l-UMOA.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-074",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Tableau%20de%20bord%20annuel%20de%20la%20mon%C3%A9tique%20r%C3%A9gionale%20de%20l%27UEMOA_Ann%C3%A9e%202021.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Tableau de bord annuel de la monétique régionale de l'UEMOA_Année 2021.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-075",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Tome-III_Histoire_de_l-UMOA.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Tome-III_Histoire_de_l-UMOA.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-076",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/Tome-I_Histoire_de_l-UMOA.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "Tome-I_Histoire_de_l-UMOA.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "volumineux"
+  },
+  {
+   "id": "bceao-077",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/TraiteUMOA2010.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "TraiteUMOA2010.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-078",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/historique_microfinance_0.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "historique_microfinance_0.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-079",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/protocole_portant_creation_du_csf-1_0.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "protocole_portant_creation_du_csf-1_0.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "bceao-080",
+   "source": "bceao",
+   "url": "https://www.bceao.int/sites/default/files/inline-files/reglement_interieur_0.pdf",
+   "lang": "fr",
+   "expected_kind": "native",
+   "title_hint": "reglement_interieur_0.pdf",
+   "note": "BCEAO / UMOA",
+   "set": "base"
+  },
+  {
+   "id": "fsb-081",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P240326.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P240326.pdf",
+   "note": "https://www.fsb.org/2026/03/promoting-global-financial-stability-2025-fsb-annual-report/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-082",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P040926-1.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P040926-1.pdf",
+   "note": "https://www.fsb.org/2026/09/fsb-annual-financial-report-2025-26/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-083",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P121026-1.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P121026-1.pdf",
+   "note": "https://www.fsb.org/2026/10/fsb-chairs-letter-to-g20-finance-ministers-and-central-bank-governors-october-2026/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-084",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P141026-2.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P141026-2.pdf",
+   "note": "https://www.fsb.org/2026/10/g20-implementation-monitoring-review-2026-report/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-085",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P121026-2.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P121026-2.pdf",
+   "note": "https://www.fsb.org/2026/10/global-stablecoin-arrangements-cross-border-vulnerabilities-and-financial-stability-monitoring/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-086",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P141026-1.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P141026-1.pdf",
+   "note": "https://www.fsb.org/2026/10/regulatory-and-supervisory-modernisation-principles-consultation-report/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-087",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P151026-1.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P151026-1.pdf",
+   "note": "https://www.fsb.org/2026/10/sound-practices-for-responsible-adoption-of-artificial-intelligence-ai-final-report/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-088",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P151026-2.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P151026-2.pdf",
+   "note": "https://www.fsb.org/2026/10/sound-practices-for-responsible-adoption-of-artificial-intelligence-ai-overview-of-consultation-responses/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-089",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P091026.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P091026.pdf",
+   "note": "https://www.fsb.org/2026/10/thematic-review-on-public-sector-backstop-funding-mechanisms-peer-review-report/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-090",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/P161126.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "P161126.pdf",
+   "note": "https://www.fsb.org/2026/11/g20-roadmap-for-enhancing-cross-border-payments-consolidated-progress-report-for-2026/",
+   "set": "base"
+  },
+  {
+   "id": "fsb-091",
+   "source": "fsb",
+   "url": "https://www.fsb.org/uploads/Peer-Review-of-Turkiye.pdf",
+   "lang": "en",
+   "expected_kind": "native",
+   "title_hint": "Peer-Review-of-Turkiye.pdf",
+   "note": "https://www.fsb.org/2026/11/peer-review-of-turkiye/",
+   "set": "base"
+  }
+ ]
+}
