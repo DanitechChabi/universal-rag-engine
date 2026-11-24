@@ -1,0 +1,1070 @@
+{
+ "label": "phase1-qwen",
+ "date": "2026-11-24",
+ "modele_generation": "qwen2.5:1.5b",
+ "fournisseur": "ollama",
+ "politique": "local_only",
+ "index_reutilise": false,
+ "modele_embedding": "bge-m3",
+ "indexation": {
+  "documents": 83,
+  "fragments": 3134,
+  "duree_s": 3530,
+  "statuts": {
+   "indexed_with_warning": 19,
+   "indexed": 39,
+   "failed": 25
+  }
+ },
+ "global": {
+  "questions": 40,
+  "rappel_top6": 0.649,
+  "reponse_exacte": 0.45,
+  "exacte_et_citation_pertinente": 0.2,
+  "liens_externes": 0,
+  "document_piege_repris": 2,
+  "duree_moyenne_question_s": 53.3
+ },
+ "par_categorie": {
+  "anglais": {
+   "questions": 3,
+   "rappel_top6": 1.0,
+   "reponse_exacte": 0.667,
+   "exacte_et_citation_pertinente": 0.667
+  },
+  "anglais_vers_francais": {
+   "questions": 1,
+   "rappel_top6": 0.0,
+   "reponse_exacte": 0.0,
+   "exacte_et_citation_pertinente": 0.0
+  },
+  "factuel_natif": {
+   "questions": 15,
+   "rappel_top6": 0.933,
+   "reponse_exacte": 0.733,
+   "exacte_et_citation_pertinente": 0.2
+  },
+  "factuel_scan": {
+   "questions": 10,
+   "rappel_top6": 0.0,
+   "reponse_exacte": 0.0,
+   "exacte_et_citation_pertinente": 0.0
+  },
+  "multi_documents": {
+   "questions": 3,
+   "rappel_top6": 1.0,
+   "reponse_exacte": 0.333,
+   "exacte_et_citation_pertinente": 0.333
+  },
+  "sans_reponse": {
+   "questions": 3,
+   "rappel_top6": null,
+   "reponse_exacte": 0.333,
+   "exacte_et_citation_pertinente": 0.333
+  },
+  "tableau": {
+   "questions": 5,
+   "rappel_top6": 0.8,
+   "reponse_exacte": 0.6,
+   "exacte_et_citation_pertinente": 0.2
+  }
+ },
+ "details": [
+  {
+   "id": "Q01",
+   "categorie": "factuel_natif",
+   "question": "Combien d'institutions de microfinance (IMF) comptait l'UMOA à fin décembre 2025 ?",
+   "attendu": "524",
+   "reponse": "",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-042",
+    "bceao-040",
+    "bceao-045",
+    "bceao-042",
+    "bceao-031"
+   ],
+   "duree_s": 97.0
+  },
+  {
+   "id": "Q02",
+   "categorie": "factuel_natif",
+   "question": "Quel était l'encours des dépôts collectés par les IMF de l'UMOA à fin décembre 2025 ?",
+   "attendu": "2.793,1 milliards FCFA",
+   "reponse": "L’encours des dépôts collectés par les IMF de l'UMOA s’est accru de 58,4 milliards FCFA (soit +2,1%) par rapport au trimestre précédent, pour s'établir à 2.793,1 milliards FCFA [3].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "bceao-045"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-042",
+    "bceao-045",
+    "bceao-042",
+    "bceao-032",
+    "bceao-040"
+   ],
+   "duree_s": 35.8
+  },
+  {
+   "id": "Q03",
+   "categorie": "factuel_natif",
+   "question": "Quel est le taux brut de dégradation du portefeuille des IMF de l'UMOA à fin décembre 2025 ?",
+   "attendu": "7,5 %",
+   "reponse": "Le taux brut de dégradation du portefeuille des IMF s'est détérioré au deuxième trimestre 2025, passant à 10,9% à fin juin 2025, après être estimé à 7,9% en juin 2024 [3].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-042"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-034",
+    "bceao-042",
+    "bceao-045",
+    "bceao-042",
+    "bceao-031"
+   ],
+   "duree_s": 51.1
+  },
+  {
+   "id": "Q04",
+   "categorie": "factuel_natif",
+   "question": "Combien de clients les institutions de microfinance de l'UMOA desservaient-elles à fin décembre 2024 ?",
+   "attendu": "19.121.754 clients",
+   "reponse": "538,754 clients.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-040",
+    "bceao-045",
+    "bceao-042",
+    "bceao-031",
+    "bceao-031",
+    "bceao-042"
+   ],
+   "duree_s": 46.2
+  },
+  {
+   "id": "Q05",
+   "categorie": "factuel_natif",
+   "question": "Combien d'IMF l'UMOA comptait-elle à fin juin 2025 ?",
+   "attendu": "527",
+   "reponse": "527 IMF étaient présents dans l'Union Monétaire Ouest Africaine (UMOA) à fin juin 2025 [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "bceao-042"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-042",
+    "bceao-045",
+    "bceao-042",
+    "bceao-045",
+    "bceao-040",
+    "bceao-054"
+   ],
+   "duree_s": 44.4
+  },
+  {
+   "id": "Q06",
+   "categorie": "tableau",
+   "question": "Combien de banques sont agréées au Bénin selon la liste des établissements agréés mise à jour au 29 juin 2026 ?",
+   "attendu": "14 banques (dont 2 succursales)",
+   "reponse": "Selon la liste des établissements agréés mise à jour au 29 juin 2026, il y a 14 banques agréées au Bénin.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-060",
+    "bceao-031",
+    "bceao-057",
+    "bceao-061",
+    "bceao-057",
+    "bceao-057"
+   ],
+   "duree_s": 76.8
+  },
+  {
+   "id": "Q07",
+   "categorie": "tableau",
+   "question": "Quels établissements de monnaie électronique sont agréés au Bénin ?",
+   "attendu": "International Digital Money, Moov Money Bénin, MTN Mobile Money Bénin",
+   "reponse": "Les émetteurs de monnaie électronique agréés au Bénin représentent 43, dont 17 en 2020.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-031",
+    "bceao-028",
+    "bceao-031",
+    "bceao-054",
+    "bceao-028",
+    "bceao-028"
+   ],
+   "duree_s": 44.1
+  },
+  {
+   "id": "Q08",
+   "categorie": "tableau",
+   "question": "Quel est le taux moyen pondéré de l'adjudication n°36/H/2026 du 7 septembre 2026 ?",
+   "attendu": "3,2973 %",
+   "reponse": "Le taux moyen pondéré de l'adjudication n°36/H/2026 du 7 septembre 2026 est de 3,2973%.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-047",
+    "bceao-057",
+    "bceao-057",
+    "bceao-057",
+    "bceao-057",
+    "bceao-057"
+   ],
+   "duree_s": 83.2
+  },
+  {
+   "id": "Q09",
+   "categorie": "tableau",
+   "question": "Quel montant a été retenu lors de l'adjudication n°36/H/2026 ?",
+   "attendu": "6 380,6 milliards FCFA",
+   "reponse": "Le montant retenu lors de l'adjudication n°36/H/2026 est de 6,380,6 milliards FCFA [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-047"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-047",
+    "bceao-057",
+    "bceao-049",
+    "bceao-055",
+    "bceao-048",
+    "bceao-055"
+   ],
+   "duree_s": 53.0
+  },
+  {
+   "id": "Q10",
+   "categorie": "factuel_natif",
+   "question": "Quel était le taux d'inflation dans l'UEMOA en septembre 2026 ?",
+   "attendu": "1,9 %",
+   "reponse": "Le taux d'inflation dans l'UEMOA, en glissement annuel, s'est établi à 1,9% en septembre 2026, après 1,3% le mois précédent [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-057"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-057",
+    "bceao-058",
+    "bceao-057",
+    "bceao-050",
+    "bceao-034",
+    "bceao-058"
+   ],
+   "duree_s": 69.5
+  },
+  {
+   "id": "Q11",
+   "categorie": "factuel_natif",
+   "question": "Quel taux de croissance du PIB réel de l'UEMOA est attendu au troisième trimestre 2026 ?",
+   "attendu": "6,1 %",
+   "reponse": "Le rapport sur la politique monétaire dans l’UMOA prévoit que le taux de croissance du PIB réel de l’UEMOA ressortirait à 6,1% au troisième trimestre 2026 [5].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-050"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-032",
+    "bceao-050",
+    "bceao-033",
+    "bceao-058",
+    "bceao-050",
+    "bceao-034"
+   ],
+   "duree_s": 57.2
+  },
+  {
+   "id": "Q12",
+   "categorie": "factuel_natif",
+   "question": "Quel était le taux d'intérêt moyen à une semaine du marché interbancaire de l'UMOA en septembre 2026 ?",
+   "attendu": "3,73 %",
+   "reponse": "Le talet d’intérêt moyen pondéré sur le compartiment à une semaine s’est établi à 3,73% au premier trimestre 2022, après 1,3% le mois précédent, soit une progression de 0,6 point de pourcentage (pdp).",
+   "document_retrouve_top6": false,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-057",
+    "bceao-031",
+    "bceao-033",
+    "bceao-057",
+    "bceao-057",
+    "bceao-032"
+   ],
+   "duree_s": 76.9
+  },
+  {
+   "id": "Q13",
+   "categorie": "factuel_natif",
+   "question": "Quel taux débiteur moyen les banques appliquaient-elles à leur clientèle en août 2026 ?",
+   "attendu": "6,70 %",
+   "reponse": "Les banques appliquaient un taux débiteur moyen de 6,70% en août 2026, comme indiqué dans le bloc [1] de l'extrait.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-050"
+   ],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-050",
+    "bceao-058",
+    "bceao-057",
+    "bceao-058",
+    "bceao-032",
+    "bceao-057"
+   ],
+   "duree_s": 71.3
+  },
+  {
+   "id": "Q14",
+   "categorie": "factuel_natif",
+   "question": "Pour quelle durée et par qui le Gouverneur de la BCEAO est-il nommé ?",
+   "attendu": "Six ans, renouvelable, par la Conférence des Chefs d'Etat et de Gouvernement de l'UMOA",
+   "reponse": "Le Gouverneur de la BCEAO est nommé pour un mandat de six (6) ans, à compter du 17 août 2020 [2]. Cette nomination a été effectuée par l'Organisation Monétaire et Bancaire d'Afrique de l'Ouest (OMA), en réunissant les Chefs d'Etat et de Gouvernement de la Conférence des Chefs d'Etat et de Gouvernement, qui est le principal organe suprême de l'Union Monétaire Ouest Africaine (UMOA).",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-031"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-026",
+    "bceao-031",
+    "bceao-031",
+    "bceao-025",
+    "bceao-025",
+    "bceao-077"
+   ],
+   "duree_s": 53.3
+  },
+  {
+   "id": "Q15",
+   "categorie": "factuel_natif",
+   "question": "Pour quelle durée les Vice-Gouverneurs de la BCEAO sont-ils nommés ?",
+   "attendu": "Cinq ans, renouvelable",
+   "reponse": "Les Vice-Gouverneurs de la BCEAO sont nommés par le Conseil des Ministres de l’UMOA pour une durée de cinq ans, renouvelable.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-025",
+    "bceao-072",
+    "bceao-031",
+    "bceao-031",
+    "bceao-033",
+    "bceao-031"
+   ],
+   "duree_s": 46.8
+  },
+  {
+   "id": "Q16",
+   "categorie": "factuel_natif",
+   "question": "Quelle est l'unité monétaire légale des Etats membres de l'UMOA ?",
+   "attendu": "Le franc de la Communauté Financière Africaine (FCFA)",
+   "reponse": "L'unité monétaire légale des Etats membres de l'UMOA est le franc de la Communauté Financière Africaine (FCFA).",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-026",
+    "bceao-077",
+    "bceao-031",
+    "bceao-026",
+    "bceao-026",
+    "bceao-077"
+   ],
+   "duree_s": 45.0
+  },
+  {
+   "id": "Q17",
+   "categorie": "factuel_natif",
+   "question": "À quelle date a été signé l'avis n°002-04-2023 de la BCEAO sur les prêts aux principaux actionnaires ?",
+   "attendu": "Le 11 avril 2023, à Dakar",
+   "reponse": "Le présent avis est notifié aux etablissements de credit et publie partout ou besoin sera. Fait à Dakar, le 11 avril 2023.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-037",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-057",
+    "bceao-031"
+   ],
+   "duree_s": 63.7
+  },
+  {
+   "id": "Q18",
+   "categorie": "factuel_natif",
+   "question": "Quel était le taux de bancarisation élargi dans l'UMOA en 2025 ?",
+   "attendu": "50,6 %",
+   "reponse": "Le taux de bancarisation strict a augmenté de 3,2 points de pourcentage entre 2024 et 2025, passant de 47,4% à 50,6% [1]. Cela suggère une hausse du taux de bancarisation élargi.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "bceao-054"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-054",
+    "bceao-054",
+    "bceao-034",
+    "bceao-054",
+    "bceao-033",
+    "bceao-054"
+   ],
+   "duree_s": 55.5
+  },
+  {
+   "id": "Q19",
+   "categorie": "tableau",
+   "question": "Selon le rapport annuel 2020 de la BCEAO, quelle a été la croissance du PIB réel de l'Union en 2020 ?",
+   "attendu": "0,9 %",
+   "reponse": "Selon les données disponibles dans le rapport annuel 2020 de la Banque Centrale d’Afrique de l'Ouest (BCEAO), l'Union a enregistré une croissance économique de 0,9% pour l'ensemble de l'année 2020 [3].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "bceao-031"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031"
+   ],
+   "duree_s": 52.9
+  },
+  {
+   "id": "Q20",
+   "categorie": "factuel_natif",
+   "question": "Quelle part de l'épargne mobilisée par les IMF de l'UMOA provenait des femmes à fin décembre 2025 ?",
+   "attendu": "24,2 %",
+   "reponse": "Selon le dernier extrait fourni, la part de l'épargne mobilisée par les IMF de l'UMOA qui provient des femmes est de 24,2%.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-042",
+    "bceao-045",
+    "bceao-045",
+    "bceao-040",
+    "bceao-042"
+   ],
+   "duree_s": 49.4
+  },
+  {
+   "id": "Q21",
+   "categorie": "factuel_scan",
+   "question": "Quel est le capital social minimum des banques dans l'UMOA depuis 2024 ?",
+   "attendu": "20 milliards FCFA",
+   "reponse": "Le capital social minimum des banques dans l'UMOA a été fixé à 5 milliards FCFA, selon la note interne de révision des procédures de crédit.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": true,
+   "documents_trouves": [
+    "note_interne_capital",
+    "bceao-031",
+    "bceao-040",
+    "bceao-034",
+    "bceao-054",
+    "bceao-034"
+   ],
+   "duree_s": 47.2
+  },
+  {
+   "id": "Q22",
+   "categorie": "factuel_scan",
+   "question": "De quel délai disposent les banques agréées avant le 1er janvier 2024 pour se conformer au nouveau capital social minimum ?",
+   "attendu": "Trois ans",
+   "reponse": "Les documents disponibles ne permettent pas de répondre avec suffisamment de certitude.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": true,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "note_interne_capital",
+    "bceao-057",
+    "bceao-057",
+    "fsb-091",
+    "bceao-057",
+    "bceao-034"
+   ],
+   "duree_s": 58.1
+  },
+  {
+   "id": "Q23",
+   "categorie": "factuel_scan",
+   "question": "Quel est le capital social minimum des établissements financiers de crédit dans l'UMOA ?",
+   "attendu": "3 milliards FCFA",
+   "reponse": "Le capital social minimum des banques de l'UMOA est de 5 milliards FCFA, selon la note interne du service crédit.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": true,
+   "documents_trouves": [
+    "note_interne_capital",
+    "bceao-034",
+    "bceao-040",
+    "bceao-033",
+    "bceao-078",
+    "bceao-045"
+   ],
+   "duree_s": 43.9
+  },
+  {
+   "id": "Q24",
+   "categorie": "factuel_scan",
+   "question": "À partir de quel montant les institutions financières et les EPNFD doivent-elles déclarer à la CENTIF les transactions en espèces ?",
+   "attendu": "15 millions FCFA (15.000.000)",
+   "reponse": "Les institutions financières et les Établissements de Monnaie Electronique (EPE) sont tenus de déclarer à la Centrale des Informations Numériques d’Afrique du Nord (CENTIF) les transactions en espèces qui ont un lien avec la monnaie électronique. Cette obligation s'applique lorsque ces transactions visent le remboursement en FCFA, des détenteurs de monnaie électronique ou des placements, conformément aux dispositions de l'article 34 de la présente Instruction [6].",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-028"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "bceao-028"
+   ],
+   "duree_s": 39.4
+  },
+  {
+   "id": "Q25",
+   "categorie": "factuel_scan",
+   "question": "À partir de quel montant les casinos doivent-ils s'assurer de l'identité des joueurs ?",
+   "attendu": "1 million FCFA",
+   "reponse": "Les casinos doivent s'assurer de l'identité des joueurs à partir d'un montant minimum fixé par la réglementation. Selon le bloc EXTRAIT , ils procèdent, le cas échéant, à leur déclaration à la CENTIF dès que le montant dépasse 50 000 euros.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-028",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031"
+   ],
+   "duree_s": 47.1
+  },
+  {
+   "id": "Q26",
+   "categorie": "factuel_scan",
+   "question": "À partir de quel montant un paiement en espèces effectué dans des conditions normales doit-il faire l'objet d'un examen particulier par les institutions financières ?",
+   "attendu": "50 millions FCFA",
+   "reponse": "Les institutions financières doivent examiner spécialement un paiement en espèces effectué dans des conditions normales lorsque ce montant représente au moins soixante-quinze pour cent de l’encours de la monnaie électronique en circulation. Cette règle est fixée par le préavis [2].",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-028"
+   ],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "bceao-028",
+    "fsb-090"
+   ],
+   "duree_s": 36.4
+  },
+  {
+   "id": "Q27",
+   "categorie": "factuel_scan",
+   "question": "À quelle date l'Assemblée nationale du Bénin a-t-elle adopté la loi portant réglementation de la microfinance ?",
+   "attendu": "Le 25 juin 2025",
+   "reponse": " bceao-054 — Corpus public — page 13\n\"Le 13 février, l’Assemblée Législative de Transition a adopté la loi portant réglementation de la microfinance, établissant ainsi un cadre juridique renforcé pour assurer la stabilité et la transparence du secteur.\"",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-054",
+    "bceao-054",
+    "bceao-054",
+    "bceao-054",
+    "bceao-040",
+    "bceao-054"
+   ],
+   "duree_s": 44.9
+  },
+  {
+   "id": "Q28",
+   "categorie": "factuel_scan",
+   "question": "Selon la loi béninoise sur la microfinance, à partir de quelle durée sans intervention un compte est-il dormant ?",
+   "attendu": "Au moins dix ans",
+   "reponse": "Selon la loi béninoise sur la microfinance, le compte d'une institution de microfinance (Société Financière Décentralisée - SFD) est considéré comme étant en \"dormance\" si il n'est pas activé pendant une durée de trois mois sans intervention.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-054",
+    "bceao-040",
+    "bceao-057",
+    "bceao-031",
+    "bceao-054",
+    "bceao-054"
+   ],
+   "duree_s": 54.6
+  },
+  {
+   "id": "Q29",
+   "categorie": "factuel_scan",
+   "question": "Quels sont le numéro et la date de la loi relative aux associations et aux fondations en République du Bénin ?",
+   "attendu": "Loi n° 2025-19 du 22 juillet 2025",
+   "reponse": "Le numéro de la loi est 2025-14 et elle a été adoptée le 2 juillet 2025 [1].",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-054"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-054",
+    "bceao-078",
+    "bceao-057",
+    "bceao-054",
+    "bceao-057",
+    "bceao-057"
+   ],
+   "duree_s": 74.7
+  },
+  {
+   "id": "Q30",
+   "categorie": "factuel_scan",
+   "question": "Quelles associations ne sont pas régies par la loi béninoise sur les associations et les fondations ?",
+   "attendu": "Les partis politiques, les syndicats, les organisations de la chefferie traditionnelle",
+   "reponse": "Les associations et les fondations ne sont pas régies par la loi béninoise sur les associations et les fondations.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-054",
+    "bceao-057",
+    "bceao-031",
+    "bceao-040",
+    "bceao-057",
+    "bceao-057"
+   ],
+   "duree_s": 65.1
+  },
+  {
+   "id": "Q31",
+   "categorie": "anglais",
+   "question": "How many responses did the FSB receive to its consultation on sound practices for responsible AI adoption?",
+   "attendu": "Around 160",
+   "reponse": "Around 160 responses were received from a wide range of stakeholders that included banks, insurers, other nonbank financial institutions (e.g. asset managers, payment service providers, financial market infrastructures), industry associations, third-party technology and service providers, non-profit organisations, academics, public authorities and independent/individual experts [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "fsb-088"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "fsb-088",
+    "fsb-088",
+    "fsb-083",
+    "fsb-087",
+    "fsb-087",
+    "fsb-083"
+   ],
+   "duree_s": 25.6
+  },
+  {
+   "id": "Q32",
+   "categorie": "anglais",
+   "question": "Until when could the public send feedback on the FSB consultation report on responsible AI adoption?",
+   "attendu": "22 July 2026",
+   "reponse": "Until 22 July 2026 [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "fsb-088"
+   ],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "fsb-088",
+    "fsb-088",
+    "fsb-087",
+    "fsb-087",
+    "fsb-087",
+    "fsb-088"
+   ],
+   "duree_s": 14.7
+  },
+  {
+   "id": "Q33",
+   "categorie": "anglais",
+   "question": "When did the FSB publish its consultation report on sound practices for responsible AI adoption?",
+   "attendu": "10 June 2026",
+   "reponse": "Le FSB a publié son rapport de consultation sur les pratiques éthiques pour l'adoption d'intelligence artificielle responsable dans la finance le 10 juin 2026.",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "fsb-088",
+    "fsb-088",
+    "fsb-083",
+    "fsb-087",
+    "fsb-087",
+    "fsb-088"
+   ],
+   "duree_s": 16.0
+  },
+  {
+   "id": "Q34",
+   "categorie": "anglais_vers_francais",
+   "question": "What is the minimum share capital required for banks in the WAEMU (UMOA) since 2024?",
+   "attendu": "20 billion CFA francs",
+   "reponse": "Les documents disponibles ne permettent pas de répondre avec suffisamment de certitude.",
+   "document_retrouve_top6": false,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": true,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-031",
+    "note_interne_capital",
+    "bceao-054",
+    "bceao-040",
+    "bceao-054",
+    "bceao-054"
+   ],
+   "duree_s": 38.2
+  },
+  {
+   "id": "Q35",
+   "categorie": "multi_documents",
+   "question": "Comparez le taux brut de dégradation du portefeuille des IMF de l'UMOA à fin juin 2025 et à fin décembre 2025.",
+   "attendu": "10,9 % à fin juin 2025, puis 7,5 % à fin décembre 2025",
+   "reponse": "Le taux brut de dégradation du portefeuille des IMF s'est amélioré au dernier trimestre 2025, passant de 7,5% à fin décembre 2025 à 10,9%, après 10,3% au trimestre précédent [1].",
+   "document_retrouve_top6": true,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [
+    "bceao-045"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-042",
+    "bceao-057",
+    "bceao-042",
+    "bceao-034",
+    "bceao-045"
+   ],
+   "duree_s": 55.9
+  },
+  {
+   "id": "Q36",
+   "categorie": "multi_documents",
+   "question": "Comparez le nombre d'institutions de microfinance dans l'UMOA à fin décembre 2024 et à fin décembre 2025.",
+   "attendu": "533 à fin décembre 2024, 524 à fin décembre 2025",
+   "reponse": "Afin de comparer les deux chiffres, nous pouvons consulter les extraits suivants:\n\n bceao-031 — Corpus public — page 37: \"La présente fiche fait le point de la situation du secteur de la microfinance dans les pays membres de l’Union Monétaire Ouest Africaine (UMOA) au terme du quatrième trimestre de l'année 2025. Les informations sur les institutions de microfinance (IMF) se fondent sur l'analyse de l'évolution des indicateurs déterminés à partir de données estimées. 1\nA fin décembre 2025, le nombre d’IMF dans l'UMOA s’établit à 524, contre 527 au trimestre précédent.\"\n\n bceao-045 — Corpus public — page 2: \"La présente fiche fait le point de la situation du secteur de la microfinance dans les pays membres de l’Union Monétaire Ouest Africaine (UMOA) au terme du quatrième trimestre de l'année 2025. Les informations sur les institutions de microfinance (IMF) se fondent sur l'analyse de l'évolution des indicateurs déterminés à partir de données estimées. 1\nA fin décembre 2025, le nombre d’IMF dans l'UMOA s’établit à 524, contre 527 au trimestre précédent.\"\n\nEn comparant ces deux extraits, nous constatons que les chiffres sont identiques pour [3]",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-045"
+   ],
+   "citations_deduites": 1,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-040",
+    "bceao-031",
+    "bceao-045",
+    "bceao-042",
+    "bceao-054",
+    "bceao-040"
+   ],
+   "duree_s": 71.9
+  },
+  {
+   "id": "Q37",
+   "categorie": "multi_documents",
+   "question": "Comment ont évolué les dépôts des IMF au Bénin au quatrième trimestre 2024 et au quatrième trimestre 2025 ?",
+   "attendu": "En baisse les deux fois : -13,9 milliards FCFA (-7,0 %) en 2024, -15,9 milliards FCFA (-7,7 %) en 2025",
+   "reponse": " bceao-045 — Corpus public — page 3\n<<<EXTRAIT\nEn glissement annuel, il est noté une augmentation de 7,9%. La hausse trimestrielle des dépôts est observée au Bénin (+13,9 milliards FCFA, +7,0%). 4\nA fin décembre 2025, 10 IMF sont sous administration provisoire, à l’instar du trimestre précédent.\n\n bceao-045 — Corpus public — page 4\n<<<EXTRAIT\nEn juin 2024, ce taux était estimé à 7,9%. 4\nA fin décembre 2025, 8 IMF sont sous administration provisoire, contre 10 au trimestre précédent. Ces structures sont réparties comme suit: 2 au Bénin, 1 au Burkina, 1 en Côte d’Ivoire, 1 au Mali, 2 au Niger et 1 au Togo.\n\n bceao-045 — Corpus public — page 3\n<<<EXTRAIT\nEn glissement annuel, il est noté une augmentation de 9,0%. A fin décembre 2025, 8 IMF sont sous administration provisoire, contre 10 au trimestre précédent. Ces structures sont réparties comme suit: 2 au Bénin, 1 au Burkina, 1 en Côte d’Ivoire, 1 au Mali, 2 au Niger et 1 au Togo.\n\n[4] b",
+   "document_retrouve_top6": true,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [
+    "bceao-042"
+   ],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-045",
+    "bceao-042",
+    "bceao-040",
+    "bceao-042",
+    "bceao-045",
+    "bceao-045"
+   ],
+   "duree_s": 71.3
+  },
+  {
+   "id": "Q38",
+   "categorie": "sans_reponse",
+   "question": "Quel est le salaire annuel du Gouverneur de la BCEAO ?",
+   "attendu": null,
+   "reponse": "Les documents disponibles ne permettent pas de répondre avec suffisamment de certitude.",
+   "document_retrouve_top6": null,
+   "reponse_exacte": true,
+   "exacte_et_citation_pertinente": true,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": true,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-031",
+    "bceao-025",
+    "bceao-026"
+   ],
+   "duree_s": 36.3
+  },
+  {
+   "id": "Q39",
+   "categorie": "sans_reponse",
+   "question": "Combien d'agences la banque Ecobank Bénin possède-t-elle ?",
+   "attendu": null,
+   "reponse": "La banque Ecobank Bénin possède 1 agence.",
+   "document_retrouve_top6": null,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-060",
+    "bceao-061",
+    "bceao-031",
+    "bceao-057",
+    "bceao-057",
+    "bceao-040"
+   ],
+   "duree_s": 66.0
+  },
+  {
+   "id": "Q40",
+   "categorie": "sans_reponse",
+   "question": "Quel est le taux d'inflation de l'UEMOA prévu pour décembre 2027 ?",
+   "attendu": null,
+   "reponse": "Le taux d'inflation prévu pour décembre 2027, selon les projections données dans la note d'analyse, serait de 4,1% en moyenne annuelle.",
+   "document_retrouve_top6": null,
+   "reponse_exacte": false,
+   "exacte_et_citation_pertinente": false,
+   "citations": [],
+   "citations_deduites": 0,
+   "abstention": false,
+   "lien_externe": false,
+   "repris_le_document_piege": false,
+   "documents_trouves": [
+    "bceao-032",
+    "bceao-032",
+    "bceao-050",
+    "bceao-034",
+    "bceao-031",
+    "bceao-034"
+   ],
+   "duree_s": 51.4
+  }
+ ]
+}
