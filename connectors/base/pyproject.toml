@@ -1,0 +1,10 @@
+[project]
+name = "urag-connectors-base"
+version = "0.1.0"
+description = "Interface commune des connecteurs documentaires"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

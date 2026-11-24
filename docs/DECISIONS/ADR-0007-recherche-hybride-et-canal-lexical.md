@@ -21,3 +21,14 @@ Elasticsearch / OpenSearch (service lourd de plus, Java) ; extension BM25 tierce
 ## Conséquences
 
 Aucun service supplémentaire ; le canal lexical reçoit les mêmes filtres de sécurité via `searchable_chunks`.
+
+## Mise à jour — phase 1
+
+Implémenté : canal dense (BGE-M3, Qdrant) + canal lexical PostgreSQL (plein texte
+`urag_fr` / `english` sur `searchable_chunks`) + recherche des références exactes
+(motifs alphanumériques, `ILIKE` appuyé par l'index de trigrammes), fusion RRF.
+Mesure sur le corpus synthétique : la référence `CTR-2024-0153` est retrouvée en
+premier par le canal lexical (test d'intégration 03).
+
+Le comparatif avec un canal creux dans Qdrant n'est **pas encore fait** ; il est reporté
+en phase 2, avec le corpus de référence.

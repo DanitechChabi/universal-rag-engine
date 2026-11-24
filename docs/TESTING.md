@@ -122,4 +122,7 @@ Matériel et modèle consignés dans le rapport (livrable 20).
 
 | Test | Fichier | Résultat |
 |---|---|---|
-| Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **39 vérifications passées** (PostgreSQL 16.15) |
+| Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **42 vérifications passées** (PostgreSQL 16.15) |
+| Unitaires : extraction, découpage, sécurité, droits, citations, recherche, routeur, connecteur local | `core/tests`, `connectors/` | **27 passés** |
+| Intégration sur pile réelle : scénarios 1, 2, 3, 5, 6, 8–13, isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **18 passés** |
+| Chaîne complète avec bge-m3 et qwen2.5:1.5b, mesure de qualité | `tests/integration/test_real_models.py` | **1 passé** (rapport `docs/reports/phase1-qualite.json`) |

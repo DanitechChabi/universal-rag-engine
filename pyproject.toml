@@ -1,0 +1,54 @@
+[project]
+name = "universal-rag-engine"
+version = "0.1.0"
+description = "Universal RAG Engine — espace de travail"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "urag-core",
+    "urag-connectors-base",
+    "urag-connector-local-files",
+    "urag-api",
+    "urag-worker",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "reportlab>=4.2",
+]
+
+[tool.uv.workspace]
+members = ["core", "connectors/base", "connectors/local_files", "services/api", "services/worker"]
+
+[tool.uv.sources]
+urag-core = { workspace = true }
+urag-connectors-base = { workspace = true }
+urag-connector-local-files = { workspace = true }
+urag-api = { workspace = true }
+urag-worker = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["docs", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101", "S608", "B008"]  # B008 : Depends() de FastAPI
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106", "S108"]
+"**/test_*.py" = ["S105", "S106", "S108"]
+
+[tool.pytest.ini_options]
+testpaths = ["core/tests", "connectors", "services/api/tests", "tests"]
+markers = ["integration: nécessite PostgreSQL, Qdrant et Ollama (voir docs/DEVELOPMENT.md)"]
+addopts = "-ra"
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true

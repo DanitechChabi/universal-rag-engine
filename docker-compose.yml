@@ -1,0 +1,32 @@
+# Pile de développement : PostgreSQL, Qdrant, Ollama (docs/DEVELOPMENT.md).
+# Ce n'est pas la configuration de production (phase 7) : mots de passe de développement uniquement.
+name: urag-dev
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres-dev
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    environment:
+      QDRANT__SERVICE__API_KEY: dev-qdrant-key
+    ports: ["127.0.0.1:6333:6333"]
+    volumes: [qdrant:/qdrant/storage]
+
+  ollama:
+    image: ollama/ollama:0.12.3
+    ports: ["127.0.0.1:11434:11434"]
+    volumes: [ollama:/root/.ollama]
+
+volumes:
+  pgdata:
+  qdrant:
+  ollama:
