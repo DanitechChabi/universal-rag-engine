@@ -15,7 +15,7 @@ import uuid
 from sqlalchemy import text
 from urag_connectors_base import AuthenticationError, TransientError
 from urag_core.config import Settings, get_settings
-from urag_core.embeddings import Encoder, OllamaEncoder
+from urag_core.embeddings import Encoder, build_encoder
 from urag_core.ingestion import IngestionService
 from urag_core.jobs import Job, complete, fail, new_worker_name, requeue_stale, take
 from urag_core.storage import Database, VectorStore
@@ -100,7 +100,7 @@ class Worker:
 def build(settings: Settings, encoder: Encoder | None = None) -> Worker:
     db = Database(settings.database_url, pool_size=4)
     api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
-    encoder = encoder or OllamaEncoder(settings.ollama_url, settings.embedding_model, settings.embedding_dimension)
+    encoder = encoder or build_encoder(settings)
     from urag_core.ocr import build_engine
 
     ingestion = IngestionService(

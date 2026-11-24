@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     qdrant_api_key: SecretStr | None = None
 
     ollama_url: str = "http://localhost:11434"
+    embedding_backend: str = "ollama"  # onnx (recommandé, ADR-0018) | ollama
+    embedding_model_dir: Path | None = None  # dossier du modèle ONNX (model_int8.onnx + tokenizer.json)
     embedding_model: str = "bge-m3"
     embedding_dimension: int = 1024
     chat_model: str = "qwen2.5:1.5b"

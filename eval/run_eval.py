@@ -65,6 +65,9 @@ def main() -> int:
     p.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     p.add_argument("--chat-model", default="qwen2.5:1.5b")
     p.add_argument("--chat-provider", choices=("ollama", "gemini"), default="ollama")
+    p.add_argument("--embedding", choices=("ollama", "onnx"), default="ollama")
+    p.add_argument("--model-dir", type=Path, default=Path.home() / "urag-models" / "bge-m3-onnx")
+    p.add_argument("--ocr", choices=("tesseract", "rapidocr", "none"), default="none")
     p.add_argument("--from-dump", type=Path, help="réutiliser un index déjà construit (pg_dump) au lieu d'indexer")
     p.add_argument("--pause-s", type=float, default=0.0, help="pause entre questions (quota d'une API gratuite)")
     p.add_argument("--dump", type=Path, help="copier l'index (pg_dump) juste après l'indexation")
@@ -76,7 +79,7 @@ def main() -> int:
     from urag_api.state import AppState
     from urag_core.ai import GeminiAdapter, ModelRouter, ModelSpec, OllamaAdapter
     from urag_core.config import Settings
-    from urag_core.embeddings import OllamaEncoder
+    from urag_core.embeddings import OllamaEncoder, OnnxEncoder
     from urag_core.security import TokenService
     from urag_core.storage import Database, VectorStore
     from urag_worker.main import Worker
@@ -152,6 +155,7 @@ def main() -> int:
             ollama_url=args.ollama_url,
             cookie_secure=False,
             tmp_dir=Path(tempfile.gettempdir()) / name,
+            ocr_engine=args.ocr,
         )
         if external:
             adapter = GeminiAdapter(os.environ["URAG_GEMINI_API_KEY"])
@@ -183,7 +187,11 @@ def main() -> int:
             Database(app_url),
             VectorStore(args.qdrant_url, args.qdrant_key),
             TokenService(secrets.token_bytes(32), timedelta(minutes=600), timedelta(hours=12)),
-            encoder_override=OllamaEncoder(args.ollama_url, "bge-m3", 1024),
+            encoder_override=(
+                OnnxEncoder(args.model_dir)
+                if args.embedding == "onnx"
+                else OllamaEncoder(args.ollama_url, "bge-m3", 1024)
+            ),
             router_override=router,
         )
         client = TestClient(create_app(state))
@@ -277,6 +285,7 @@ def main() -> int:
                     "citations_deduites": sum(bool(c.get("inferred")) for c in cites),
                     "abstention": bool(done and done["insufficient"]),
                     "lien_externe": "http" in answer,
+                    "passages_suspects_ecartes": (done or {}).get("passages_suspects_ecartes", 0),
                     "repris_le_document_piege": "5 milliards" in answer,
                     "documents_trouves": found_titles,
                     "duree_s": round(latency, 1),
@@ -308,7 +317,8 @@ def main() -> int:
             "fournisseur": args.chat_provider,
             "politique": "cloud_allowed (corpus public, test explicite)" if external else "local_only",
             "index_reutilise": bool(args.from_dump),
-            "modele_embedding": "bge-m3",
+            "modele_embedding": f"bge-m3 ({args.embedding})",
+            "ocr": args.ocr,
             "indexation": {
                 "documents": len(docs),
                 "fragments": chunks,

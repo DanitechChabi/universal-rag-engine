@@ -58,3 +58,24 @@ def test_html_sans_scripts_ni_styles(tmp_path):
     assert [b.text for b in doc.blocks if b.kind == "heading"] == ["Guide du client", "Frais"]
     assert any(b.kind == "table" and "Virement | 500 FCFA" in b.text for b in doc.blocks)
     assert any(b.kind == "list" and b.text == "Carte bancaire" for b in doc.blocks)
+
+
+MODEL_DIR = __import__("os").environ.get("URAG_TEST_ONNX_MODEL_DIR", "/home/user/urag-models/bge-m3-onnx")
+
+
+@pytest.mark.skipif(not __import__("pathlib").Path(MODEL_DIR, "model_int8.onnx").is_file(), reason="modèle ONNX absent")
+def test_encodeur_onnx_vecteurs_normes_et_semantiques():
+    from urag_core.embeddings import OnnxEncoder
+
+    enc = OnnxEncoder(MODEL_DIR)
+    a, b, c = enc.encode(
+        [
+            "Le capital social minimum des banques est fixé à 20 milliards de francs CFA.",
+            "Quel est le capital minimum exigé pour une banque dans l'UMOA ?",
+            "Le parking est réservé aux visiteurs le week-end.",
+        ]
+    )
+    assert len(a) == 1024 and abs(sum(x * x for x in a) - 1) < 1e-3
+    sim = lambda u, v: sum(x * y for x, y in zip(u, v, strict=True))  # noqa: E731
+    assert sim(a, b) > sim(a, c) + 0.2  # la question est bien plus proche du bon passage
+    assert enc.model_name == "bge-m3-onnx-int8" and len(enc.model_revision) == 12
