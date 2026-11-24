@@ -1,0 +1,31 @@
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+master.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+apps/*/dist/
+
+# Tauri / Rust
+apps/desktop/src-tauri/target/
+
+# Données locales
+data/
+models/
+*.sqlite
+*.log
