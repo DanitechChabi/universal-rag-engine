@@ -79,3 +79,35 @@ def test_encodeur_onnx_vecteurs_normes_et_semantiques():
     sim = lambda u, v: sum(x * y for x, y in zip(u, v, strict=True))  # noqa: E731
     assert sim(a, b) > sim(a, c) + 0.2  # la question est bien plus proche du bon passage
     assert enc.model_name == "bge-m3-onnx-int8" and len(enc.model_revision) == 12
+
+
+TIKA_URL = __import__("os").environ.get("URAG_TEST_TIKA_URL", "http://127.0.0.1:9998")
+
+
+def _tika_up() -> bool:
+    import httpx
+
+    try:
+        return httpx.get(f"{TIKA_URL}/version", timeout=2).status_code == 200
+    except httpx.HTTPError:
+        return False
+
+
+def test_format_ancien_sans_tika_exclu(tmp_path):
+    from urag_core.extraction import UnsupportedFormatError
+
+    path = tmp_path / "note.rtf"
+    path.write_text(r"{\rtf1\ansi Texte.\par}", encoding="ascii")
+    with pytest.raises(UnsupportedFormatError, match="Tika non configuré"):
+        extract(path)
+
+
+@pytest.mark.skipif(not _tika_up(), reason="service Tika absent")
+def test_formats_anciens_via_tika(tmp_path):
+    path = tmp_path / "circulaire.rtf"
+    path.write_text(
+        r"{\rtf1\ansi CIRCULAIRE N\'b0 12\par\par Le capital social minimum des banques est de 20 milliards.\par}",
+        encoding="ascii",
+    )
+    doc = extract(path, tika_url=TIKA_URL)
+    assert "20 milliards" in doc.text and doc.extractor.startswith("tika/")

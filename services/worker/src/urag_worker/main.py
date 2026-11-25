@@ -106,7 +106,12 @@ def build(settings: Settings, encoder: Encoder | None = None) -> Worker:
     from urag_core.ocr import build_engine
 
     ingestion = IngestionService(
-        db, VectorStore(settings.qdrant_url, api_key), encoder, settings.tmp_dir, ocr=build_engine(settings.ocr_engine)
+        db,
+        VectorStore(settings.qdrant_url, api_key),
+        encoder,
+        settings.tmp_dir,
+        ocr=build_engine(settings.ocr_engine),
+        tika_url=settings.tika_url,
     )
     return Worker(db, ingestion)
 

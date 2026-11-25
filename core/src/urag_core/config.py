@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     rerank_backend: str = "none"  # none | onnx (ADR-0021)
     rerank_model_dir: Path = Path.home() / "urag-models" / "bge-reranker-v2-m3-onnx"
     rerank_candidates: int = 20
+    tika_url: str | None = None  # ex. http://tika:9998 ; absent : formats anciens exclus
     context_passages: int = 6
 
     cookie_secure: bool = True

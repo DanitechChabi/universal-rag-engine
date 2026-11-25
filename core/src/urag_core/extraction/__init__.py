@@ -367,12 +367,57 @@ EXTRACTORS = {
 OCR_CAPABLE = {extract_pdf, extract_image}
 
 
-def extract(path: Path, ocr=None) -> ExtractedDocument:
-    """Extrait un document ; ``ocr`` (moteur OCR) est utilisé pour les pages et images sans texte."""
-    extractor = EXTRACTORS.get(path.suffix.lower())
-    if extractor is None:
+LEGACY_FORMATS = {
+    ".doc": "application/msword",
+    ".xls": "application/vnd.ms-excel",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".rtf": "application/rtf",
+    ".odt": "application/vnd.oasis.opendocument.text",
+}
+
+
+def extract_with_tika(path: Path, tika_url: str, timeout: float = 120.0) -> ExtractedDocument:
+    """Formats anciens via Apache Tika Server (Apache-2.0, service facultatif, ADR-0008).
+
+    Interface documentée de Tika Server : ``PUT /tika`` avec le contenu, ``Accept: text/plain``.
+    Le fichier ne quitte pas le réseau interne (service local).
+    """
+    import httpx
+
+    base = tika_url.rstrip("/")
+    try:
+        response = httpx.put(
+            f"{base}/tika",
+            content=path.read_bytes(),
+            headers={"Accept": "text/plain; charset=utf-8", "Content-Type": LEGACY_FORMATS[path.suffix.lower()]},
+            timeout=timeout,
+        )
+        version = httpx.get(f"{base}/version", timeout=10).text.strip()
+    except httpx.HTTPError as e:
+        raise ExtractionError(f"service Tika injoignable : {e}") from e
+    if response.status_code == 422:
+        raise ExtractionError("document refusé par Tika (chiffré ou corrompu)")
+    if response.status_code != 200:
+        raise ExtractionError(f"Tika : erreur {response.status_code}")
+    blocks = _paragraphs(clean_text(response.text), None)
+    return ExtractedDocument(
+        blocks, None, [], version.replace("Apache Tika ", "tika/") or "tika", ["pas de numéros de page (Tika)"]
+    )
+
+
+def extract(path: Path, ocr=None, tika_url: str | None = None) -> ExtractedDocument:
+    """Extrait un document ; ``ocr`` (moteur OCR) est utilisé pour les pages et images sans texte,
+    ``tika_url`` (service Tika) pour les formats anciens."""
+    suffix = path.suffix.lower()
+    extractor = EXTRACTORS.get(suffix)
+    if extractor is None and suffix in LEGACY_FORMATS:
+        if not tika_url:
+            raise UnsupportedFormatError(f"format ancien {suffix} : service Tika non configuré")
+        doc = extract_with_tika(path, tika_url)
+    elif extractor is None:
         raise UnsupportedFormatError(f"format non pris en charge : {path.suffix}")
-    doc = extractor(path, ocr) if extractor in OCR_CAPABLE else extractor(path)
+    else:
+        doc = extractor(path, ocr) if extractor in OCR_CAPABLE else extractor(path)
     first = "\n".join(b.text for b in doc.blocks if b.page in (None, 1))[:3000]
     doc.context = document_context(doc.meta_title, first)
     return doc

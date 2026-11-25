@@ -31,7 +31,7 @@ Configuration par variables d'environnement (fichier `.env`, modèle dans
 | `postgres` | PostgreSQL 16 | interne | données métier, fragments, file de tâches, audit |
 | `qdrant` | Qdrant | interne (clé d'API) | vecteurs |
 | `ollama` ou `vllm` | Ollama / vLLM | interne | génération locale (GPU) |
-| `tika` (facultatif) | Apache Tika server | interne | formats anciens DOC, XLS, PPT, RTF |
+| `tika` (facultatif) | Apache Tika server 3.2 (`apache/tika`, Apache-2.0) | interne | formats anciens DOC, XLS, PPT, RTF, ODT ; activé par `URAG_TIKA_URL` ; sans lui, ces fichiers sont « exclus » avec la raison |
 
 Pas de Redis ni de Celery (ADR-0003). Les modèles d'embedding et de reranking
 tournent dans le `worker` (et l'`api` pour l'encodage des questions) via ONNX

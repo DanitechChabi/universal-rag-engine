@@ -85,8 +85,10 @@ class IngestionService:
         tmp_dir: Path,
         chunking: ChunkingProfile | None = None,
         ocr: OcrEngine | None = None,
+        tika_url: str | None = None,
     ) -> None:
         self.ocr = ocr
+        self.tika_url = tika_url  # formats anciens (DOC, XLS, PPT, RTF, ODT), facultatif
         self.db = db
         self.vectors = vectors
         self.encoder = encoder
@@ -530,7 +532,7 @@ class IngestionService:
                 )
                 return IngestReport(document_id, "unchanged", same.chunk_count)
 
-        extracted = extract(fetched.path, self.ocr)
+        extracted = extract(fetched.path, self.ocr, self.tika_url)
         if extracted.context and suspicious_reason(extracted.context):
             extracted.context = None  # contexte piégé (consignes adressées à une IA) : jamais transmis
         drafts = chunk_document(extracted, self.chunking)

@@ -35,7 +35,12 @@ class AppState:
         from urag_core.ocr import build_engine
 
         return IngestionService(
-            self.db, self.vectors, self.encoder, self.settings.tmp_dir, ocr=build_engine(self.settings.ocr_engine)
+            self.db,
+            self.vectors,
+            self.encoder,
+            self.settings.tmp_dir,
+            ocr=build_engine(self.settings.ocr_engine),
+            tika_url=self.settings.tika_url,
         )
 
     @cached_property
