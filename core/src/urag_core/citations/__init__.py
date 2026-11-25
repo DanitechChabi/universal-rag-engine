@@ -38,7 +38,9 @@ def pages_label(p: Passage) -> str:
 def build_context(passages: list[Passage]) -> str:
     parts = []
     for n, p in enumerate(passages, start=1):
-        head = " — ".join(x for x in (p.title, p.source_name, pages_label(p), " > ".join(p.section_path)) if x)
+        head = " — ".join(
+            x for x in (p.title, p.context, p.source_name, pages_label(p), " > ".join(p.section_path)) if x
+        )
         parts.append(f"[{n}] {neutralize(head)}\n{OPEN}\n{neutralize(p.text)}\n{CLOSE}")
     return "\n\n".join(parts)
 

@@ -82,3 +82,29 @@ def test_listes_numerotees_conservees_et_pas_de_fragment_minuscule():
     assert len(chunks[0].text) >= 300  # l'adresse n'est pas isolée dans un fragment minuscule
     assert all(len(c.text) <= 600 + 300 + 70 for c in chunks)
     assert all("\n" in c.text for c in chunks)  # coupé entre deux lignes de la liste
+
+
+def test_contexte_du_document():
+    from urag_core.extraction import document_context
+
+    first = (
+        "Avenue Abdoulaye FADIGA\nBP 3108 – Dakar - Sénégal\nTél. (221) 33 839 05 00\n"
+        "SITUATION DE LA MICROFINANCE\nDANS L'UMOA AU 31 DECEMBRE 2025\n"
+        "L'encours des dépôts collectés s'est accru de 58,4 milliards FCFA."
+    )
+    ctx = document_context("Publication - Situation de la microfinance à fin décembre 2025", first)
+    assert ctx == (
+        "Publication - Situation de la microfinance à fin décembre 2025 — "
+        "SITUATION DE LA MICROFINANCE DANS L'UMOA AU 31 DECEMBRE 2025"
+    )
+    assert document_context("Image numérisée", "texte courant sans titre") is None  # titre générique ignoré
+    assert document_context("Microsoft Word - Note_de_service.docx", "") == "Note de service"
+    assert "@" not in (document_context(None, "E-MAIL : CONTACT@BANQUE.TEST\nRAPPORT ANNUEL 2025") or "")
+
+
+def test_contexte_en_tete_du_texte_encode():
+    from urag_core.chunking import ChunkDraft
+
+    draft = ChunkDraft(0, "Le loyer est de 900 000 FCFA.", "text", ("Article 3",), 1, 1)
+    assert draft.embedding_text("bail", "Bail des Pins 2026").startswith("bail — Bail des Pins 2026 > Article 3\n")
+    assert draft.embedding_text("bail").startswith("bail > Article 3\n")

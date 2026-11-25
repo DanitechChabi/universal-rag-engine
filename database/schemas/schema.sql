@@ -323,12 +323,14 @@ CREATE TABLE document_versions (
     created_at            timestamptz NOT NULL DEFAULT now(),
     indexed_at            timestamptz,
     superseded_at         timestamptz,         -- remplacée par une version plus récente (traçabilité)
+    context               text,                -- titre et date du document, rappelés en tête des passages
+    pipeline_version      integer NOT NULL DEFAULT 1,  -- version du traitement d'indexation (réindexation)
     UNIQUE (org_id, id),
     FOREIGN KEY (org_id, document_id) REFERENCES documents(org_id, id) ON DELETE CASCADE
 );
--- Idempotence : une version par contenu, profil d'embedding et moteur OCR (réindexation si l'OCR change).
+-- Idempotence : une version par contenu, profil d'embedding, moteur OCR et version du traitement.
 CREATE UNIQUE INDEX document_versions_content_uq
-    ON document_versions (document_id, sha256, embedding_profile_id, coalesce(ocr_engine, ''));
+    ON document_versions (document_id, sha256, embedding_profile_id, coalesce(ocr_engine, ''), pipeline_version);
 
 ALTER TABLE documents
     ADD CONSTRAINT documents_current_version_fk

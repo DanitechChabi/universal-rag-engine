@@ -38,6 +38,8 @@ class ExtractedDocument:
     warnings: list[str] = field(default_factory=list)
     ocr_engine: str | None = None
     ocr_min_confidence: float | None = None
+    meta_title: str | None = None  # titre déclaré dans le fichier (propriétés PDF, Word…)
+    context: str | None = None  # titre et date du document, rappelés en tête de chaque passage (ADR-0021)
 
     @property
     def text(self) -> str:
@@ -118,6 +120,7 @@ def extract_pdf(path: Path, ocr=None) -> ExtractedDocument:
                 empty.append(index + 1)
             page.close()
         count = len(pdf)
+        meta_title = (pdf.get_metadata_dict() or {}).get("Title")
     finally:
         pdf.close()
     warnings = []
@@ -134,6 +137,7 @@ def extract_pdf(path: Path, ocr=None) -> ExtractedDocument:
         warnings,
         ocr.name if confidences else None,
         min(confidences) if confidences else None,
+        meta_title,
     )
 
 
@@ -180,7 +184,12 @@ def extract_docx(path: Path) -> ExtractedDocument:
             if any(r.strip(" |") for r in rows):
                 blocks.append(Block("\n".join(rows), "table"))
     return ExtractedDocument(
-        blocks, None, [], "python-docx", ["pas de numéros de page dans un fichier Word"] if blocks else []
+        blocks,
+        None,
+        [],
+        "python-docx",
+        ["pas de numéros de page dans un fichier Word"] if blocks else [],
+        meta_title=document.core_properties.title or None,
     )
 
 
@@ -363,7 +372,45 @@ def extract(path: Path, ocr=None) -> ExtractedDocument:
     extractor = EXTRACTORS.get(path.suffix.lower())
     if extractor is None:
         raise UnsupportedFormatError(f"format non pris en charge : {path.suffix}")
-    return extractor(path, ocr) if extractor in OCR_CAPABLE else extractor(path)
+    doc = extractor(path, ocr) if extractor in OCR_CAPABLE else extractor(path)
+    first = "\n".join(b.text for b in doc.blocks if b.page in (None, 1))[:3000]
+    doc.context = document_context(doc.meta_title, first)
+    return doc
+
+
+_GENERIC_TITLES = {"image numérisée", "untitled", "sans titre", "document", "microsoft word", "présentation"}
+_NOT_A_HEADING = re.compile(r"@|https?:|www\.|\bt[ée]l\b|\bfax\b|\bb\.?p\.?\s|boulevard|avenue|\brue\b|e-mail", re.I)
+
+
+def document_context(meta_title: str | None, first_page: str) -> str | None:
+    """Contexte d'un document : son titre déclaré s'il est parlant, puis les lignes de titre
+    (majuscules) du début de la première page, sans coordonnées ni adresse.
+
+    Exemple : « Situation de la microfinance à fin décembre 2025 — SITUATION DE LA
+    MICROFINANCE DANS L'UMOA AU 31 DECEMBRE 2025 ». Sert à situer un passage qui ne
+    rappelle ni le pays, ni la date, ni l'objet du document.
+    """
+    parts: list[str] = []
+    title = re.sub(r"^microsoft (word|excel|powerpoint) - ", "", (meta_title or "").strip(), flags=re.I)
+    title = re.sub(r"\.(docx?|pdf|xlsx?|pptx?)$", "", title, flags=re.I).replace("_", " ").strip()
+    if len(title) >= 6 and sum(c.isalpha() for c in title) >= 4 and title.lower() not in _GENERIC_TITLES:
+        parts.append(title)
+    headings: list[str] = []
+    for line in first_page.splitlines()[:40]:
+        line = " ".join(line.split())
+        letters = [c for c in line if c.isalpha()]
+        if not (3 <= len(line) <= 90) or len(letters) < 3 or _NOT_A_HEADING.search(line):
+            continue
+        if sum(c.isupper() for c in letters) / len(letters) >= 0.7:
+            headings.append(line)
+        elif headings:
+            break  # fin du bloc de titres
+        if len(headings) == 4:
+            break
+    if headings:
+        parts.append(" ".join(headings))
+    context = " — ".join(dict.fromkeys(parts))
+    return context[:240] or None
 
 
 _FR = {"le", "la", "les", "des", "du", "de", "et", "est", "une", "un", "pour", "dans", "que", "qui", "au", "aux"}

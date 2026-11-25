@@ -39,10 +39,23 @@ class AppState:
         )
 
     @cached_property
+    def reranker(self):
+        from urag_core.rerank import build_reranker
+
+        return build_reranker(self.settings)
+
+    @cached_property
     def retriever(self) -> Retriever:
         with self.db.anonymous() as conn:
             profile = self.ingestion.profile(conn)
-        return Retriever(self.vectors, self.encoder, profile.collection, self.settings.late_access_check)
+        return Retriever(
+            self.vectors,
+            self.encoder,
+            profile.collection,
+            self.settings.late_access_check,
+            self.reranker,
+            self.settings.rerank_candidates,
+        )
 
     @cached_property
     def router(self) -> ModelRouter:

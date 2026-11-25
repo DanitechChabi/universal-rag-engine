@@ -197,7 +197,7 @@ def test_06_reponse_sourcee_citations_validees(env):
     assert cite["title"] == "contrat_bail_alpha" and cite["pages"] == "page 2" and "450 000" in cite["excerpt"]
     context = env["adapter"].last_messages[1].content
     rank_line = next(line for line in context.splitlines() if line.startswith(f"[{cite['rank']}] "))
-    assert rank_line.startswith(f"[{cite['rank']}] contrat_bail_alpha — Partage juridique")
+    assert rank_line.startswith(f"[{cite['rank']}] contrat_bail_alpha — CONTRAT DE BAIL COMMERCIAL — Partage juridique")
     done = events[-1][1]
     assert done["removed_citations"] >= 1 and "exfiltration" not in done["answer"]
     # Le contexte envoyé au modèle ne contient que des passages autorisés, encadrés comme données.

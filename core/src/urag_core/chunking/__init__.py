@@ -25,9 +25,9 @@ class ChunkDraft:
     page_start: int | None
     page_end: int | None
 
-    def embedding_text(self, title: str) -> str:
-        """Texte encodé : titre du document et section en tête, pour situer le passage."""
-        head = " > ".join((title, *self.section_path))
+    def embedding_text(self, title: str, context: str | None = None) -> str:
+        """Texte encodé : titre et contexte du document (ADR-0021), section, puis le passage."""
+        head = " > ".join((f"{title} — {context}" if context else title, *self.section_path))
         return f"{head}\n{self.text}"
 
 

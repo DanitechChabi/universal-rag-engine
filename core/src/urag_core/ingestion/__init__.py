@@ -41,6 +41,12 @@ from ..storage import Database, VectorPoint, VectorStore
 log = logging.getLogger(__name__)
 
 
+# Version du traitement d'indexation : à augmenter quand l'extraction, le découpage ou le texte
+# encodé changent ; les documents indexés avec une version antérieure sont réindexés.
+# 1 : phases 1 et 2 ; 2 : contexte du document en tête des passages (ADR-0021).
+PIPELINE_VERSION = 2
+
+
 @dataclass
 class SyncReport:
     seen: int = 0
@@ -389,7 +395,9 @@ class IngestionService:
                 (SELECT d.deny_keys FROM documents d WHERE d.id = documents.id) AS old_deny,
                 (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted,
                 (SELECT v.ocr_engine FROM document_versions v WHERE v.id = documents.current_version_id)
-                    AS current_ocr"""),
+                    AS current_ocr,
+                (SELECT v.pipeline_version FROM document_versions v WHERE v.id = documents.current_version_id)
+                    AS current_pipeline"""),
             {
                 "o": org_id,
                 "s": source_id,
@@ -420,6 +428,8 @@ class IngestionService:
             or row.status not in ("indexed", "indexed_with_warning")
             # pages scannées laissées sans texte, alors qu'un moteur OCR est maintenant disponible
             or (self.ocr is not None and row.status == "indexed_with_warning" and row.current_ocr is None)
+            # traitement d'indexation amélioré depuis (découpage, contexte…) : réindexation
+            or (row.current_pipeline is not None and row.current_pipeline < PIPELINE_VERSION)
         )
         if changed:
             if (
@@ -498,9 +508,9 @@ class IngestionService:
                 text("""
                 SELECT id, chunk_count, status::text AS status, ocr_engine,
                        jsonb_array_length(warnings) > 0 AS has_warnings FROM document_versions
-                WHERE id = :cur AND sha256 = :h AND embedding_profile_id = :p AND status IN
-                ('indexed', 'indexed_with_warning')"""),
-                {"cur": doc.current_version_id, "h": digest, "p": profile.id},
+                WHERE id = :cur AND sha256 = :h AND embedding_profile_id = :p AND pipeline_version = :pv
+                AND status IN ('indexed', 'indexed_with_warning')"""),
+                {"cur": doc.current_version_id, "h": digest, "p": profile.id, "pv": PIPELINE_VERSION},
             ).first()
             # Même contenu déjà indexé : rien à faire, sauf si des pages sans texte peuvent
             # maintenant être lues par un moteur OCR qui n'avait pas été utilisé.
@@ -521,6 +531,8 @@ class IngestionService:
                 return IngestReport(document_id, "unchanged", same.chunk_count)
 
         extracted = extract(fetched.path, self.ocr)
+        if extracted.context and suspicious_reason(extracted.context):
+            extracted.context = None  # contexte piégé (consignes adressées à une IA) : jamais transmis
         drafts = chunk_document(extracted, self.chunking)
         if not drafts:
             detail = "aucun texte extractible" + (
@@ -533,7 +545,7 @@ class IngestionService:
             self._set_status(org_id, document_id, "failed", detail)
             return IngestReport(document_id, "failed", detail=detail)
         language = detect_language(extracted.text)
-        vectors = self.encoder.encode([d.embedding_text(doc.title) for d in drafts])
+        vectors = self.encoder.encode([d.embedding_text(doc.title, extracted.context) for d in drafts])
         low_ocr = any("qualité OCR insuffisante" in w for w in extracted.warnings)
         status = "indexed_with_warning" if extracted.pages_without_text or low_ocr else "indexed"
 
@@ -542,15 +554,17 @@ class IngestionService:
             conn.execute(
                 text(
                     "DELETE FROM document_versions WHERE document_id = :d AND sha256 = :h "
-                    "AND embedding_profile_id = :p AND id IS DISTINCT FROM :cur"
+                    "AND embedding_profile_id = :p AND pipeline_version = :pv AND id IS DISTINCT FROM :cur"
                 ),
-                {"d": document_id, "h": digest, "p": profile.id, "cur": doc.current_version_id},
+                {"d": document_id, "h": digest, "p": profile.id, "pv": PIPELINE_VERSION, "cur": doc.current_version_id},
             )
             version_id = conn.execute(
                 text("""
                 INSERT INTO document_versions (org_id, document_id, source_version, sha256, embedding_profile_id,
-                    extractor, ocr_engine, ocr_min_confidence, page_count, chunk_count, language, status, warnings)
-                VALUES (:o, :d, :sv, :h, :p, :ex, :ocr, :ocrc, :pc, :cc, :lang, 'processing', CAST(:w AS jsonb))
+                    extractor, ocr_engine, ocr_min_confidence, page_count, chunk_count, language, status, warnings,
+                    context, pipeline_version)
+                VALUES (:o, :d, :sv, :h, :p, :ex, :ocr, :ocrc, :pc, :cc, :lang, 'processing', CAST(:w AS jsonb),
+                    :ctx, :pv)
                 RETURNING id"""),
                 {
                     "o": org_id,
@@ -565,6 +579,8 @@ class IngestionService:
                     "cc": len(drafts),
                     "lang": language,
                     "w": json.dumps(extracted.warnings),
+                    "ctx": extracted.context,
+                    "pv": PIPELINE_VERSION,
                 },
             ).scalar_one()
             chunk_ids = [
