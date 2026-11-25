@@ -6,6 +6,7 @@
 3. Fusion par rang réciproque (RRF).
 4. Relecture des passages retenus dans ``searchable_chunks`` : revérifie version
    courante, suppression et droits (un retard de Qdrant ne peut qu'exclure).
+5. Revérification auprès de la source (droits effectifs) quand elle le permet.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from sqlalchemy import Connection, text
 
 from ..embeddings import Encoder
 from ..extraction import detect_language
-from ..permissions import AccessScope
+from ..permissions import AccessScope, late_check
 from ..storage import VectorStore
 
 RRF_K = 60
@@ -67,10 +68,11 @@ def references_in(query: str) -> list[str]:
 
 
 class Retriever:
-    def __init__(self, vectors: VectorStore, encoder: Encoder, collection: str) -> None:
+    def __init__(self, vectors: VectorStore, encoder: Encoder, collection: str, late_check: bool = True) -> None:
         self.vectors = vectors
         self.encoder = encoder
         self.collection = collection
+        self.late_check = late_check  # revérification auprès des sources qui le permettent
 
     def dense(self, scope: AccessScope, query: str, limit: int, filters: SearchFilters) -> list[uuid.UUID]:
         vector = self.encoder.encode([query])[0]
@@ -191,4 +193,8 @@ class Retriever:
                 "lexical": self.lexical(conn, scope, query, candidates, filters),
             }
         )
-        return self.load(conn, scope, ranked[:candidates])[:limit]
+        passages = self.load(conn, scope, ranked[:candidates])
+        if self.late_check and passages:
+            allowed = late_check(conn, scope, list(dict.fromkeys(p.document_id for p in passages)))
+            passages = [p for p in passages if p.document_id in allowed]
+        return passages[:limit]

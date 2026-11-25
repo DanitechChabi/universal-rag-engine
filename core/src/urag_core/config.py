@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     chunk_max_chars: int = 1200
     chunk_overlap_chars: int = 150
     retrieval_candidates: int = 30
+    late_access_check: bool = True  # droits revérifiés auprès des sources qui le permettent
     context_passages: int = 6
 
     cookie_secure: bool = True

@@ -19,7 +19,7 @@ from sqlalchemy import text
 from starlette.background import BackgroundTask
 from urag_connectors_base import ConnectorError, DocumentRef, NotFoundError, load_connector_class
 from urag_core.audit import record
-from urag_core.permissions import AccessScope
+from urag_core.permissions import AccessScope, late_check
 
 from ..deps import CAN_ASK, CurrentUser, get_state, problem, require
 from ..state import AppState
@@ -45,6 +45,8 @@ def open_document(
             WHERE d.id = :i AND d.deleted_at IS NULL AND d.access_keys && CAST(:keys AS text[])"""),
             {"i": document_id, "keys": list(scope.keys)},
         ).first()
+        if doc is not None and state.settings.late_access_check and not late_check(conn, scope, [doc.id]):
+            doc = None  # droit retiré dans la source depuis la dernière synchronisation
         if doc is None:
             record(
                 conn,

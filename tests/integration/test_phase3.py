@@ -26,7 +26,8 @@ PASSWORD = "mot de passe de test 2026"
 @pytest.fixture(scope="module")
 def env(database, tmp_path_factory):
     tmp = tmp_path_factory.mktemp("phase3")
-    router = ModelRouter({"fake": ScriptedAdapter()}, [ModelSpec("local-fake", "modele-test", "fake", "local")])
+    adapter = ScriptedAdapter()
+    router = ModelRouter({"fake": adapter}, [ModelSpec("local-fake", "modele-test", "fake", "local")])
     state = make_state(database, tmp, HashingEncoder(256), router)
     client = TestClient(create_app(state))
     sfx = uuid.uuid4().hex[:6]
@@ -95,6 +96,7 @@ def env(database, tmp_path_factory):
     assert r.status_code == 201, r.text
     return {
         "client": client,
+        "adapter": adapter,
         "worker": Worker(state.db, state.ingestion),
         "admin": admin,
         "users": users,
@@ -155,6 +157,44 @@ def test_03_confirmation_droits_par_document(env):
     r = env["client"].post(f"/api/v1/principal-links/{ids['42']['id']}/confirm", headers=env["admin"])
     assert r.status_code == 204, r.text
     # Alice : via le groupe 7 (bail) et en personne (dossier RH).
+    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
+
+
+def test_03b_droit_retire_dans_la_source_effet_immediat(env):
+    """Sans attendre la synchronisation : revérification auprès de la source à chaque requête."""
+    client, alice = env["client"], env["users"]["alice"][1]
+    hit = next(
+        h
+        for h in client.post("/api/v1/search", headers=alice, json={"query": "prime annuelle exceptionnelle"}).json()[
+            "items"
+        ]
+        if h["title"] == "dossier_rh_alice"
+    )
+    assert client.get(f"/api/v1/documents/{hit['document_id']}/open", headers=alice).status_code == 200
+    changed = json.loads(json.dumps(env["vault"]))
+    next(d for d in changed["documents"] if d["id"] == "102")["acl"] = []  # retiré dans la GED, pas encore synchronisé
+    env["path"].write_text(json.dumps(changed), encoding="utf-8")
+    try:
+        assert visible(env, "alice") == {"bail_pins"}
+        assert client.get(f"/api/v1/documents/{hit['document_id']}/open", headers=alice).status_code == 404
+        env["adapter"].last_messages = None
+        r = client.post("/api/v1/chat", headers=alice, json={"question": "Quelle prime annuelle exceptionnelle ?"})
+        assert env["adapter"].last_messages is not None  # le modèle a bien été appelé (avec le bail seulement)
+        assert r.status_code == 200
+        sent = " ".join(m.content for m in env["adapter"].last_messages or [])
+        assert "Dossier RH" not in sent and "dossier_rh_alice" not in r.text  # ni transmis au modèle, ni cité
+    finally:
+        env["path"].write_text(json.dumps(env["vault"]), encoding="utf-8")
+    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
+
+
+def test_03c_source_injoignable_ferme_par_defaut(env):
+    hidden = env["path"].with_suffix(".absent")
+    env["path"].rename(hidden)
+    try:
+        assert visible(env, "alice") == set()
+    finally:
+        hidden.rename(env["path"])
     assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
 
 

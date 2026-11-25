@@ -42,7 +42,7 @@ class AppState:
     def retriever(self) -> Retriever:
         with self.db.anonymous() as conn:
             profile = self.ingestion.profile(conn)
-        return Retriever(self.vectors, self.encoder, profile.collection)
+        return Retriever(self.vectors, self.encoder, profile.collection, self.settings.late_access_check)
 
     @cached_property
     def router(self) -> ModelRouter:
