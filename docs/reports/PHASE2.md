@@ -47,13 +47,13 @@ uniquement sur ce corpus public avec une politique `cloud_allowed` explicite.
 | Gemini : exact et bien cité | 55 % | **82,5 %** |
 | Gemini, questions sur des scans | 0 % | **90 %** |
 | Gemini, questions sans réponse : abstention correcte | 3/3 | 3/3 |
-| qwen : exact et bien cité | 20 % | mesure en cours |
-| qwen, questions sans réponse : abstention correcte | 1/3 | mesure en cours |
+| qwen : exact et bien cité | 20 % | **35 %** |
+| qwen, questions sans réponse : abstention correcte | 1/3 | **0/3** |
 | Montant piégé repris dans une réponse | 2 | **0** |
 | Liens externes dans les réponses | 0 | 0 |
 | Documents en échec | 25 | **0** (15 indexés avec avertissement) |
-| Indexation des 83 documents (OCR compris) | 58 min, sans OCR | **≈ 30 min** |
-| Temps moyen par question | qwen 53 s, Gemini 2,7 s | qwen mesure en cours, Gemini 3,1 s |
+| Indexation des 83 documents (OCR compris) | 58 min, sans OCR | **29 à 35 min** (deux constructions) |
+| Temps moyen par question | qwen 53 s, Gemini 2,7 s | qwen 52 s, Gemini 3,1 s |
 
 Débits mesurés : OCR 2,6 s par page (Tesseract, 300 dpi) ; embeddings 6,4 passages par seconde
 (ONNX int8). Projection pour le client type dans `DEPLOYMENT.md` §2.4.
@@ -88,7 +88,7 @@ Débits mesurés : OCR 2,6 s par page (Tesseract, 300 dpi) ; embeddings 6,4 pass
 
 | Limite | Prévu |
 |---|---|
-| **qwen2.5 1,5B ne convient pas** comme modèle de réponse : il invente au lieu de s'abstenir (0 bonne abstention sur 3 à la mesure intermédiaire) et cite mal. Il ne sert qu'aux tests sur CPU ; un modèle de 7B ou plus, sur GPU, est nécessaire | phase 5 (choix du modèle), phase 7 (serveur GPU) |
+| **qwen2.5 1,5B ne convient pas** comme modèle de réponse : il invente au lieu de s'abstenir (0 bonne abstention sur 3) et cite mal. Il ne sert qu'aux tests sur CPU ; un modèle de 7B ou plus, sur GPU, est nécessaire | phase 5 (choix du modèle), phase 7 (serveur GPU) |
 | **Tableaux** : 2 questions sur 5 échouent parce que la recherche ne trouve pas la bonne ligne d'une longue liste (établissements agréés par pays) | phase 3 : découpage des tableaux par ligne avec en-tête, reranker |
 | Un document BCEAO (situation des IMF) : le bon passage arrive au rang 6 à 11 ; 3 questions s'abstiennent | reranker, comparatif du canal lexical |
 | Coupures réseau de Gemini (1 sur 40) : signalées, pas de nouvel essai automatique | phase 5 (routeur : nouvel essai ou repli selon la politique) |

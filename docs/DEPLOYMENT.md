@@ -80,7 +80,7 @@ de scans. Ordres de grandeur, **premières mesures de la phase 2** ci-dessous :
 | Embeddings | **6,4 passages par seconde** mesurés (ONNX int8, 4 cœurs) | ≈ 18 jours sur 4 cœurs pour 10 millions de fragments ; GPU ou plus de cœurs nécessaires |
 
 Mesure de bout en bout (phase 2, corpus public de 83 documents dont 15 scans, CPU
-4 cœurs) : **≈ 30 minutes**, OCR et embeddings compris, soit ≈ 2 fragments par
+4 cœurs) : **29 à 35 minutes**, OCR et embeddings compris, soit ≈ 2 fragments par
 seconde (`docs/reports/PHASE2.md`).
 
 Conséquences : quantification des vecteurs dans Qdrant dès la phase 1 ; un index
