@@ -221,6 +221,12 @@ def test_contexte_du_document_justifie_la_citation():
     assert "[1]" in v.text and [(c.rank, c.inferred) for c in v.citations] == [(1, False)]
 
 
+def test_tirets_entre_chiffres_equivalents():
+    p = _passage(1, "LOI N° 2025 — 19 DU 22 JUILLET 2025 relative aux associations.")
+    v = validate("Il s'agit de la loi n° 2025-19 du 22 juillet 2025 [1].", [p])
+    assert "[1]" in v.text and v.citations
+
+
 def test_adaptateur_gemini_reprise_et_flux():
     import httpx
     from urag_core.ai import GeminiAdapter

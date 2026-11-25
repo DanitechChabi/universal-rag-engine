@@ -1,7 +1,7 @@
 # Compte rendu — Phase 3 : connecteurs, droits et identités
 
-Date : novembre 2026. Branche : `claude/phase-3-connecteurs` (partie de la branche de la phase 2,
-PR #3 non encore fusionnée).
+Date : novembre 2026. Branche : `claude/phase-3-connecteurs`, construite sur la branche de la
+phase 2 (PR #3 non encore fusionnée).
 Format imposé par la directive 27.7 du cahier des charges.
 
 **Rappel (décision Q8) :** aucun coffre M-Files n'est disponible. Le cœur est développé et testé
@@ -31,7 +31,7 @@ n'est **pas implémenté** et n'est pas déclaré opérationnel.
 | Suite | Résultat |
 |---|---|
 | Schéma PostgreSQL (`database/tests/test_schema.sh`) | **48 vérifications passées** |
-| Tests unitaires et de conformité (`core`, `connectors`, `services/api/tests`) | **70** (dont 3 sautés : fonctions absentes des fichiers locaux) |
+| Tests unitaires et de conformité (`core`, `connectors`, `services/api/tests`) | **72** (dont 3 sautés : fonctions absentes des fichiers locaux) |
 | Intégration, pile réelle PostgreSQL 16 + Qdrant 1.15 (+ Tika 3.2) | **41** : phase 1-2 (23), phase 3 (12), Qdrant (4), migrations (1), vrais modèles (1) |
 | Style (`ruff`) | aucun écart |
 
@@ -42,7 +42,32 @@ incrémentale.
 
 ### Mesure de qualité (corpus public, 40 questions)
 
-MESURE_EN_COURS
+Même corpus (83 documents BCEAO, SGG Bénin, FSB, dont 15 scans) et mêmes 40 questions,
+réindexé avec le traitement de la phase 3 (contexte du document) et le reclassement.
+Générateur : Gemini flash-lite (API externe, politique `cloud_allowed` sur ce corpus public).
+Rapport : `docs/reports/eval-phase3-gemini.json`.
+
+| Mesure | Phase 1 | Phase 2 | **Phase 3** |
+|---|---|---|---|
+| Bon document parmi les 6 premiers | 65 % | 95 % | **100 %** |
+| Réponse exacte | 60 % | 85 % | **92,5 %** |
+| Réponse exacte **et** citation pertinente | 55 % | 82,5 % | **87,5 %** |
+| Questions sur des tableaux (exact et cité) | 40 % | 60 % | **80 %** |
+| Questions sans réponse : abstention correcte | 3/3 | 3/3 | 3/3 |
+| Montant piégé repris, liens externes | 0, 0 | 0, 0 | 0, 0 |
+| Indexation des 83 documents (CPU 4 cœurs) | 58 min | 29 à 35 min | 42 min (réindexation, machine chargée) |
+
+Sur les 5 échecs restants : **3 coupures réseau** de l'API Gemini (signalées comme erreur, pas
+de réponse tronquée) ; **2 citations retirées** sur des réponses justes : Q29 (« 2025-19 »
+contre « 2025 — 19 » lu par OCR, corrigé après la mesure, test unitaire) et Q22 (phrase qui
+combine deux faits tirés de deux passages, un seul cité : la vérification reste stricte).
+
+Une première mesure (`eval-phase3-gemini-avant-correctif.json`, 77,5 %) a révélé que la
+vérification des citations ignorait le contexte du document : la date « fin décembre 2025 »
+venait du contexte, la citation de réponses justes était retirée (anomalie 8).
+
+qwen2.5 1,5B n'a pas été remesuré : la phase 2 a établi qu'il ne convient pas comme modèle de
+réponse (0 abstention correcte sur 3).
 
 ## 3. Anomalies trouvées et corrigées pendant la phase
 
@@ -58,6 +83,9 @@ MESURE_EN_COURS
 6. Un changement de droits non journalisé par la source n'est pas vu par la synchronisation
    incrémentale : synchronisation complète de contrôle documentée et disponible.
 7. La CI de la phase 2 échouait (ligne trop longue, Tesseract absent) : corrigé.
+8. **Citations justes retirées** : la vérification des chiffres ne regardait que le passage, pas le
+   contexte du document transmis au modèle (77,5 % → 87,5 % après correction).
+9. **Tirets entre chiffres** (« 2025 — 19 » en OCR, « 2025-19 » dans la réponse) : normalisés.
 
 ## 4. Anomalies et limites restantes
 

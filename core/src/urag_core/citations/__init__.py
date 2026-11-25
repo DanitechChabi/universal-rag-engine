@@ -74,7 +74,8 @@ _WORD = re.compile(r"[a-zàâäéèêëîïôöùûüç]{6,}")
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", text.lower().replace("\u202f", " ").replace("\u00a0", " "))
+    text = re.sub(r"\s+", " ", text.lower().replace("\u202f", " ").replace("\u00a0", " "))
+    return re.sub(r"(\d) ?[-–—] ?(\d)", r"\1-\2", text)  # « loi n° 2025 — 19 » (OCR) = « 2025-19 »
 
 
 def _supporting_text(p: Passage) -> str:
