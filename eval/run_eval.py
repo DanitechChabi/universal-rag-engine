@@ -304,7 +304,9 @@ def main() -> int:
                         }
                         for x in hits
                     ],
-                    "attendu_dans_passages": contains(" ".join(x["excerpt"] for x in hits), q.get("doit_contenir") or []),
+                    "attendu_dans_passages": contains(
+                        " ".join(x["excerpt"] for x in hits), q.get("doit_contenir") or []
+                    ),
                     "duree_s": round(latency, 1),
                 }
             )

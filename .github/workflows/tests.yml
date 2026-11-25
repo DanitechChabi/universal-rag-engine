@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - name: OCR (Tesseract, moteur par défaut, ADR-0017)
+        run: sudo apt-get update -q && sudo apt-get install -y -q tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng
       - name: Dépendances
         run: uv sync --locked --python 3.12
       - name: Style
