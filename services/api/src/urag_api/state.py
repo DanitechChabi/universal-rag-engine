@@ -7,6 +7,7 @@ from datetime import timedelta
 from functools import cached_property
 
 from urag_core.ai import ModelRouter, ModelSpec, OllamaAdapter
+from urag_core.ai.catalog import RouterCache, load_router
 from urag_core.config import Settings
 from urag_core.embeddings import Encoder, build_encoder
 from urag_core.ingestion import IngestionService
@@ -25,6 +26,7 @@ class AppState:
     hasher: PasswordHasher = field(default_factory=PasswordHasher)
     encoder_override: Encoder | None = None
     router_override: ModelRouter | None = None
+    secrets: SecretBox | None = None  # chiffre les clés d'API des fournisseurs (ADR-0012)
 
     @cached_property
     def encoder(self) -> Encoder:
@@ -70,9 +72,24 @@ class AppState:
         return ModelRouter({"ollama": OllamaAdapter(self.settings.ollama_url)}, [model])
 
     @cached_property
+    def routers(self) -> RouterCache:
+        """Modèles configurés par chaque organisation ; à défaut, le routeur de l'installation."""
+
+        def factory(org_id):
+            with self.db.org(org_id) as conn:
+                return load_router(conn, org_id, self.secrets)
+
+        return RouterCache(factory)
+
+    @cached_property
     def rag(self) -> RagOrchestrator:
         return RagOrchestrator(
-            self.db, self.retriever, self.router, self.settings.retrieval_candidates, self.settings.context_passages
+            self.db,
+            self.retriever,
+            self.router,
+            self.settings.retrieval_candidates,
+            self.settings.context_passages,
+            router_for=self.routers.get,
         )
 
     @classmethod
@@ -91,4 +108,6 @@ class AppState:
             timedelta(hours=settings.refresh_token_ttl_hours),
         )
         api_key = settings.qdrant_api_key.get_secret_value() if settings.qdrant_api_key else None
-        return cls(settings, Database(settings.database_url), VectorStore(settings.qdrant_url, api_key), tokens)
+        return cls(
+            settings, Database(settings.database_url), VectorStore(settings.qdrant_url, api_key), tokens, secrets=box
+        )

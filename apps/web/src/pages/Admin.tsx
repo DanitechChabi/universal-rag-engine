@@ -5,6 +5,7 @@ import { api, del, post, put } from "../api";
 import { useAuth } from "../auth";
 import { formatDate, Status } from "../components/ui";
 import { t } from "../i18n";
+import { AdminAI } from "./AdminAI";
 
 const m = t.admin;
 const ROLES = ["user", "doc_admin", "org_admin", "auditor"];
@@ -40,6 +41,7 @@ export function Admin() {
     ["utilisateurs", m.tabs.users],
     ["espaces", m.tabs.spaces],
     ["correspondances", m.tabs.identities],
+    ["ia", m.tabs.ai],
     ["taches", m.tabs.jobs],
   ];
   return (
@@ -55,6 +57,7 @@ export function Admin() {
       {tab === "utilisateurs" && <Users />}
       {tab === "espaces" && <Spaces />}
       {tab === "correspondances" && <Identities />}
+      {tab === "ia" && <AdminAI />}
       {tab === "taches" && <Jobs />}
     </div>
   );

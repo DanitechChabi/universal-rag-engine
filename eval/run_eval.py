@@ -66,7 +66,12 @@ def main() -> int:
     p.add_argument("--qdrant-key", default="dev-qdrant-key")
     p.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     p.add_argument("--chat-model", default="qwen2.5:1.5b")
-    p.add_argument("--chat-provider", choices=("ollama", "gemini"), default="ollama")
+    p.add_argument("--chat-provider", choices=("ollama", "gemini", "export"), default="ollama")
+    p.add_argument(
+        "--export-prompts",
+        type=Path,
+        help="avec --chat-provider export : écrit, pour chaque question, les messages et extraits destinés au modèle",
+    )
     p.add_argument("--embedding", choices=("ollama", "onnx"), default="ollama")
     p.add_argument("--model-dir", type=Path, default=Path.home() / "urag-models" / "bge-m3-onnx")
     p.add_argument("--ocr", choices=("tesseract", "rapidocr", "none"), default="none")
@@ -148,7 +153,7 @@ def main() -> int:
             if existing
             else cli.bootstrap(admin_db, "Évaluation", "evaluation", "eval.admin", password, "Évaluation")
         )
-        external = args.chat_provider != "ollama"
+        external = args.chat_provider == "gemini"
         if external:
             # Corpus public : envoi d'extraits vers un fournisseur externe autorisé explicitement pour ce test.
             with create_engine(admin_db).begin() as c:
@@ -167,7 +172,19 @@ def main() -> int:
             rerank_backend="onnx" if args.rerank_dir else "none",
             rerank_model_dir=args.rerank_dir or Path("."),
         )
-        if external:
+        if args.chat_provider == "export":
+
+            class NoModel:  # aucun modèle appelé : seuls les messages préparés par le moteur sont enregistrés
+                def health(self):
+                    return True
+
+                def chat(self, model, messages, result):
+                    result.finish_reason = "STOP"
+                    yield "Les documents disponibles ne permettent pas de répondre avec suffisamment de certitude."
+
+            adapter = NoModel()
+            spec = ModelSpec("export", "export", "export", "local")
+        elif external:
             adapter = GeminiAdapter(os.environ["URAG_GEMINI_API_KEY"])
             spec = ModelSpec(
                 "externe",
@@ -204,6 +221,26 @@ def main() -> int:
             ),
             router_override=router,
         )
+        exported: dict[str, dict] = {}
+        if args.chat_provider == "export":
+            state.rag.trace = lambda q, passages, messages: exported.__setitem__(
+                q,
+                {
+                    "messages": [{"role": m.role, "content": m.content} for m in messages],
+                    "passages": [
+                        {
+                            "title": x.title,
+                            "source_name": x.source_name,
+                            "text": x.text,
+                            "context": x.context,
+                            "page_start": x.page_start,
+                            "page_end": x.page_end,
+                            "section_path": list(x.section_path),
+                        }
+                        for x in passages
+                    ],
+                },
+            )
         client = TestClient(create_app(state))
         token = client.post("/api/v1/auth/login", json={"login": "eval.admin", "password": password}).json()
         h = {"Authorization": f"Bearer {token['access_token']}"}
@@ -333,6 +370,15 @@ def main() -> int:
                 "reponse_exacte": rate(items, "reponse_exacte"),
                 "exacte_et_citation_pertinente": rate(items, "exacte_et_citation_pertinente"),
             }
+        if args.chat_provider == "export" and args.export_prompts:
+            items = [
+                {"id": q["id"], "categorie": q["categorie"], "question": q["question"], **exported[q["question"]]}
+                for q in questions
+                if q["question"] in exported
+            ]
+            args.export_prompts.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+            print(f"{len(items)} questions exportées dans {args.export_prompts}", flush=True)
+            return 0
         report = {
             "label": args.label,
             "date": time.strftime("%Y-%m-%d"),

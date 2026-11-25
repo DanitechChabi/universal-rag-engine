@@ -89,6 +89,10 @@ par priorité (documents récents d'abord) pour rendre le logiciel utile avant l
 de l'indexation initiale ; durée d'indexation annoncée au client à partir de la
 mesure réelle.
 
+**Modèle de génération local** (ADR-0024) : télécharger `qwen2.5:14b` (GPU de 12 Go et plus)
+ou `qwen2.5:7b` (8 Go) dans Ollama, puis le déclarer et le tester dans l'écran « IA » de
+l'administration (`ollama pull qwen2.5:14b`). Mesuré sur un Tesla T4 : 7 à 9 s par réponse.
+
 ---
 
 ## 3. Mode Desktop

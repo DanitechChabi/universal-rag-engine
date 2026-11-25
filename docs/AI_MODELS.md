@@ -21,7 +21,9 @@ l'autre).
 
 ## 2. Model Router
 
-Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014).
+Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014). Phase 5 : modèles
+configurés par organisation (`urag_core.ai.catalog`), consommation et plafonds
+(`urag_core.usage`) ; implémentés et testés : `ollama`, `openai_compatible`, `openai`, `gemini`.
 
 ### 2.1 Adaptateurs
 
@@ -29,9 +31,22 @@ Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014).
 |---|---|---|
 | `ollama` | Ollama local (et Ollama Cloud, déclaré externe) | oui |
 | `openai_compatible` | vLLM, LM Studio, llama.cpp server, toute API compatible OpenAI | oui |
-| `anthropic` | API Claude | oui |
+| `anthropic` | API Messages d'Anthropic (Claude), par le SDK officiel `anthropic` (Apache-2.0) ; toujours externe | oui |
 | `gemini` | API Gemini | oui |
 | `openai` | API OpenAI | oui |
+| `openrouter` | OpenRouter (`https://openrouter.ai/api/v1`) : accès à de nombreux modèles, dont des modèles gratuits (suffixe `:free`) ; clé vérifiée par `/key`, la liste des modèles étant publique | oui |
+| `groq` | Groq (`https://api.groq.com/openai/v1`), offre gratuite limitée en débit | oui |
+| `mistral` | Mistral AI (`https://api.mistral.ai/v1`), offre gratuite d'expérimentation | oui |
+
+OpenRouter, Groq et Mistral passent par l'adaptateur compatible OpenAI, avec leur adresse
+officielle par défaut (migration 0007) ; ils sont **toujours externes**. Le test de
+disponibilité vérifie la clé et la présence du nom du modèle dans la liste du fournisseur.
+
+**Offres gratuites** : elles conviennent aux essais et aux documents publics. Leurs conditions
+peuvent autoriser la conservation ou la réutilisation des données envoyées, et elles changent
+souvent : l'administrateur les lit avant de les activer, et ne les autorise pas pour des
+documents confidentiels (la politique « local uniquement » reste le défaut). L'écran
+d'administration le rappelle.
 
 Interface commune :
 
@@ -46,6 +61,20 @@ class ProviderAdapter(Protocol):
 
 Un modèle n'est proposé dans l'interface que si son dernier test de disponibilité
 a réussi (`ai_models.available`).
+
+**Adaptateur Anthropic** (phase 5) :
+
+- la clé de l'organisation est passée explicitement au client : le SDK ne lit alors aucun
+  identifiant de l'environnement du serveur (`ANTHROPIC_API_KEY`, profils `ant`) ; sans clé,
+  aucun appel ;
+- le test de disponibilité vérifie la clé (`GET /v1/models`) et le nom du modèle
+  (`GET /v1/models/{nom}`), sans envoyer de contenu ;
+- pas de température (refusée par les modèles Claude récents) ; consignes dans le champ `system` ;
+- **repli côté serveur** (`fallbacks: "default"`, en-tête bêta `server-side-fallback-2026-07-01`) :
+  si le modèle décline une requête pour raison de sécurité, Anthropic la reprend sur son modèle
+  de repli, toujours chez Anthropic ; un refus final (`refusal`) ou une coupure (`max_tokens`)
+  est présenté comme réponse incomplète ;
+- jetons comptés : entrée (y compris le cache) et sortie, depuis le message final du flux.
 
 ### 2.2 Sélection
 
@@ -119,6 +148,12 @@ Les contraintes de la base empêchent une politique incohérente (testé).
 
 Ces chiffres sont des hypothèses : le rapport de tests de charge (phase 7) les
 remplacera.
+
+**Mesure de la qualité (phase 5, ADR-0024)** : six modèles de 7 à 14 milliards de paramètres,
+mêmes extraits, GPU Tesla T4 (16 Go), Ollama Q4_K_M. Modèle recommandé : **`qwen2.5:14b`**
+(Apache-2.0, 92,5 % de réponses exactes et bien citées, ≈ 9 Go de mémoire graphique, 8,5 s
+par question) ; sur 8 Go : **`qwen2.5:7b`** (90,0 %). Référence externe : Gemini flash-lite,
+97,5 %. Détail : `docs/reports/COMPARAISON-MODELES-LOCAUX.md`.
 
 ---
 

@@ -188,7 +188,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .history-item:hover { background: var(--surface-2); }
 .history-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
-.thread { display: grid; grid-template-rows: 1fr auto auto; min-height: 0; }
+.thread { display: grid; grid-template-rows: 1fr auto; grid-auto-rows: auto; min-height: 0; }
 .messages { overflow: auto; padding: 28px clamp(16px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px; }
 .empty { margin: auto 0; display: grid; gap: 8px; max-width: 640px; }
 .msg { max-width: 760px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -294,3 +294,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .inline-form { display: flex; gap: 8px; max-width: 520px; }
 .input-sm { padding: 5px 8px; font-size: 13px; max-width: 260px; }
 .row-actions.start { justify-content: flex-start; }
+
+/* Administration de l'IA */
+.radios { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.radio-card { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; cursor: pointer; }
+.radio-card span { display: grid; gap: 2px; }
+.radio-card:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; margin: 0; }
+.fieldset legend { font-weight: 600; font-size: 13px; padding: 0 6px; }
+.composer-model { display: flex; align-items: center; gap: 8px; padding: 4px clamp(16px, 4vw, 48px) 0; }
+.composer-warning { margin: 6px clamp(16px, 4vw, 48px) 0; }

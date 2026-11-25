@@ -49,6 +49,18 @@ export function Assistant() {
   // Conversation créée par la question en cours : son historique est déjà affiché.
   const createdHere = useRef<string | null>(null);
 
+  const usable = useQuery({
+    queryKey: ["models"],
+    queryFn: () =>
+      api<{ items: { id: string; name: string; locality: "local" | "external" }[]; external_blocked_by_limit: boolean; notify_on_external: boolean }>(
+        "/models",
+      ),
+    staleTime: 30_000,
+  });
+  const [modelId, setModelId] = useState<string>("");
+  const models = usable.data?.items ?? [];
+  const chosen = models.find((x) => x.id === modelId) ?? models[0];
+
   const history = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api<{ items: ConversationSummary[] }>("/conversations"),
@@ -124,10 +136,10 @@ export function Assistant() {
             if (!ev.data.insufficient) setSelected({ turn: key, rank: null });
             break;
           case "error":
-            patch(key, { status: "error", error: a.unavailable });
+            patch(key, { status: "error", error: ev.data.code === "ai.policy" ? a.noModel : a.unavailable });
             break;
         }
-      });
+      }, modelId || null);
       patch(key, (x) => (x.status === "streaming" ? { status: "error", error: a.interrupted } : {}));
     } catch (err) {
       if (controller.signal.aborted) patch(key, { status: "stopped" });
@@ -232,6 +244,27 @@ export function Assistant() {
             </button>
           )}
         </form>
+        {models.length > 1 && (
+          <div className="composer-model">
+            <label htmlFor="model" className="small muted">
+              {a.model}
+            </label>
+            <select id="model" className="input input-sm" value={modelId} onChange={(e) => setModelId(e.target.value)}>
+              <option value="">{a.autoModel(models[0]?.name ?? "")}</option>
+              {models.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name} ({x.locality === "local" ? a.local : a.external})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {chosen?.locality === "external" && usable.data?.notify_on_external && (
+          <div className="alert alert-warn small composer-warning" role="note">
+            {a.externalWarning(chosen.name)}
+          </div>
+        )}
+        {usable.data?.external_blocked_by_limit && <div className="alert alert-warn small composer-warning">{a.limitReached}</div>}
         <p className="composer-note small muted">{a.note}</p>
       </section>
 

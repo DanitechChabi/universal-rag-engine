@@ -112,18 +112,21 @@ sont créées à la synchronisation et **ne donnent aucun droit** avant confirma
 
 `/chat/{id}` du cahier des charges est couvert par `/conversations/{id}`.
 
-### Modèles IA
+### Modèles IA (phase 5)
 
 | Méthode | Route | Rôles | Contrat |
 |---|---|---|---|
-| GET | `/providers` | OA, SA | fournisseurs (sans clé) |
-| POST/PUT | `/providers`, `/providers/{id}` | OA, SA | clé d'API chiffrée, jamais renvoyée |
-| GET | `/models` | Tous (modèles autorisés et disponibles) ; OA, SA (tous) | — |
-| POST/PUT | `/models`, `/models/{id}` | OA, SA | configuration (cahier des charges 9.4) |
-| POST | `/models/{id}/test` | OA, SA | test de disponibilité et de latence |
-| GET/PUT | `/ai/policy` | lecture Tous (résumé) ; écriture OA, SA | mode et options |
-| GET | `/ai/usage` | OA, SA | consommation et coûts estimés |
-| GET/PUT | `/ai/limits` | OA, SA | limites |
+| GET | `/admin/ai` | OA | politique, fournisseurs (sans clé : `key_configured`), modèles, plafonds et leur état, consommation du mois |
+| PUT | `/admin/ai/policy` | OA | `{mode, allow_external_questions, allow_external_documents, allow_fallback_to_external, notify_user_on_external}` ; incohérence ⇒ 422 ; effet immédiat (scénario 15) |
+| POST | `/admin/ai/providers` | OA | `{kind, name, endpoint?, locality?, api_key?}` ; Ollama toujours local, OpenAI et Gemini toujours externes ; clé chiffrée, jamais renvoyée |
+| PATCH / DELETE | `/admin/ai/providers/{id}` | OA | nom, adresse, activation, nouvelle clé (l'ancienne est supprimée) |
+| POST | `/admin/ai/models` | OA | `{provider_id, name, priority, temperature?, max_output_tokens?, context_window?, max_concurrency?, input_cost_per_mtok?, output_cost_per_mtok?}` |
+| PATCH / DELETE | `/admin/ai/models/{id}` | OA | — |
+| POST | `/admin/ai/models/{id}/test` | OA | test de disponibilité sans envoi de contenu ; un modèle n'est proposé qu'après un test réussi |
+| PUT | `/admin/ai/limits` | OA | plafonds de consommation **externe** par jour et par mois (jetons ou coût estimé), alerte à 80 %, coupure de l'externe au dépassement |
+| GET | `/models` | U et + | modèles que l'utilisateur peut choisir maintenant (politique et plafonds appliqués) ; `external_blocked_by_limit`, `notify_on_external` (scénario 14) |
+
+Le chat accepte `model_id` : s'il n'est plus autorisé, le modèle autorisé de plus haute priorité répond.
 
 ### Administration et exploitation
 
