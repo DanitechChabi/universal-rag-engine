@@ -434,3 +434,35 @@ def test_20_activation_de_l_ocr_relit_les_pages_scannees(env):
     after = search(env, "bob", "établissements de paiement 250 millions")
     scanned = [h for h in after if h["title"] == "rapport_avec_annexe" and "250 millions" in h["excerpt"]]
     assert scanned and scanned[0]["pages"] == "page 2"
+
+
+def test_21_reprise_apres_interruption_du_worker(env):
+    """Scénario 16 : un worker s'arrête en pleine tâche ; la tâche est reprise, sans doublon."""
+    from sqlalchemy import text as sql
+    from urag_core.jobs import requeue_stale, take
+
+    (env["corpus"] / "note_reprise.txt").write_text(
+        "Note sur la reprise : le comité se réunit le jeudi.", encoding="utf-8"
+    )
+    env["client"].post(f"/api/v1/sources/{env['source']}/sync", headers=env["admin_a"])
+    st = env["state"]
+    # Un premier worker prend la synchronisation puis « meurt » sans la terminer.
+    with st.db.anonymous() as conn:
+        orgs = conn.execute(sql("SELECT * FROM urag_orgs_with_ready_jobs()")).scalars().all()
+    org_id = orgs[0]
+    with st.db.org(org_id) as conn:
+        job = take(conn, "worker-mort")
+        assert job is not None and job.kind == "sync_source"
+        conn.execute(sql("UPDATE jobs SET heartbeat_at = now() - interval '1 hour' WHERE id = :i"), {"i": job.id})
+    env["worker"].run_until_idle()  # rien à faire : la tâche est « en cours » chez le worker mort
+    with st.db.org(org_id) as conn:
+        assert conn.execute(sql("SELECT status::text FROM jobs WHERE id = :i"), {"i": job.id}).scalar_one() == "running"
+        assert requeue_stale(conn, stale_after_seconds=600) == 1  # détectée et remise en file
+    env["worker"].run_until_idle()
+    docs = [
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "note_reprise.txt"
+    ]
+    assert len(docs) == 1 and docs[0]["status"] == "indexed"  # indexé une seule fois
+    assert any(h["title"] == "note_reprise" for h in search(env, "bob", "jour de réunion du comité"))
