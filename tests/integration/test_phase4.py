@@ -192,3 +192,40 @@ def test_11_question_de_suite_reformulee(env, database):
             text("SELECT details FROM audit_log WHERE action = 'ai.query' ORDER BY id DESC LIMIT 1")
         ).scalar()
     assert details == {"question": "Et sa durée ?", "reformulee": "Quelle est la durée du bail commercial ?"}
+
+
+def test_12_sommaire_place_apres_le_contenu(env, database):
+    """Une ligne de sommaire qui reprend les mots de la question ne passe jamais devant la clause."""
+    from tests.fixtures.documents import write_pdf
+
+    toc = (
+        "SOMMAIRE\nArticle 1 - Objet du contrat de maintenance ........ 2\n"
+        "Article 2 - Durée du contrat de maintenance ........ 3\n"
+        "Article 3 - Pénalités de retard de maintenance ........ 4\n"
+        "Article 4 - Résiliation du contrat de maintenance ........ 5"
+    )
+    clause = (
+        "Article 3 - Pénalités de retard de maintenance.\n"
+        "Tout retard d'intervention entraîne une pénalité de 25 000 FCFA par jour ouvré, plafonnée à 10 %."
+    )
+    write_pdf(env["corpus"] / "contrat_maintenance.pdf", [toc, clause])
+    sync(env)
+    docs = documents(env, q="maintenance")["items"]
+    detail = env["client"].get(f"/api/v1/documents/{docs[0]['id']}", headers=env["admin_a"]).json()
+    assert [v["pipeline_version"] for v in detail["versions"] if v["current"]] == [3]
+    hits = [h for h in search(env, "bob", "pénalités de retard de maintenance") if h["title"] == "contrat_maintenance"]
+    assert hits and hits[0]["pages"] == "page 2" and "25 000 FCFA" in hits[0]["excerpt"]
+    from sqlalchemy import create_engine, text
+
+    with create_engine(database["admin_url"]).connect() as c:
+        kinds = dict(
+            c.execute(
+                text("""SELECT c.page_start, c.kind FROM chunks c
+                        JOIN documents d ON d.current_version_id = c.version_id
+                        WHERE d.title = 'contrat_maintenance'""")
+            ).all()
+        )
+    assert kinds == {1: "navigation", 2: "text"}  # le sommaire est reconnu, la clause non
+    pages = [h["pages"] for h in hits]
+    if "page 1" in pages:  # le sommaire peut ressortir, mais toujours après la clause
+        assert pages.index("page 2") < pages.index("page 1")

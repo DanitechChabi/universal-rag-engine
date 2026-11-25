@@ -349,7 +349,7 @@ CREATE TABLE chunks (
     page_start    integer CHECK (page_start >= 1),
     page_end      integer CHECK (page_end >= page_start),
     section_path  text[],                     -- titres englobants
-    kind          text NOT NULL DEFAULT 'text' CHECK (kind IN ('text', 'table', 'list', 'ocr')),
+    kind          text NOT NULL DEFAULT 'text' CHECK (kind IN ('text', 'table', 'list', 'ocr', 'navigation')),
     language      text,
     token_count   integer CHECK (token_count >= 0),
     tsv           tsvector GENERATED ALWAYS AS (

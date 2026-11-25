@@ -43,8 +43,9 @@ log = logging.getLogger(__name__)
 
 # Version du traitement d'indexation : à augmenter quand l'extraction, le découpage ou le texte
 # encodé changent ; les documents indexés avec une version antérieure sont réindexés.
-# 1 : phases 1 et 2 ; 2 : contexte du document en tête des passages (ADR-0021).
-PIPELINE_VERSION = 2
+# 1 : phases 1 et 2 ; 2 : contexte du document en tête des passages (ADR-0021) ;
+# 3 : sommaires et index reconnus (fragments « navigation »).
+PIPELINE_VERSION = 3
 
 
 @dataclass
