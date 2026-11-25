@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from urag_core.config import get_settings
 
-from .routes import admin, auth, chat, dashboard, documents, identities
+from .routes import admin, ai_admin, auth, chat, dashboard, documents, identities
 from .state import AppState
 
 API_PREFIX = "/api/v1"
@@ -64,7 +64,15 @@ def create_app(state: AppState) -> FastAPI:
             swagger_favicon_url=f"{API_PREFIX}/static/swagger/favicon.png",
         )
 
-    for router in (auth.router, admin.router, chat.router, documents.router, identities.router, dashboard.router):
+    for router in (
+        auth.router,
+        admin.router,
+        chat.router,
+        documents.router,
+        identities.router,
+        dashboard.router,
+        ai_admin.router,
+    ):
         app.include_router(router, prefix=API_PREFIX)
     return app
 

@@ -69,7 +69,7 @@ def database():
 def make_state(database, tmp_path, encoder, router):
     from urag_api.state import AppState
     from urag_core.config import Settings
-    from urag_core.security import TokenService
+    from urag_core.security import SecretBox, TokenService
     from urag_core.storage import Database, VectorStore
 
     settings = Settings(
@@ -88,6 +88,7 @@ def make_state(database, tmp_path, encoder, router):
         tokens,
         encoder_override=encoder,
         router_override=router,
+        secrets=SecretBox(secrets.token_bytes(32)),
     )
 
 

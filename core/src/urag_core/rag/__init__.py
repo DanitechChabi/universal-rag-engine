@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +22,7 @@ from ..extraction import detect_language
 from ..permissions import AccessScope
 from ..retrieval import Retriever, SearchFilters
 from ..storage import Database
+from ..usage import external_allowed, record_usage
 
 PROMPT_VERSION = "2026-11-p4"
 
@@ -92,11 +93,18 @@ def log_question_text(conn, org_id: uuid.UUID) -> bool:
 
 class RagOrchestrator:
     def __init__(
-        self, db: Database, retriever: Retriever, router: ModelRouter, candidates: int = 30, context_passages: int = 6
+        self,
+        db: Database,
+        retriever: Retriever,
+        router: ModelRouter,
+        candidates: int = 30,
+        context_passages: int = 6,
+        router_for: Callable[[uuid.UUID], ModelRouter | None] | None = None,
     ) -> None:
         self.db = db
         self.retriever = retriever
-        self.router = router
+        self.router = router  # routeur par défaut de l'installation (modèle local)
+        self.router_for = router_for  # modèles configurés par l'organisation (catalogue), s'il y en a
         self.candidates = candidates
         self.context_passages = context_passages
 
@@ -112,6 +120,9 @@ class RagOrchestrator:
             text("INSERT INTO conversations (org_id, user_id, title) VALUES (:o, :u, :t) RETURNING id"),
             {"o": org_id, "u": user_id, "t": question[:80]},
         ).scalar_one()
+
+    def _router(self, org_id: uuid.UUID) -> ModelRouter:
+        return (self.router_for(org_id) if self.router_for else None) or self.router
 
     def standalone_question(
         self, org_id: uuid.UUID, user_id: uuid.UUID, conversation_id: uuid.UUID | None, question: str
@@ -133,6 +144,7 @@ class RagOrchestrator:
                 {"c": conversation_id},
             ).all()[::-1]
             policy = load_policy(conn, org_id)
+            allow_external = external_allowed(conn, org_id, user_id)
         if not history:
             return None
         transcript = "\n".join(
@@ -143,7 +155,9 @@ class RagOrchestrator:
             ChatMessage("user", f"CONVERSATION :\n{transcript}\n\nDERNIÈRE QUESTION : {question}"),
         ]
         try:
-            _, stream = self.router.chat(policy, {DataKind.QUESTION, DataKind.DOCUMENTS}, messages)
+            _, stream = self._router(org_id).chat(
+                policy, {DataKind.QUESTION, DataKind.DOCUMENTS}, messages, allow_external=allow_external
+            )
             rewritten = "".join(stream).strip().strip("«»\"' ").splitlines()[0].strip()
         except (PolicyError, ProviderError, IndexError, StopIteration):
             return None
@@ -177,6 +191,7 @@ class RagOrchestrator:
             suspicious = [p for p in found if p.suspicious]
             passages = [p for p in found if not p.suspicious][: self.context_passages]
             policy = load_policy(conn, org_id)
+            allow_external = external_allowed(conn, org_id, user_id)  # plafond de consommation dépassé : non
             record(
                 conn,
                 org_id,
@@ -215,7 +230,7 @@ class RagOrchestrator:
             yield Event("sources", {"candidates": 0})
             yield Event("token", {"text": INSUFFICIENT})
             yield from self._finish(
-                org_id, conversation_id, message_id, INSUFFICIENT, [], None, 0, True, len(suspicious)
+                org_id, user_id, conversation_id, message_id, INSUFFICIENT, [], None, 0, True, len(suspicious)
             )
             return
 
@@ -228,8 +243,12 @@ class RagOrchestrator:
             ),
         ]
         try:
-            result, stream = self.router.chat(
-                policy, {DataKind.QUESTION, DataKind.DOCUMENTS}, messages, requested=model_id
+            result, stream = self._router(org_id).chat(
+                policy,
+                {DataKind.QUESTION, DataKind.DOCUMENTS},
+                messages,
+                requested=model_id,
+                allow_external=allow_external,
             )
         except PolicyError as e:
             yield Event("error", {"code": "ai.policy", "detail": str(e)})
@@ -279,6 +298,7 @@ class RagOrchestrator:
         )
         yield from self._finish(
             org_id,
+            user_id,
             conversation_id,
             message_id,
             validated.text,
@@ -290,15 +310,32 @@ class RagOrchestrator:
         )
 
     def _finish(
-        self, org_id, conversation_id, message_id, answer, citations, result, removed, insufficient, excluded=0
+        self, org_id, user_id, conversation_id, message_id, answer, citations, result, removed, insufficient, excluded=0
     ) -> Iterator[Event]:
         with self.db.org(org_id) as conn:
+            if result and result.model:
+                record_usage(conn, org_id, user_id, result)
+                if result.model.locality == "external":  # appel externe : tracé, sans aucun contenu
+                    record(
+                        conn,
+                        org_id,
+                        "ai.external_call",
+                        actor=user_id,
+                        target_type="conversation",
+                        target_id=str(conversation_id),
+                        details={
+                            "model": result.model.name,
+                            "tokens_in": result.tokens_in,
+                            "tokens_out": result.tokens_out,
+                        },
+                    )
             conn.execute(
                 text("""
-                INSERT INTO messages (id, org_id, conversation_id, role, content, locality, tokens_in, tokens_out,
-                                      latency_ms, insufficient)
-                VALUES (:id, :o, :c, 'assistant', :t, CAST(:loc AS model_locality), :ti, :to, :lat, :ins)"""),
+                INSERT INTO messages (id, org_id, conversation_id, role, content, locality, model_id, tokens_in,
+                                      tokens_out, latency_ms, insufficient)
+                VALUES (:id, :o, :c, 'assistant', :t, CAST(:loc AS model_locality), :mid, :ti, :to, :lat, :ins)"""),
                 {
+                    "mid": result.model.db_id if result and result.model else None,
                     "id": message_id,
                     "o": org_id,
                     "c": conversation_id,

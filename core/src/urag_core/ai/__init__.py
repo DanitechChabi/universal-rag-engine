@@ -1,9 +1,10 @@
 """Model Router (ADR-0014, docs/AI_MODELS.md §2).
 
-Phase 1 : adaptateur Ollama (local) et application de la politique de
-confidentialité. Les adaptateurs externes (Claude, Gemini, OpenAI) arrivent en
-phase 5 ; la règle « jamais de bascule vers l'externe si interdite » est déjà
-appliquée et testée.
+Adaptateurs : Ollama (local), Gemini (externe), compatible OpenAI (vLLM, LM Studio,
+llama.cpp en local ; OpenAI en externe). La politique de confidentialité de
+l'organisation est appliquée avant tout appel ; jamais de bascule vers l'externe si
+elle est interdite. Les modèles de chaque organisation sont décrits en base
+(``catalog.load_router``).
 """
 
 from __future__ import annotations
@@ -62,6 +63,15 @@ class ModelSpec:
     timeout_s: float = 300.0
     max_concurrency: int = 2
     priority: int = 100
+    db_id: str | None = None  # identifiant dans ai_models (modèles configurés par l'organisation)
+    input_cost_per_mtok: float | None = None  # prix saisi par l'administrateur (estimation)
+    output_cost_per_mtok: float | None = None
+
+    def cost(self, tokens_in: int, tokens_out: int) -> float | None:
+        """Coût estimé d'un appel, si les prix ont été saisis."""
+        if self.input_cost_per_mtok is None and self.output_cost_per_mtok is None:
+            return None
+        return (tokens_in * (self.input_cost_per_mtok or 0) + tokens_out * (self.output_cost_per_mtok or 0)) / 1e6
 
 
 @dataclass
@@ -225,6 +235,59 @@ class GeminiAdapter:
         raise ProviderError("Gemini : indisponible après plusieurs tentatives")
 
 
+class OpenAICompatibleAdapter:
+    """API « chat completions » compatible OpenAI : vLLM, LM Studio, llama.cpp server (local) ou
+    OpenAI et services équivalents (externe). Clé facultative, jamais journalisée."""
+
+    def __init__(self, base_url: str, api_key: str | None = None, transport: httpx.BaseTransport | None = None) -> None:
+        self.base_url = base_url.rstrip("/")
+        self._key = api_key
+        self._client = httpx.Client(transport=transport, timeout=300.0)
+
+    def _headers(self) -> dict[str, str]:
+        return {"authorization": f"Bearer {self._key}"} if self._key else {}
+
+    def health(self) -> bool:
+        try:
+            return self._client.get(f"{self.base_url}/models", headers=self._headers(), timeout=10).status_code == 200
+        except httpx.HTTPError:
+            return False
+
+    def chat(self, model: ModelSpec, messages: list[ChatMessage], result: ChatResult) -> Iterator[str]:
+        body = {
+            "model": model.name,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+            "temperature": model.temperature,
+            "max_tokens": model.max_output_tokens,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+        }
+        try:
+            with self._client.stream(
+                "POST", f"{self.base_url}/chat/completions", headers=self._headers(), json=body, timeout=model.timeout_s
+            ) as r:
+                if r.status_code != 200:
+                    r.read()
+                    raise ProviderError(f"{model.name} : HTTP {r.status_code}")
+                for line in r.iter_lines():
+                    if not line.startswith("data: ") or line == "data: [DONE]":
+                        continue
+                    chunk = json.loads(line[6:])
+                    if chunk.get("usage"):
+                        result.tokens_in = chunk["usage"].get("prompt_tokens", result.tokens_in)
+                        result.tokens_out = chunk["usage"].get("completion_tokens", result.tokens_out)
+                    for choice in chunk.get("choices", [])[:1]:
+                        piece = (choice.get("delta") or {}).get("content")
+                        if piece:
+                            yield piece
+                        if choice.get("finish_reason"):
+                            result.finish_reason = choice["finish_reason"]
+                if result.finish_reason is None:
+                    raise ProviderError(f"{model.name} : flux interrompu avant la fin de la réponse")
+        except httpx.HTTPError as e:
+            raise ProviderError(f"{model.name} : {type(e).__name__}") from e
+
+
 @dataclass
 class ModelRouter:
     adapters: dict[str, ProviderAdapter]
@@ -235,8 +298,12 @@ class ModelRouter:
         for m in self.models:
             self._semaphores[m.id] = threading.BoundedSemaphore(m.max_concurrency)
 
-    def candidates(self, policy: Policy, kinds: set[DataKind], requested: str | None = None) -> list[ModelSpec]:
-        allowed = [m for m in self.models if m.locality == "local" or policy.allows_external(kinds)]
+    def candidates(
+        self, policy: Policy, kinds: set[DataKind], requested: str | None = None, allow_external: bool = True
+    ) -> list[ModelSpec]:
+        allowed = [
+            m for m in self.models if m.locality == "local" or (allow_external and policy.allows_external(kinds))
+        ]
         allowed.sort(key=lambda m: (m.id != requested, m.priority))
         return allowed
 
@@ -247,6 +314,7 @@ class ModelRouter:
         messages: list[ChatMessage],
         requested: str | None = None,
         queue_timeout_s: float = 120.0,
+        allow_external: bool = True,
     ) -> tuple[ChatResult, Iterator[str]]:
         """Choisit le modèle autorisé et renvoie (résultat, flux de texte).
 
@@ -254,7 +322,7 @@ class ModelRouter:
         essayé **uniquement** s'il est autorisé par la politique ; un modèle externe
         n'est jamais utilisé en secours si ``allow_fallback_to_external`` est faux.
         """
-        models = self.candidates(policy, kinds, requested)
+        models = self.candidates(policy, kinds, requested, allow_external)
         if not models:
             raise PolicyError("aucun modèle autorisé par la politique de l'organisation")
         first_locality = models[0].locality
