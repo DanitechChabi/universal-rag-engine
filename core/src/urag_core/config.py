@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     qdrant_api_key: SecretStr | None = None
 
     ollama_url: str = "http://localhost:11434"
+    embedding_backend: str = "ollama"  # onnx (recommandé, ADR-0018) | ollama
+    embedding_model_dir: Path | None = None  # dossier du modèle ONNX (model_int8.onnx + tokenizer.json)
     embedding_model: str = "bge-m3"
     embedding_dimension: int = 1024
     chat_model: str = "qwen2.5:1.5b"
@@ -31,6 +33,7 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_hours: int = 12
 
+    ocr_engine: str = "tesseract"  # tesseract | rapidocr | none (ADR-0017)
     tmp_dir: Path = Path("/tmp/urag")  # noqa: S108 - surchargé en production
 
     chunk_max_chars: int = 1200

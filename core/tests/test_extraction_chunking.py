@@ -62,3 +62,23 @@ def test_nettoyage_et_langue():
     assert clean_text("archi-\nvage  \x00 du  dossier\r\n") == "archivage du dossier"
     assert detect_language("Le loyer mensuel est fixé par le contrat de bail.") == "fr"
     assert detect_language("The monthly rent is set by the lease agreement and the tenant.") == "en"
+
+
+def test_listes_numerotees_conservees_et_pas_de_fragment_minuscule():
+    from urag_core.extraction import _paragraphs
+
+    text = (
+        "Adresse : Abidjan\nTél. 01 02\n\n"
+        "BANQUES (3)\n1 BANGE BANK BENIN B 0184 P\n2 BANK OF AFRICA B 0061 F\n3 ECOBANK B 0062 G"
+    )
+    blocks = _paragraphs(text, 1)
+    assert "1 BANGE BANK BENIN B 0184 P\n2 BANK OF AFRICA" in blocks[1].text  # une ligne par élément
+    assert _paragraphs("le loyer est payé en\n2026 chaque mois", 1)[0].text == "le loyer est payé en 2026 chaque mois"
+    long_list = "BANQUES (40)\n" + "\n".join(f"{i} BANQUE NUMERO {i} DU BENIN B 0{i:03d} X" for i in range(1, 41))
+    doc = ExtractedDocument(
+        [Block("Adresse : Abidjan. Tél. 01 02 03.", "paragraph", 1), Block(long_list, "paragraph", 1)]
+    )
+    chunks = chunk_document(doc, ChunkingProfile(max_chars=600, overlap_chars=60))
+    assert len(chunks[0].text) >= 300  # l'adresse n'est pas isolée dans un fragment minuscule
+    assert all(len(c.text) <= 600 + 300 + 70 for c in chunks)
+    assert all("\n" in c.text for c in chunks)  # coupé entre deux lignes de la liste

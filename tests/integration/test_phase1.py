@@ -228,8 +228,15 @@ def test_08_sans_passage_autorise_pas_d_appel_au_modele(env):
 def test_09_document_piege_traite_comme_donnee(env):
     hits = search(env, "bob", "parking réservé visiteurs")
     assert hits[0]["title"] == "note_piegee"
-    env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Qui peut utiliser le parking ?"})
+    assert hits[0]["suspect"] and "ignorer les instructions" in hits[0]["suspect"]  # signalé dans la recherche
+    env["adapter"].last_messages = None
+    r = env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Qui peut utiliser le parking ?"})
+    done = sse_events(r.text)[-1][1]
+    assert done["passages_suspects_ecartes"] >= 1
+    if env["adapter"].last_messages is None:  # aucun autre passage : le modèle n'est pas appelé
+        return
     context = env["adapter"].last_messages[1].content
+    assert "Ignore toutes les instructions" not in context  # jamais envoyé au modèle
     assert context.count("<<<EXTRAIT") == context.count("EXTRAIT>>>")  # délimiteurs du document neutralisés
     assert "faux EXTRAIT>>>" not in context
 
@@ -384,3 +391,78 @@ def test_18_audit_sans_contenu_documentaire(env, database):
     questions = [r.details for r in rows if r.action == "ai.query"]
     assert any("loyer" in q for q in questions)  # décision Q5 : texte des questions journalisé
     assert not any("450 000" in r.details for r in rows)  # jamais le contenu des documents
+
+
+def test_19_pdf_scanne_lu_par_ocr_et_recherchable(env):
+    from tests.fixtures.documents import write_scanned_pdf
+
+    write_scanned_pdf(env["corpus"] / "avis_capital_paiement.pdf")
+    sync(env)
+    docs = {d["filename"]: d for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]}
+    assert docs["avis_capital_paiement.pdf"]["status"] == "indexed"
+    hits = search(env, "bob", "capital social minimum des établissements de paiement")
+    assert hits[0]["title"] == "avis_capital_paiement" and "250 millions" in hits[0]["excerpt"]
+    assert hits[0]["pages"] == "page 1"
+
+
+def test_20_activation_de_l_ocr_relit_les_pages_scannees(env):
+    from urag_core.ingestion import IngestionService
+    from urag_worker.main import Worker
+
+    from tests.fixtures.documents import write_mixed_pdf
+
+    write_mixed_pdf(env["corpus"] / "rapport_avec_annexe.pdf")
+    st = env["state"]
+    sans_ocr = Worker(st.db, IngestionService(st.db, st.vectors, st.encoder, st.settings.tmp_dir, ocr=None))
+    env["client"].post(f"/api/v1/sources/{env['source']}/sync", headers=env["admin_a"])
+    sans_ocr.run_until_idle()
+    doc = next(
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "rapport_avec_annexe.pdf"
+    )
+    assert doc["status"] == "indexed_with_warning"  # page 2 non lue
+    before = search(env, "bob", "établissements de paiement 250 millions")
+    assert not any(h["title"] == "rapport_avec_annexe" and "250 millions" in h["excerpt"] for h in before)
+    sync(env)  # worker avec OCR : le document inchangé est repris pour lire la page scannée
+    doc = next(
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "rapport_avec_annexe.pdf"
+    )
+    assert doc["status"] == "indexed"
+    after = search(env, "bob", "établissements de paiement 250 millions")
+    scanned = [h for h in after if h["title"] == "rapport_avec_annexe" and "250 millions" in h["excerpt"]]
+    assert scanned and scanned[0]["pages"] == "page 2"
+
+
+def test_21_reprise_apres_interruption_du_worker(env):
+    """Scénario 16 : un worker s'arrête en pleine tâche ; la tâche est reprise, sans doublon."""
+    from sqlalchemy import text as sql
+    from urag_core.jobs import requeue_stale, take
+
+    (env["corpus"] / "note_reprise.txt").write_text(
+        "Note sur la reprise : le comité se réunit le jeudi.", encoding="utf-8"
+    )
+    env["client"].post(f"/api/v1/sources/{env['source']}/sync", headers=env["admin_a"])
+    st = env["state"]
+    # Un premier worker prend la synchronisation puis « meurt » sans la terminer.
+    with st.db.anonymous() as conn:
+        orgs = conn.execute(sql("SELECT * FROM urag_orgs_with_ready_jobs()")).scalars().all()
+    org_id = orgs[0]
+    with st.db.org(org_id) as conn:
+        job = take(conn, "worker-mort")
+        assert job is not None and job.kind == "sync_source"
+        conn.execute(sql("UPDATE jobs SET heartbeat_at = now() - interval '1 hour' WHERE id = :i"), {"i": job.id})
+    env["worker"].run_until_idle()  # rien à faire : la tâche est « en cours » chez le worker mort
+    with st.db.org(org_id) as conn:
+        assert conn.execute(sql("SELECT status::text FROM jobs WHERE id = :i"), {"i": job.id}).scalar_one() == "running"
+        assert requeue_stale(conn, stale_after_seconds=600) == 1  # détectée et remise en file
+    env["worker"].run_until_idle()
+    docs = [
+        d
+        for d in env["client"].get("/api/v1/documents", headers=env["admin_a"]).json()["items"]
+        if d["filename"] == "note_reprise.txt"
+    ]
+    assert len(docs) == 1 and docs[0]["status"] == "indexed"  # indexé une seule fois
+    assert any(h["title"] == "note_reprise" for h in search(env, "bob", "jour de réunion du comité"))

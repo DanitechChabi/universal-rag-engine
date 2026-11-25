@@ -46,6 +46,7 @@ class Passage:
     source_version: str | None
     score: float
     channels: tuple[str, ...] = field(default_factory=tuple)
+    suspicious: str | None = None  # raison, si le passage contient des consignes adressées à une IA
 
 
 def rrf(rankings: dict[str, list[uuid.UUID]], k: int = RRF_K) -> list[tuple[uuid.UUID, float, tuple[str, ...]]]:
@@ -139,7 +140,7 @@ class Retriever:
         rows = conn.execute(
             text("""
             SELECT c.id, c.document_id, c.version_id, c.title, c.source_id, s.name AS source_name, c.text,
-                   c.page_start, c.page_end, c.section_path, d.source_version
+                   c.page_start, c.page_end, c.section_path, d.source_version, c.suspicious_reason
             FROM searchable_chunks c
             JOIN sources s ON s.id = c.source_id
             JOIN documents d ON d.id = c.document_id
@@ -167,6 +168,7 @@ class Retriever:
                     r.source_version,
                     score,
                     channels,
+                    r.suspicious_reason,
                 )
             )
         return passages

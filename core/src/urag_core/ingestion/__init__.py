@@ -32,7 +32,9 @@ from urag_connectors_base import (
 from ..chunking import ChunkingProfile, chunk_document
 from ..embeddings import Encoder, collection_name
 from ..extraction import ExtractionError, UnsupportedFormatError, detect_language, extract
+from ..injection import suspicious_reason
 from ..jobs import enqueue
+from ..ocr import OcrEngine
 from ..permissions import document_keys
 from ..storage import Database, VectorPoint, VectorStore
 
@@ -72,7 +74,9 @@ class IngestionService:
         encoder: Encoder,
         tmp_dir: Path,
         chunking: ChunkingProfile | None = None,
+        ocr: OcrEngine | None = None,
     ) -> None:
+        self.ocr = ocr
         self.db = db
         self.vectors = vectors
         self.encoder = encoder
@@ -184,7 +188,9 @@ class IngestionService:
                         (xmax = 0) AS inserted,
                         (SELECT d.source_version FROM documents d WHERE d.id = documents.id) AS old_version,
                         (SELECT d.access_keys FROM documents d WHERE d.id = documents.id) AS old_keys,
-                        (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted"""),
+                        (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted,
+                        (SELECT v.ocr_engine FROM document_versions v WHERE v.id = documents.current_version_id)
+                            AS current_ocr"""),
                     {
                         "o": org_id,
                         "s": source_id,
@@ -212,6 +218,8 @@ class IngestionService:
                     or row.old_version != doc.ref.version
                     or row.old_deleted is not None
                     or row.status not in ("indexed", "indexed_with_warning")
+                    # pages scannées laissées sans texte, alors qu'un moteur OCR est maintenant disponible
+                    or (self.ocr is not None and row.status == "indexed_with_warning" and row.current_ocr is None)
                 )
                 if changed:
                     if (
@@ -309,32 +317,46 @@ class IngestionService:
         with self.db.org(org_id) as conn:
             same = conn.execute(
                 text("""
-                SELECT id, chunk_count FROM document_versions
-                WHERE document_id = :d AND sha256 = :h AND embedding_profile_id = :p AND status IN
+                SELECT id, chunk_count, status::text AS status, ocr_engine,
+                       jsonb_array_length(warnings) > 0 AS has_warnings FROM document_versions
+                WHERE id = :cur AND sha256 = :h AND embedding_profile_id = :p AND status IN
                 ('indexed', 'indexed_with_warning')"""),
-                {"d": document_id, "h": digest, "p": profile.id},
+                {"cur": doc.current_version_id, "h": digest, "p": profile.id},
             ).first()
-            if same is not None and same.id == doc.current_version_id:
+            # Même contenu déjà indexé : rien à faire, sauf si des pages sans texte peuvent
+            # maintenant être lues par un moteur OCR qui n'avait pas été utilisé.
+            ocr_now_possible = (
+                same is not None
+                and self.ocr is not None
+                and same.status == "indexed_with_warning"
+                and same.ocr_engine is None
+            )
+            if same is not None and not ocr_now_possible:
                 conn.execute(
                     text(
-                        "UPDATE documents SET status = 'indexed', sha256 = :h, updated_at = now() "
+                        "UPDATE documents SET status = CAST(:st AS index_status), sha256 = :h, updated_at = now() "
                         "WHERE id = :i AND status = 'processing'"
                     ),
-                    {"h": digest, "i": document_id},
+                    {"st": same.status, "h": digest, "i": document_id},
                 )
                 return IngestReport(document_id, "unchanged", same.chunk_count)
 
-        extracted = extract(fetched.path)
+        extracted = extract(fetched.path, self.ocr)
         drafts = chunk_document(extracted, self.chunking)
         if not drafts:
             detail = "aucun texte extractible" + (
-                " (document scanné : OCR en phase 2)" if extracted.pages_without_text else ""
+                " (document scanné, OCR désactivé)"
+                if extracted.pages_without_text and self.ocr is None
+                else " (aucun texte reconnu par l'OCR)"
+                if extracted.pages_without_text
+                else ""
             )
             self._set_status(org_id, document_id, "failed", detail)
             return IngestReport(document_id, "failed", detail=detail)
         language = detect_language(extracted.text)
         vectors = self.encoder.encode([d.embedding_text(doc.title) for d in drafts])
-        status = "indexed_with_warning" if extracted.warnings and extracted.pages_without_text else "indexed"
+        low_ocr = any("qualité OCR insuffisante" in w for w in extracted.warnings)
+        status = "indexed_with_warning" if extracted.pages_without_text or low_ocr else "indexed"
 
         # 1. Version et fragments écrits, version pas encore courante (invisible à la recherche).
         with self.db.org(org_id) as conn:
@@ -348,8 +370,8 @@ class IngestionService:
             version_id = conn.execute(
                 text("""
                 INSERT INTO document_versions (org_id, document_id, source_version, sha256, embedding_profile_id,
-                    extractor, page_count, chunk_count, language, status, warnings)
-                VALUES (:o, :d, :sv, :h, :p, :ex, :pc, :cc, :lang, 'processing', CAST(:w AS jsonb))
+                    extractor, ocr_engine, ocr_min_confidence, page_count, chunk_count, language, status, warnings)
+                VALUES (:o, :d, :sv, :h, :p, :ex, :ocr, :ocrc, :pc, :cc, :lang, 'processing', CAST(:w AS jsonb))
                 RETURNING id"""),
                 {
                     "o": org_id,
@@ -358,6 +380,8 @@ class IngestionService:
                     "h": digest,
                     "p": profile.id,
                     "ex": extracted.extractor,
+                    "ocr": extracted.ocr_engine,
+                    "ocrc": extracted.ocr_min_confidence,
                     "pc": extracted.page_count,
                     "cc": len(drafts),
                     "lang": language,
@@ -368,8 +392,9 @@ class IngestionService:
                 conn.execute(
                     text("""
                     INSERT INTO chunks (org_id, document_id, version_id, ordinal, text, page_start, page_end,
-                        section_path, kind, language, token_count)
-                    VALUES (:o, :d, :v, :n, :t, :ps, :pe, CAST(:sp AS text[]), :k, :lang, :tc) RETURNING id"""),
+                        section_path, kind, language, token_count, suspicious, suspicious_reason)
+                    VALUES (:o, :d, :v, :n, :t, :ps, :pe, CAST(:sp AS text[]), :k, :lang, :tc,
+                        CAST(:sus AS text) IS NOT NULL, CAST(:sus AS text)) RETURNING id"""),
                     {
                         "o": org_id,
                         "d": document_id,
@@ -382,6 +407,7 @@ class IngestionService:
                         "k": d.kind,
                         "lang": language,
                         "tc": len(d.text) // 4,
+                        "sus": suspicious_reason(d.text),
                     },
                 ).scalar_one()
                 for d in drafts

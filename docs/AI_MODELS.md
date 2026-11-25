@@ -14,7 +14,7 @@ l'autre).
 | Génération des réponses | local ou externe | Qwen, Gemma, Llama (local) ; Claude, Gemini, OpenAI (externe) | choisi par le routeur selon la politique |
 | Embeddings | local (par défaut) | BGE-M3 (multilingue, 1024 dimensions) | indépendant du modèle de génération |
 | Reranking | local | bge-reranker-v2-m3 | facultatif, après le filtrage des droits |
-| OCR | local | RapidOCR (modèles PaddleOCR en ONNX), Tesseract (secours) | voir ADR-0009 |
+| OCR | local | **Tesseract** (défaut, mesuré), RapidOCR (modèles PaddleOCR en ONNX) en alternative | ADR-0017 (remplace le choix par défaut de l'ADR-0009) |
 | Détection de langue | local | bibliothèque légère (ex. lingua) | français / anglais d'abord |
 
 ---
@@ -95,9 +95,10 @@ Les contraintes de la base empêchent une politique incohérente (testé).
   tâche de fond dans une **nouvelle collection**, recherche toujours sur l'ancienne,
   puis bascule quand la nouvelle est complète ; l'ancienne est conservée jusqu'à
   confirmation. Jamais de mélange de vecteurs incompatibles.
-- **Exécution** : localement, sans Ollama de préférence (ONNX Runtime), pour
-  maîtriser le traitement par lots et ne pas concurrencer la génération. Ollama
-  peut aussi servir des embeddings (option).
+- **Exécution** : localement avec ONNX Runtime, **BGE-M3 quantifié int8**
+  (`OnnxEncoder`, réglage `embedding_backend = onnx`) : 6,4 passages par seconde
+  sur 4 cœurs contre 0,64 via Ollama, similarité cosinus 0,978 avec la version
+  Ollama (ADR-0018). Ollama reste disponible en option (`embedding_backend = ollama`).
 - **Canal lexical creux** : BGE-M3 sait produire des poids lexicaux ; leur
   exécution hors PyTorch est à valider en phase 1 (ADR-0007). Repli : recherche
   plein texte PostgreSQL.

@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import timedelta
 
@@ -195,3 +196,48 @@ def test_citation_qui_ne_justifie_pas_la_phrase_est_corrigee():
     assert [(c.rank, c.inferred) for c in v.citations] == [(2, True)] and v.removed == 1
     gone = validate("Le délai de recours est de 45 jours [1].", passages)
     assert gone.citations == [] and "[1]" not in gone.text  # aucun extrait ne le justifie
+
+
+def test_adaptateur_gemini_reprise_et_flux():
+    import httpx
+    from urag_core.ai import GeminiAdapter
+
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        assert request.headers["x-goog-api-key"] == "cle-test"
+        if len(calls) == 1:
+            return httpx.Response(503, json={"error": {"message": "high demand"}})
+        sse = (
+            'data: {"candidates":[{"content":{"parts":[{"text":"Le loyer "}]}}]}\n\n'
+            'data: {"candidates":[{"content":{"parts":[{"text":"est de 450 000 FCFA [1]."}]},"finishReason":"STOP"}],'
+            '"usageMetadata":{"promptTokenCount":120,"candidatesTokenCount":12}}\n\n'
+        )
+        return httpx.Response(200, text=sse, headers={"content-type": "text/event-stream"})
+
+    adapter = GeminiAdapter("cle-test", transport=httpx.MockTransport(handler), backoff_s=0)
+    model = ModelSpec("g", "gemini-flash-lite-latest", "gemini", "external")
+    result = ChatResult()
+    text = "".join(adapter.chat(model, [ChatMessage("system", "règles"), ChatMessage("user", "q")], result))
+    assert text == "Le loyer est de 450 000 FCFA [1]." and (result.tokens_in, result.tokens_out) == (120, 12)
+    body = json.loads(calls[-1].content)
+    assert body["systemInstruction"]["parts"][0]["text"] == "règles" and body["contents"][0]["role"] == "user"
+    assert len(calls) == 2  # une reprise après le 503
+
+
+def test_flux_gemini_interrompu_jamais_presente_comme_complet():
+    import httpx
+    from urag_core.ai import GeminiAdapter
+
+    def handler(request):  # le flux s'arrête sans finishReason
+        return httpx.Response(
+            200, text='data: {"candidates":[{"content":{"parts":[{"text":"Le capital est de 10 à"}]}}]}\n\n'
+        )
+
+    adapter = GeminiAdapter("cle-test", transport=httpx.MockTransport(handler), backoff_s=0)
+    pieces = []
+    with pytest.raises(ProviderError, match="interrompu"):
+        for piece in adapter.chat(ModelSpec("g", "m", "gemini", "external"), [ChatMessage("user", "q")], ChatResult()):
+            pieces.append(piece)
+    assert pieces == ["Le capital est de 10 à"]

@@ -35,6 +35,7 @@ class ChunkDraft:
 class ChunkingProfile:
     max_chars: int = 1200
     overlap_chars: int = 150
+    min_chars: int = 300  # un fragment plus court est complété par le paragraphe suivant
 
 
 def _pages(blocks: list[Block]) -> tuple[int | None, int | None]:
@@ -55,9 +56,22 @@ def _tail(text: str, size: int) -> str:
 
 
 def _split_long(text: str, max_chars: int) -> list[str]:
-    """Coupe un paragraphe trop long en phrases, sinon en mots."""
+    """Coupe un paragraphe trop long : par lignes (listes), puis par phrases, sinon par mots."""
     if len(text) <= max_chars:
         return [text]
+    if "\n" in text:
+        parts: list[str] = []
+        current = ""
+        for line in text.split("\n"):
+            for piece in _split_long(line, max_chars) if len(line) > max_chars else [line]:
+                if current and len(current) + 1 + len(piece) > max_chars:
+                    parts.append(current)
+                    current = piece
+                else:
+                    current = f"{current}\n{piece}" if current else piece
+        if current:
+            parts.append(current)
+        return parts
     parts: list[str] = []
     current = ""
     for sentence in re.split(r"(?<=[.!?;])\s+", text):
@@ -116,7 +130,8 @@ def chunk_document(doc: ExtractedDocument, profile: ChunkingProfile = ChunkingPr
         current_text, current_blocks = "", []
         for b in buffer:
             for part in _split_long(b.text, profile.max_chars):
-                if current_text and len(current_text) + 2 + len(part) > profile.max_chars:
+                too_long = len(current_text) + 2 + len(part) > profile.max_chars
+                if current_text and too_long and len(current_text) >= profile.min_chars:
                     pieces.append((current_text, current_blocks))
                     current_text, current_blocks = "", []
                 current_text = f"{current_text}\n\n{part}" if current_text else part
@@ -126,7 +141,7 @@ def chunk_document(doc: ExtractedDocument, profile: ChunkingProfile = ChunkingPr
         for text, blocks in pieces:
             if previous_tail:
                 text = f"… {previous_tail}\n\n{text}"
-            emit(text, "text", blocks)
+            emit(text, "ocr" if any(b.ocr for b in blocks) else "text", blocks)
             previous_tail = _tail(text, profile.overlap_chars)
         buffer = []
 

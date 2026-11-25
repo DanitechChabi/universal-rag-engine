@@ -1,6 +1,6 @@
 # ADR-0009 — OCR : RapidOCR (modèles PaddleOCR en ONNX)
 
-- Statut : **acceptée** (phase 0, novembre 2026)
+- Statut : **acceptée** (phase 0, novembre 2026) — choix par défaut remplacé par ADR-0017 après mesure
 - Références : cahier des charges, `docs/AUDIT_FAISABILITE.md`
 
 ## Contexte

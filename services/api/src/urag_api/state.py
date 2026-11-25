@@ -8,7 +8,7 @@ from functools import cached_property
 
 from urag_core.ai import ModelRouter, ModelSpec, OllamaAdapter
 from urag_core.config import Settings
-from urag_core.embeddings import Encoder, OllamaEncoder
+from urag_core.embeddings import Encoder, build_encoder
 from urag_core.ingestion import IngestionService
 from urag_core.rag import RagOrchestrator
 from urag_core.retrieval import Retriever
@@ -28,13 +28,15 @@ class AppState:
 
     @cached_property
     def encoder(self) -> Encoder:
-        return self.encoder_override or OllamaEncoder(
-            self.settings.ollama_url, self.settings.embedding_model, self.settings.embedding_dimension
-        )
+        return self.encoder_override or build_encoder(self.settings)
 
     @cached_property
     def ingestion(self) -> IngestionService:
-        return IngestionService(self.db, self.vectors, self.encoder, self.settings.tmp_dir)
+        from urag_core.ocr import build_engine
+
+        return IngestionService(
+            self.db, self.vectors, self.encoder, self.settings.tmp_dir, ocr=build_engine(self.settings.ocr_engine)
+        )
 
     @cached_property
     def retriever(self) -> Retriever:

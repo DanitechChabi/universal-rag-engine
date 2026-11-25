@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -47,6 +48,33 @@ def cmd_app_password(args) -> None:
         quoted = conn.exec_driver_sql("SELECT quote_literal(%s)", (password,)).scalar_one()
         conn.exec_driver_sql(f"ALTER ROLE urag_app PASSWORD {quoted}")
     print("mot de passe de urag_app défini")
+
+
+_ROLE_NAME = re.compile(r"^urag_run_[a-z0-9]{6,32}$")
+
+
+def create_run_role(url: str, role: str, password: str) -> None:
+    """Compte de connexion propre à une exécution (tests, mesure), membre de urag_app.
+
+    Il hérite exactement des droits de urag_app et reste soumis à la RLS, sans modifier le
+    mot de passe de urag_app, commun à toutes les bases du serveur.
+    """
+    if not _ROLE_NAME.match(role):
+        raise ValueError("nom de rôle invalide")
+    with create_engine(url).begin() as conn:
+        quoted = conn.exec_driver_sql("SELECT quote_literal(%s)", (password,)).scalar_one()
+        conn.exec_driver_sql(
+            f"CREATE ROLE {role} LOGIN PASSWORD {quoted} NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE "
+            "INHERIT IN ROLE urag_app"
+        )
+
+
+def drop_run_role(url: str, role: str) -> None:
+    if not _ROLE_NAME.match(role):
+        raise ValueError("nom de rôle invalide")
+    with create_engine(url, isolation_level="AUTOCOMMIT").connect() as conn:
+        conn.exec_driver_sql(f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = '{role}'")
+        conn.exec_driver_sql(f"DROP ROLE IF EXISTS {role}")
 
 
 def bootstrap(url: str, org_name: str, org_slug: str, login: str, password: str, display_name: str) -> dict:

@@ -135,7 +135,8 @@ immédiatement (tests 9 du schéma).
 
 ## 5. Correspondance avec Qdrant
 
-Une collection par profil d'embedding (`embedding_profiles.collection_name`).
+Une collection par profil d'embedding (`embedding_profiles.collection_name`), indexée
+**par organisation** : `hnsw_config = {m: 0, payload_m: 16}`, pas de graphe global (ADR-0019).
 Chaque point a pour identifiant `chunks.id` et pour charge utile :
 
 | Champ | Index Qdrant | Rôle |
@@ -161,6 +162,7 @@ ne peut qu'**exclure** un résultat, jamais en exposer un.
 ## 6. Évolutions prévues
 
 - Partitionnement de `audit_log` et `usage_records` par mois si le volume l'exige.
-- Index HNSW de Qdrant ajustés après les mesures de la phase 1.
+- Index HNSW de Qdrant : réglé par organisation en phase 2 (ADR-0019) ; à revoir sur un coffre
+  réel aux droits très fragmentés.
 - Colonnes LDAP / Active Directory dans `users` (identifiant d'annuaire) quand
   l'authentification externe sera ajoutée.

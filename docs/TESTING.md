@@ -123,6 +123,9 @@ Matériel et modèle consignés dans le rapport (livrable 20).
 | Test | Fichier | Résultat |
 |---|---|---|
 | Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **42 vérifications passées** (PostgreSQL 16.15) |
-| Unitaires : extraction, découpage, sécurité, droits, citations, recherche, routeur, connecteur local | `core/tests`, `connectors/` | **27 passés** |
-| Intégration sur pile réelle : scénarios 1, 2, 3, 5, 6, 8–13, isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **18 passés** |
+| Unitaires : extraction, découpage, OCR, formats Excel/PowerPoint/HTML, encodeur ONNX, passages piégés, sécurité, droits, citations, recherche, routeur, connecteur local, page de test de l'API | `core/tests`, `connectors/`, `services/api/tests` | **41 passés** |
+| Intégration sur pile réelle : scénarios 1–6, 8–13, 16 (OCR, activation de l'OCR, reprise après arrêt d'un worker), isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **21 passés** |
+| Migrations Alembic identiques au schéma de référence | `tests/integration/test_migrations.py` | **1 passé** |
+| Qdrant : index HNSW par organisation, migration des collections, isolation | `tests/integration/test_vectors.py` | **3 passés** |
+| Mesure de qualité sur le corpus public (40 questions) | `eval/run_eval.py` | rapports `docs/reports/eval-*.json`, synthèse dans `docs/reports/PHASE2.md` |
 | Chaîne complète avec bge-m3 et qwen2.5:1.5b, mesure de qualité | `tests/integration/test_real_models.py` | **1 passé** (rapport `docs/reports/phase1-qualite.json`) |

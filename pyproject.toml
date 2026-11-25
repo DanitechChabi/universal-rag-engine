@@ -40,7 +40,7 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM"]
 ignore = ["S101", "S608", "B008"]  # B008 : Depends() de FastAPI
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S105", "S106", "S108"]
+"**/tests/**" = ["S105", "S106", "S108", "S603", "S607"]
 "**/test_*.py" = ["S105", "S106", "S108"]
 
 [tool.pytest.ini_options]

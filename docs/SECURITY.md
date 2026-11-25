@@ -152,7 +152,14 @@ Le contenu des documents est **toujours** une donnée non fiable.
 5. **Rendu assaini** dans l'interface : Markdown sans HTML brut, sans images, et
    sans liens externes générés par le modèle (seuls les liens de citation construits
    par l'application sont cliquables).
-6. Jeu de tests d'injection (`docs/TESTING.md` §5) exécuté à chaque version.
+6. **Détection des consignes adressées à une IA** (phase 2, `urag_core.injection`) : à
+   l'indexation, chaque passage est analysé (consigne d'ignorer les instructions, message
+   « au système », réponse imposée, faux délimiteurs, image ou lien externe). Un passage
+   détecté est marqué (`chunks.suspicious`), **jamais envoyé au modèle**, signalé dans la
+   recherche, compté dans la réponse et journalisé (`ai.suspicious_excluded`). Motivation :
+   la mesure de référence a montré qu'un petit modèle local reprenait le faux montant d'un
+   document piégé (2 réponses sur 40).
+7. Jeu de tests d'injection (`docs/TESTING.md` §5) exécuté à chaque version.
 
 ---
 

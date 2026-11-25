@@ -84,3 +84,106 @@ def build_corpus(directory: Path) -> Path:
     (directory / "~$brouillon.docx").write_bytes(b"temporaire")
     (directory / "Thumbs.db").write_bytes(b"systeme")
     return directory
+
+
+SCAN_LINES = [
+    "AVIS N°007-2026 RELATIF AU CAPITAL MINIMUM",
+    "Le capital social minimum des établissements",
+    "de paiement est fixé à 250 millions de francs CFA.",
+    "Les établissements disposent d'un délai de deux ans.",
+    "Fait à Cotonou, le 12 mars 2026.",
+]
+
+
+def _text_image(lines: list[str]):
+    from PIL import Image, ImageDraw, ImageFont
+
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 34)
+    image = Image.new("RGB", (1700, 120 + 70 * len(lines)), "white")
+    draw = ImageDraw.Draw(image)
+    for i, line in enumerate(lines):
+        draw.text((80, 60 + 70 * i), line, fill="black", font=font)
+    return image
+
+
+def write_scanned_pdf(path: Path, lines: list[str] = SCAN_LINES) -> Path:
+    """PDF sans texte : une image de page, comme un document numérisé."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    c = canvas.Canvas(str(path), pagesize=A4)
+    image = _text_image(lines)
+    width = A4[0] - 60
+    c.drawImage(
+        ImageReader(image),
+        30,
+        A4[1] - 60 - width * image.height / image.width,
+        width=width,
+        height=width * image.height / image.width,
+    )
+    c.showPage()
+    c.save()
+    return path
+
+
+def write_scanned_png(path: Path, lines: list[str] = SCAN_LINES) -> Path:
+    _text_image(lines).save(path)
+    return path
+
+
+def write_xlsx(path: Path) -> Path:
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Taux 2026"
+    ws.append(["Pays", "Inflation (%)", "Croissance (%)"])
+    ws.append(["Bénin", 1.2, 6.4])
+    ws.append(["Sénégal", 2.1, 7.9])
+    wb.create_sheet("Notes").append(["Source : note de conjoncture interne"])
+    wb.save(path)
+    return path
+
+
+def write_pptx(path: Path) -> Path:
+    from pptx import Presentation
+    from pptx.util import Inches
+
+    deck = Presentation()
+    s1 = deck.slides.add_slide(deck.slide_layouts[1])
+    s1.shapes.title.text = "Plan stratégique 2027"
+    s1.placeholders[1].text = "Objectif : ouvrir 12 nouvelles agences au Bénin."
+    s2 = deck.slides.add_slide(deck.slide_layouts[5])
+    s2.shapes.title.text = "Budget"
+    table = s2.shapes.add_table(2, 2, Inches(1), Inches(2), Inches(6), Inches(1)).table
+    table.cell(0, 0).text, table.cell(0, 1).text = "Poste", "Montant"
+    table.cell(1, 0).text, table.cell(1, 1).text = "Informatique", "1,5 milliard FCFA"
+    deck.save(str(path))
+    return path
+
+
+def write_html(path: Path) -> Path:
+    path.write_text(
+        "<html><head><style>body{color:red}</style><script>alert('x')</script></head><body>"
+        "<h1>Guide du client</h1><p>Les agences ouvrent à 8 h.</p><h2>Frais</h2>"
+        "<table><tr><th>Service</th><th>Frais</th></tr><tr><td>Virement</td><td>500 FCFA</td></tr></table>"
+        "<ul><li>Carte bancaire</li><li>Chéquier</li></ul></body></html>",
+        encoding="utf-8",
+    )
+    return path
+
+
+def write_mixed_pdf(path: Path) -> Path:
+    """Page 1 : texte ; page 2 : image scannée (cas des rapports avec annexes numérisées)."""
+    import pypdfium2 as pdfium
+
+    text_pdf = write_pdf(path.with_suffix(".p1.pdf"), [CONTRACT_PAGE_1])
+    scan_pdf = write_scanned_pdf(path.with_suffix(".p2.pdf"))
+    merged = pdfium.PdfDocument.new()
+    for src in (text_pdf, scan_pdf):
+        merged.import_pages(pdfium.PdfDocument(str(src)))
+    merged.save(str(path))
+    text_pdf.unlink()
+    scan_pdf.unlink()
+    return path

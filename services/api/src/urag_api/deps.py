@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from urag_core.security import InvalidTokenError
 
 from .state import AppState
@@ -36,9 +37,16 @@ class CurrentUser:
         return bool(self.roles & set(roles)) or "super_admin" in self.roles
 
 
-def current_user(request: Request, state: AppState = Depends(get_state)) -> CurrentUser:
-    header = request.headers.get("authorization", "")
-    token = header[7:] if header.lower().startswith("bearer ") else None
+# Déclare le jeton porteur dans la description OpenAPI : bouton « Authorize » de la page /api/v1/docs.
+bearer_scheme = HTTPBearer(auto_error=False, description="Jeton d'accès renvoyé par POST /auth/login")
+
+
+def current_user(
+    request: Request,
+    state: AppState = Depends(get_state),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> CurrentUser:
+    token = credentials.credentials if credentials else None
     from_cookie = token is None
     if from_cookie:
         token = request.cookies.get(ACCESS_COOKIE)
