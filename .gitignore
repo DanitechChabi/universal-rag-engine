@@ -30,3 +30,8 @@ models/
 *.sqlite
 *.log
 .urag-dev/
+
+# Fichiers générés du frontend
+*.tsbuildinfo
+apps/*/test-results/
+apps/*/playwright-report/
