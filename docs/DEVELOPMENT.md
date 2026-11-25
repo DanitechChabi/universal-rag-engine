@@ -52,6 +52,23 @@ Parcours minimal avec l'API : se connecter (`POST /api/v1/auth/login`), créer u
 `local_files` avec `inherit_space_access: true` (`POST /sources`), lancer la
 synchronisation (`POST /sources/{id}/sync`), puis interroger (`POST /search`, `POST /chat`).
 
+## 3 bis. Interface web (phase 4)
+
+Prérequis : Node 22 et pnpm. Depuis la racine du dépôt :
+
+```
+pnpm install
+# API de démonstration : base neuve, petit corpus indexé, modèle de réponse déterministe.
+# Les identifiants générés sont écrits dans le fichier --info (hors du dépôt).
+uv run python tests/e2e/serveur_de_test.py --port 8000 --info /tmp/urag-demo.json
+# Dans un autre terminal : l'interface, qui relaie /api vers le port 8000.
+cd apps/web && pnpm exec vite
+```
+
+Ouvrir http://127.0.0.1:5173 et se connecter avec un identifiant du fichier `--info`.
+Tests : `pnpm exec vitest run` (unitaires) et `pnpm exec playwright test` (parcours de bout en
+bout ; lance lui-même l'API de démonstration et l'interface).
+
 ## 4. Tests
 
 ```

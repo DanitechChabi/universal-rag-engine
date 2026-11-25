@@ -73,6 +73,12 @@ class ChatIn(BaseModel):
     filters: Filters = Field(default_factory=Filters)
 
 
+def _pages(start: int | None, end: int | None) -> str:
+    if start is None:
+        return ""
+    return f"page {start}" if end in (None, start) else f"pages {start}-{end}"
+
+
 def _sse(name: str, data: dict) -> str:
     return f"event: {name}\ndata: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
@@ -121,7 +127,7 @@ def conversation(
             raise problem(404, "conversation.not_found", "Conversation introuvable")
         scope = AccessScope.for_user(conn, user.org_id, user.user_id)
         messages = conn.execute(
-            text("""SELECT id, role::text AS role, content, insufficient, created_at
+            text("""SELECT id, role::text AS role, content, insufficient, created_at, locality::text AS locality
                                         FROM messages WHERE conversation_id = :c ORDER BY created_at, id"""),
             {"c": conversation_id},
         ).all()
@@ -141,6 +147,7 @@ def conversation(
             {
                 "rank": c.rank,
                 "document_id": str(c.document_id),
+                "pages": _pages(c.page_start, c.page_end) if c.accessible else None,
                 "title": c.title if c.accessible else None,
                 "excerpt": c.excerpt if c.accessible else None,
                 "accessible": c.accessible,
@@ -155,6 +162,7 @@ def conversation(
                 "role": m.role,
                 "content": m.content,
                 "insufficient": m.insufficient,
+                "locality": m.locality,
                 "created_at": m.created_at,
                 "citations": by_message.get(m.id, []),
             }

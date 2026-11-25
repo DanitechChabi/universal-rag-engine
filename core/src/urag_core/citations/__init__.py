@@ -162,7 +162,7 @@ def validate(answer: str, passages: list[Passage]) -> ValidatedAnswer:
         return "".join(f"[{n}]" for n in kept)
 
     cleaned = _CITE.sub(replace, sanitize(answer))
-    cleaned = re.sub(r"[ \t]+([.,;:])", r"\1", cleaned).strip()
+    cleaned = re.sub(r"[ \t]+([.,])", r"\1", cleaned).strip()  # pas « : » ni « ; » (espace en français)
     cleaned, fixed, corrected = verify_support(cleaned, passages)
     removed += fixed
     used = [

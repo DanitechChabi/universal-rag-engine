@@ -227,6 +227,90 @@ def _source_row(conn, source_id):
     return row
 
 
+@router.get("/sources/{source_id}")
+def source_detail(
+    source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
+):
+    """Configuration sans secret (les identifiants chiffrés ne sont jamais renvoyés)."""
+    with state.db.org(user.org_id) as conn:
+        r = conn.execute(
+            text("""
+            SELECT s.id, s.name, s.kind::text AS kind, s.status::text AS status, s.enabled, s.config,
+                   s.inherit_space_access, s.last_sync_at, s.last_sync_status, s.secret_id, s.space_id,
+                   sp.name AS space, s.sync_cursor IS NOT NULL AS incremental
+            FROM sources s JOIN spaces sp ON sp.id = s.space_id WHERE s.id = :s"""),
+            {"s": source_id},
+        ).first()
+    if r is None:
+        raise problem(404, "source.not_found", "Source introuvable")
+    try:
+        last = json.loads(r.last_sync_status) if r.last_sync_status else None
+    except ValueError:
+        last = None
+    return {
+        "id": str(r.id),
+        "name": r.name,
+        "kind": r.kind,
+        "status": r.status,
+        "enabled": r.enabled,
+        "config": {k: v for k, v in (r.config or {}).items() if k.lower() not in SECRET_FIELDS},
+        "credentials_configured": r.secret_id is not None,
+        "inherit_space_access": r.inherit_space_access,
+        "space": {"id": str(r.space_id), "name": r.space},
+        "last_sync_at": r.last_sync_at,
+        "last_sync": last,
+        "incremental": r.incremental,
+    }
+
+
+@router.post("/sources/{source_id}/disable", status_code=204)
+def disable_source(
+    source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
+):
+    """Plus aucune synchronisation ; les documents déjà indexés restent consultables."""
+    _set_enabled(state, user, source_id, False)
+
+
+@router.post("/sources/{source_id}/enable", status_code=204)
+def enable_source(
+    source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
+):
+    _set_enabled(state, user, source_id, True)
+
+
+def _set_enabled(state: AppState, user: CurrentUser, source_id: uuid.UUID, enabled: bool) -> None:
+    with state.db.org(user.org_id) as conn:
+        _source_row(conn, source_id)
+        conn.execute(
+            text(
+                "UPDATE sources SET enabled = :e, status = CAST(:st AS source_status), updated_at = now() WHERE id = :s"
+            ),
+            {"e": enabled, "st": "active" if enabled else "disabled", "s": source_id},
+        )
+        record(
+            conn,
+            user.org_id,
+            "source.enable" if enabled else "source.disable",
+            actor=user.user_id,
+            target_type="source",
+            target_id=str(source_id),
+        )
+
+
+@router.delete("/sources/{source_id}", status_code=204)
+def delete_source(
+    source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
+):
+    """Retire la source et tous ses documents de l'index. **Ne touche jamais la source d'origine.**"""
+    with state.db.org(user.org_id) as conn:
+        _source_row(conn, source_id)
+        collection = state.ingestion.profile(conn).collection
+        conn.execute(text("DELETE FROM jobs WHERE payload->>'source_id' = :s"), {"s": str(source_id)})
+        conn.execute(text("DELETE FROM sources WHERE id = :s"), {"s": source_id})  # documents, fragments en cascade
+        record(conn, user.org_id, "source.delete", actor=user.user_id, target_type="source", target_id=str(source_id))
+    state.vectors.delete_where(collection, user.org_id, "source_id", source_id)
+
+
 @router.post("/sources/{source_id}/test")
 def test_source(
     source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
@@ -257,6 +341,8 @@ def sync_source(
     mode = (body or SyncIn()).mode
     with state.db.org(user.org_id) as conn:
         _source_row(conn, source_id)
+        if not conn.execute(text("SELECT enabled FROM sources WHERE id = :s"), {"s": source_id}).scalar_one():
+            raise problem(409, "source.disabled", "Source désactivée : réactivez-la avant de la synchroniser")
         job_id = enqueue(
             conn,
             user.org_id,
@@ -278,26 +364,6 @@ def sync_source(
 
 
 # ------------------------------------------------------------------ documents et tâches
-
-
-@router.get("/documents")
-def list_documents(
-    status: str | None = None, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
-):
-    """Métadonnées et état d'indexation, jamais le contenu."""
-    with state.db.org(user.org_id) as conn:
-        rows = conn.execute(
-            text("""
-            SELECT d.id, d.title, d.filename, d.extension, d.status::text AS status, d.status_detail,
-                   d.acl_status::text AS acl_status, cardinality(d.access_keys) AS access_key_count,
-                   d.source_modified_at, s.name AS source, v.chunk_count
-            FROM documents d JOIN sources s ON s.id = d.source_id
-            LEFT JOIN document_versions v ON v.id = d.current_version_id
-            WHERE d.deleted_at IS NULL AND (CAST(:st AS text) IS NULL OR d.status::text = :st)
-            ORDER BY d.title LIMIT 500"""),
-            {"st": status},
-        ).all()
-    return {"items": [dict(r._mapping) | {"id": str(r.id)} for r in rows]}
 
 
 @router.get("/admin/jobs")

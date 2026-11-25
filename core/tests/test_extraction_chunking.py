@@ -108,3 +108,41 @@ def test_contexte_en_tete_du_texte_encode():
     draft = ChunkDraft(0, "Le loyer est de 900 000 FCFA.", "text", ("Article 3",), 1, 1)
     assert draft.embedding_text("bail", "Bail des Pins 2026").startswith("bail — Bail des Pins 2026 > Article 3\n")
     assert draft.embedding_text("bail").startswith("bail > Article 3\n")
+
+
+def test_sommaires_et_index_reconnus():
+    from urag_core.chunking import is_navigational
+
+    toc = (
+        "Table of Contents\nExecutive summary ............................................ 1\n"
+        "1. Introduction ............................................... 3\n"
+        "2. Overview of practices ....................................... 7\n"
+        "3. Recommendations ............................................ 27"
+    )
+    lists = (
+        "LISTE DES TABLEAUX\nTableau 14 - Opérations financières des Etats membres de l'UEMOA 41\n"
+        "Tableau 15 - Émissions brutes de titres publics sur le marché régional 42\n"
+        "Tableau 16 - Taux d'intérêt et de rendement moyens sur le marché 43\n"
+        "Tableau 17 - Évolution de la masse monétaire dans l'Union 45"
+    )
+    table = (
+        "BENIN - UTILISATIONS DECLAREES AUX CENTRALES DES RISQUES\n"
+        "Agriculture, sylviculture et pêche 43 044 37 393 35 836\n"
+        "Commerce de détail 441 714 518 016 553 366\n"
+        "Transports, entrepôts et communications 586 496 635 919 646 994\n"
+        "TOTAL 549 071 486 555 466 311"
+    )
+    form = (
+        "1.2 - Raison sociale .........................................\n"
+        "1.3 - Nom et contact du responsable ..........................\n"
+        "1.4 - Swift .................................................\n"
+        "Si oui, indiquez la durée de conservation ...... ans."
+    )
+    prose = (
+        "Article 7 - Résiliation.\nLe bail peut être résilié par lettre recommandée.\n"
+        "Le préavis est de 3 mois.\nFait à Cotonou."
+    )
+    assert is_navigational(toc) and is_navigational(lists)
+    assert not is_navigational(table)  # lignes de tableau : plusieurs nombres, pas un numéro de page
+    assert not is_navigational(form)  # pointillés à remplir, sans numéro de page
+    assert not is_navigational(prose)

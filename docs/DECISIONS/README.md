@@ -26,5 +26,6 @@ Une fiche par décision structurante : contexte, décision, alternatives écart�
 | [ADR-0020](ADR-0020-cles-de-refus.md) | Refus explicites des sources : clés de refus | acceptée |
 | [ADR-0021](ADR-0021-reclassement-et-contexte-du-document.md) | Reclassement des candidats et contexte du document (mesuré) | acceptée |
 | [ADR-0022](ADR-0022-m-files-interface-grpc.md) | M-Files : API gRPC (étude de la documentation officielle) | **proposée** — coffre de test requis |
+| [ADR-0023](ADR-0023-interface-web.md) | Interface web : React, sessions par cookies seulement, aucun HTML injecté | acceptée |
 
 Modèle pour une nouvelle fiche : `ADR-XXXX-titre.md` avec les sections Contexte, Décision, Alternatives écartées, Conséquences.

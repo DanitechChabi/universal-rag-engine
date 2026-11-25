@@ -61,7 +61,24 @@ def current_user(
         expected = request.cookies.get(CSRF_COOKIE, "")
         if not expected or not hmac.compare_digest(sent, expected):
             raise problem(403, "auth.csrf", "Jeton anti-CSRF manquant ou invalide")
-    return CurrentUser(claims.user_id, claims.org_id, claims.session_id, frozenset(claims.roles))
+    # Révocation immédiate (docs/SECURITY.md §3) : session fermée, compte désactivé ou rôle retiré
+    # s'appliquent à la requête suivante, sans attendre l'expiration du jeton (15 min).
+    from sqlalchemy import text
+
+    with state.db.org(claims.org_id) as conn:
+        row = conn.execute(
+            text("""
+            SELECT u.status::text AS status, s.revoked_at,
+                   coalesce(array_agg(r.role::text) FILTER (WHERE r.role IS NOT NULL), '{}') AS roles
+            FROM users u
+            JOIN sessions s ON s.id = :s AND s.user_id = u.id
+            LEFT JOIN user_roles r ON r.user_id = u.id
+            WHERE u.id = :u GROUP BY u.status, s.revoked_at"""),
+            {"u": claims.user_id, "s": claims.session_id},
+        ).first()
+    if row is None or row.status != "active" or row.revoked_at is not None:
+        raise problem(401, "auth.invalid_token", "Session expirée ou invalide")
+    return CurrentUser(claims.user_id, claims.org_id, claims.session_id, frozenset(row.roles))
 
 
 def require(*roles: str):

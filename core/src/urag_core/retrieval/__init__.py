@@ -7,7 +7,8 @@
 4. Relecture des passages retenus dans ``searchable_chunks`` : revérifie version
    courante, suppression et droits (un retard de Qdrant ne peut qu'exclure).
 5. Revérification auprès de la source (droits effectifs) quand elle le permet.
-6. Reclassement facultatif des premiers candidats autorisés (ADR-0021).
+6. Reclassement facultatif des premiers candidats autorisés (ADR-0021) ; sommaires et index
+   placés après les passages de contenu.
 """
 
 from __future__ import annotations
@@ -51,6 +52,7 @@ class Passage:
     channels: tuple[str, ...] = field(default_factory=tuple)
     suspicious: str | None = None  # raison, si le passage contient des consignes adressées à une IA
     context: str | None = None  # titre et date du document (ADR-0021)
+    navigational: bool = False  # sommaire, table des matières, index : placé après le contenu
 
 
 def rrf(rankings: dict[str, list[uuid.UUID]], k: int = RRF_K) -> list[tuple[uuid.UUID, float, tuple[str, ...]]]:
@@ -155,7 +157,8 @@ class Retriever:
         rows = conn.execute(
             text("""
             SELECT c.id, c.document_id, c.version_id, c.title, c.source_id, s.name AS source_name, c.text,
-                   c.page_start, c.page_end, c.section_path, d.source_version, c.suspicious_reason, v.context
+                   c.page_start, c.page_end, c.section_path, d.source_version, c.suspicious_reason, v.context,
+                   c.kind = 'navigation' AS navigational
             FROM searchable_chunks c
             JOIN sources s ON s.id = c.source_id
             JOIN documents d ON d.id = c.document_id
@@ -187,6 +190,7 @@ class Retriever:
                     channels,
                     r.suspicious_reason,
                     r.context,
+                    r.navigational,
                 )
             )
         return passages
@@ -215,6 +219,8 @@ class Retriever:
             passages = [p for p in passages if p.document_id in allowed]
         if self.reranker is not None and len(passages) > 1:
             passages = self.rerank(query, passages)
+        # Sommaires et index : utiles pour s'orienter, jamais devant un passage de contenu.
+        passages = [p for p in passages if not p.navigational] + [p for p in passages if p.navigational]
         return passages[:limit]
 
     def rerank(self, query: str, passages: list[Passage]) -> list[Passage]:
