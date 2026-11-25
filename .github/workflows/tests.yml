@@ -36,3 +36,18 @@ jobs:
       - name: Tests unitaires et d'intégration
         # Le test avec les vrais modèles est ignoré automatiquement sans Ollama.
         run: uv run pytest -q -p no:warnings
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Interface web — dépendances
+        run: pnpm install --frozen-lockfile
+      - name: Interface web — types, tests unitaires, construction
+        working-directory: apps/web
+        run: pnpm exec tsc -b && pnpm exec vitest run && pnpm exec vite build
+      - name: Interface web — parcours de bout en bout (Playwright, vraie API)
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium && pnpm exec playwright test --trace off
