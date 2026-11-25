@@ -3,6 +3,7 @@
 
 Un faux fournisseur « compatible OpenAI » (vrai serveur HTTP local) joue le modèle local et le modèle
 externe : les adaptateurs sont testés de bout en bout sans clé réelle ni accès à Internet.
+Le même serveur imite aussi l'API Messages d'Anthropic (Claude) pour l'adaptateur Anthropic.
 Scénarios de recette 14 (basculer entre deux modèles) et 15 (désactiver l'accès aux API externes).
 """
 
@@ -16,7 +17,7 @@ import time
 import pytest
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import create_engine, text
 
 from tests.integration.conftest import sse_events
@@ -24,6 +25,7 @@ from tests.integration.test_phase1 import env, sync  # noqa: F401
 
 pytestmark = pytest.mark.integration
 SECRET_KEY = "cle-de-test-externe-123"
+CLAUDE_KEY = "cle-de-test-anthropic-456"
 
 
 class FakeProvider:
@@ -50,6 +52,45 @@ class FakeProvider:
                 yield "data: [DONE]\n\n"
 
             return StreamingResponse(stream(), media_type="text/event-stream")
+
+        @self.app.get("/v1/models/{name}")
+        def anthropic_model(name: str):
+            if name != "claude-test":
+                return JSONResponse({"type": "error", "error": {"type": "not_found_error", "message": "?"}}, 404)
+            return {"type": "model", "id": name, "display_name": name, "created_at": "2026-01-01T00:00:00Z"}
+
+        @self.app.post("/v1/messages")
+        async def anthropic_messages(request: Request):
+            body = await request.json()
+            self.calls.append({"auth": request.headers.get("authorization"), "body": body})
+            message = {
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": body["model"],
+                "content": [],
+                "stop_reason": None,
+                "stop_sequence": None,
+                "usage": {"input_tokens": 700, "output_tokens": 1},
+            }
+            events = [
+                {"type": "message_start", "message": message},
+                {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}},
+                {
+                    "type": "content_block_delta",
+                    "index": 0,
+                    "delta": {"type": "text_delta", "text": "Le loyer mensuel est de 450 000 FCFA [1]."},
+                },
+                {"type": "content_block_stop", "index": 0},
+                {
+                    "type": "message_delta",
+                    "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+                    "usage": {"output_tokens": 30},
+                },
+                {"type": "message_stop"},
+            ]
+            data = "".join(f"event: {e['type']}\ndata: {json.dumps(e)}\n\n" for e in events)
+            return StreamingResponse(iter([data]), media_type="text/event-stream")
 
 
 @pytest.fixture(scope="module")
@@ -190,3 +231,54 @@ def test_06_reserve_a_l_administrateur(env):
     assert env["client"].get("/api/v1/admin/ai", headers=env["bob"]).status_code == 403
     r = env["client"].put("/api/v1/admin/ai/policy", headers=env["bob"], json={"mode": "cloud_allowed"})
     assert r.status_code == 403
+
+
+def test_07_claude_par_l_adaptateur_anthropic(env, provider, database):
+    c, h = env["client"], env["admin_a"]
+    assert c.put("/api/v1/admin/ai/limits", headers=h, json=[]).status_code == 204  # plafond du test 05 retiré
+    r = c.post(
+        "/api/v1/admin/ai/providers",
+        headers=h,
+        json={
+            "kind": "anthropic",
+            "name": "Anthropic",
+            "endpoint": provider.url.removesuffix("/v1"),
+            "api_key": CLAUDE_KEY,
+            "locality": "local",
+        },
+    )
+    assert r.status_code == 201 and r.json()["locality"] == "external"  # toujours externe, même si « local » demandé
+    pid = r.json()["id"]
+    inconnu = c.post("/api/v1/admin/ai/models", headers=h, json={"provider_id": pid, "name": "claude-inconnu"}).json()[
+        "id"
+    ]
+    assert c.post(f"/api/v1/admin/ai/models/{inconnu}/test", headers=h).json()["available"] is False
+    claude = c.post(
+        "/api/v1/admin/ai/models",
+        headers=h,
+        json={
+            "provider_id": pid,
+            "name": "claude-test",
+            "priority": 30,
+            "input_cost_per_mtok": 4.0,
+            "output_cost_per_mtok": 20.0,
+        },
+    ).json()["id"]
+    assert c.post(f"/api/v1/admin/ai/models/{claude}/test", headers=h).json()["available"] is True
+    assert CLAUDE_KEY not in c.get("/api/v1/admin/ai", headers=h).text
+    events = chat(env, "Quel est le loyer mensuel du bail ?", model_id=claude)
+    assert meta(events)["model"] == {"id": claude, "name": "claude-test", "locality": "external"}
+    done = next(d for n, d in events if n == "done")
+    assert "450 000" in done["answer"] and "[1]" in done["answer"] and not done["insufficient"]
+    call = provider.calls[-1]
+    assert call["auth"] == f"Bearer {CLAUDE_KEY}" and "temperature" not in call["body"]
+    assert call["body"]["system"] and all(m["role"] != "system" for m in call["body"]["messages"])
+    with create_engine(database["admin_url"]).connect() as conn:
+        usage = conn.execute(
+            text("SELECT tokens_in, tokens_out, cost_estimate FROM usage_records ORDER BY id DESC LIMIT 1")
+        ).one()
+    assert (usage.tokens_in, usage.tokens_out) == (700, 30)
+    assert float(usage.cost_estimate) == pytest.approx((700 * 4.0 + 30 * 20.0) / 1e6)
+    c.put("/api/v1/admin/ai/policy", headers=h, json={"mode": "local_only"})
+    events = chat(env, "Quel est le loyer mensuel du bail ?", model_id=claude)
+    assert meta(events)["model"]["locality"] == "local"  # scénario 15 : Claude coupé immédiatement

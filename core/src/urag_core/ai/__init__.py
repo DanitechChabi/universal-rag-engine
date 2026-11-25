@@ -1,7 +1,7 @@
 """Model Router (ADR-0014, docs/AI_MODELS.md §2).
 
-Adaptateurs : Ollama (local), Gemini (externe), compatible OpenAI (vLLM, LM Studio,
-llama.cpp en local ; OpenAI en externe). La politique de confidentialité de
+Adaptateurs : Ollama (local), Gemini et Anthropic/Claude (externes), compatible OpenAI
+(vLLM, LM Studio, llama.cpp en local ; OpenAI en externe). La politique de confidentialité de
 l'organisation est appliquée avant tout appel ; jamais de bascule vers l'externe si
 elle est interdite. Les modèles de chaque organisation sont décrits en base
 (``catalog.load_router``).
@@ -285,6 +285,85 @@ class OpenAICompatibleAdapter:
                 if result.finish_reason is None:
                     raise ProviderError(f"{model.name} : flux interrompu avant la fin de la réponse")
         except httpx.HTTPError as e:
+            raise ProviderError(f"{model.name} : {type(e).__name__}") from e
+
+
+class AnthropicAdapter:
+    """API Messages d'Anthropic (modèles Claude), toujours externe, par le SDK officiel ``anthropic``.
+
+    - La clé est passée explicitement au client : le SDK ne consulte alors **aucun** identifiant de
+      l'environnement du serveur (variables ``ANTHROPIC_*``, profils sur disque). Sans clé, aucun
+      client n'est construit et aucun appel n'est fait.
+    - Pas de température : les modèles Claude récents la refusent. Les consignes système sont
+      envoyées dans le champ ``system`` de l'API.
+    - Repli côté serveur (``fallbacks: "default"``) : si le modèle demandé décline une requête pour
+      raison de sécurité, Anthropic la reprend sur le modèle de repli qu'il définit (toujours chez
+      Anthropic) ; sur un modèle sans repli, la requête s'exécute seule. Le refus final est signalé
+      comme réponse incomplète (``refusal``), jamais présenté comme complet.
+    """
+
+    BASE_URL = "https://api.anthropic.com"
+    FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+    def __init__(self, api_key: str | None, base_url: str | None = None, http_client=None) -> None:
+        self._client = None
+        if api_key:
+            import anthropic
+
+            self._errors = anthropic
+            self._client = anthropic.Anthropic(
+                api_key=api_key,
+                base_url=(base_url or self.BASE_URL).rstrip("/"),
+                timeout=300.0,
+                max_retries=2,
+                http_client=http_client,
+            )
+
+    def health(self) -> bool:
+        if self._client is None:
+            return False
+        try:
+            self._client.models.list(limit=1)
+            return True
+        except self._errors.APIError:
+            return False
+
+    def has_model(self, name: str) -> bool:
+        """Le modèle existe-t-il pour cette clé ? Aucun contenu n'est envoyé."""
+        if self._client is None:
+            return False
+        try:
+            self._client.models.retrieve(name)
+            return True
+        except self._errors.APIError:
+            return False
+
+    def chat(self, model: ModelSpec, messages: list[ChatMessage], result: ChatResult) -> Iterator[str]:
+        if self._client is None:
+            raise ProviderError(f"{model.name} : clé d'API absente")
+        system = "\n\n".join(m.content for m in messages if m.role == "system")
+        turns = [{"role": m.role, "content": m.content} for m in messages if m.role != "system"]
+        extra = {"system": system} if system else {}
+        try:
+            with self._client.with_options(timeout=model.timeout_s).beta.messages.stream(
+                model=model.name,
+                max_tokens=model.max_output_tokens,
+                messages=turns,
+                betas=[self.FALLBACK_BETA],
+                fallbacks="default",
+                **extra,
+            ) as stream:
+                yield from stream.text_stream
+                final = stream.get_final_message()
+            usage = final.usage
+            result.tokens_in = (
+                usage.input_tokens + (usage.cache_creation_input_tokens or 0) + (usage.cache_read_input_tokens or 0)
+            )
+            result.tokens_out = usage.output_tokens
+            result.finish_reason = final.stop_reason or "stop"
+        except self._errors.APIStatusError as e:
+            raise ProviderError(f"{model.name} : HTTP {e.status_code}") from e
+        except self._errors.APIError as e:
             raise ProviderError(f"{model.name} : {type(e).__name__}") from e
 
 

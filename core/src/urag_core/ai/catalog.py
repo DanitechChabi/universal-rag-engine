@@ -13,11 +13,20 @@ from collections.abc import Callable
 
 from sqlalchemy import Connection, text
 
-from . import GeminiAdapter, ModelRouter, ModelSpec, OllamaAdapter, OpenAICompatibleAdapter, ProviderAdapter
+from . import (
+    AnthropicAdapter,
+    GeminiAdapter,
+    ModelRouter,
+    ModelSpec,
+    OllamaAdapter,
+    OpenAICompatibleAdapter,
+    ProviderAdapter,
+)
 
 DEFAULT_ENDPOINTS = {
     "openai": "https://api.openai.com/v1",
     "gemini": GeminiAdapter.BASE_URL,
+    "anthropic": AnthropicAdapter.BASE_URL,
 }
 
 
@@ -39,6 +48,8 @@ def build_adapter(kind: str, endpoint: str | None, api_key: str | None) -> Provi
         return OllamaAdapter(endpoint)
     if kind == "gemini":
         return GeminiAdapter(api_key or "", endpoint or DEFAULT_ENDPOINTS["gemini"])
+    if kind == "anthropic":
+        return AnthropicAdapter(api_key, endpoint or DEFAULT_ENDPOINTS["anthropic"])
     if kind in ("openai", "openai_compatible"):
         base = endpoint or DEFAULT_ENDPOINTS.get(kind)
         if not base:

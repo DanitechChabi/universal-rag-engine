@@ -25,7 +25,7 @@ from ..state import AppState
 
 router = APIRouter(tags=["intelligence artificielle"])
 
-SUPPORTED = ("ollama", "openai_compatible", "openai", "gemini")
+SUPPORTED = ("ollama", "openai_compatible", "openai", "gemini", "anthropic")
 EXTERNAL_KINDS = ("openai", "gemini", "anthropic")
 
 
@@ -143,10 +143,10 @@ def _http_url(value: str | None) -> str | None:
 
 
 class ProviderIn(BaseModel):
-    kind: Literal["ollama", "openai_compatible", "openai", "gemini"]
+    kind: Literal["ollama", "openai_compatible", "openai", "gemini", "anthropic"]
     name: str = Field(min_length=1, max_length=120)
     endpoint: str | None = Field(default=None, max_length=500)
-    locality: Literal["local", "external"] | None = None  # imposé pour Ollama, OpenAI et Gemini
+    locality: Literal["local", "external"] | None = None  # imposé pour Ollama, OpenAI, Gemini et Anthropic
     api_key: str | None = Field(default=None, min_length=1, max_length=500)
     enabled: bool = True
 
@@ -408,6 +408,9 @@ def test_model(
         if ok and r.kind == "ollama":
             ok = r.name in adapter.available_models()
             detail = "modèle présent sur le serveur" if ok else "modèle absent du serveur Ollama"
+        elif ok and r.kind == "anthropic":
+            ok = adapter.has_model(r.name)
+            detail = "modèle disponible pour cette clé" if ok else "modèle inconnu d'Anthropic pour cette clé"
     except (ValueError, Exception) as e:  # noqa: BLE001 - message sans secret, sans trace technique
         ok, detail = False, f"configuration invalide : {type(e).__name__}"
     with state.db.org(user.org_id) as conn:

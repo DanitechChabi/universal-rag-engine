@@ -19,6 +19,7 @@ Format imposé par la directive 27.7 du cahier des charges.
 | **Consommation et coûts** : jetons et coût estimé enregistrés à chaque appel (prix par million de jetons saisis par l'administrateur) ; audit `ai.external_call` **sans contenu** | `rag._finish` | `test_phase5` 03 |
 | Écran d'administration « Modèles d'IA » : politique, fournisseurs (clé masquée), modèles, plafonds et leur état, consommation du mois | `AdminAI.tsx` | Playwright 9 |
 | Administration réservée aux administrateurs | `routes/ai_admin.py` | `test_phase5` 06 |
+| **Adaptateur Anthropic (Claude)** par le SDK officiel : flux progressif, jetons et coût, repli côté serveur en cas de refus de sécurité, refus ou coupure signalés comme incomplets ; aucun identifiant lu dans l'environnement du serveur | `AnthropicAdapter` | `test_anthropic_adapter` (5), `test_phase5` 07 |
 | **Choix du modèle local mesuré sur GPU** (Kaggle, 2 × Tesla T4) : six modèles ouverts, mêmes extraits, même notation que le moteur | `eval/kaggle`, `eval/score_answers.py` | `COMPARAISON-MODELES-LOCAUX.md`, ADR-0024 |
 
 ## 2. Tests exécutés et résultats
@@ -26,7 +27,7 @@ Format imposé par la directive 27.7 du cahier des charges.
 | Suite | Résultat |
 |---|---|
 | Schéma PostgreSQL | **48 vérifications passées** |
-| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **131 passés**, 4 sautés (fonctions absentes des fichiers locaux) |
+| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **138 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
 | Interface : Vitest | **2 passés** |
 | **Parcours de bout en bout Playwright** contre la vraie API | **9 passés** (dont scénarios 14 et 15) |
 | Style (`ruff check`, `ruff format`) | aucun écart |
@@ -63,7 +64,6 @@ remplie.**
 | Mesure sur 40 questions (2,5 points par question) | corpus d'évaluation à agrandir |
 | Modèles locaux mesurés hors du moteur (mêmes extraits et mêmes messages), pas encore servis par le moteur sur un serveur GPU | phase 7 (serveur GPU, tests de charge) |
 | Coût estimé à partir des prix saisis par l'administrateur, pas de la facture du fournisseur | assumé |
-| Pas d'adaptateur Anthropic (Claude) : son API n'est pas compatible OpenAI | à la demande d'un client |
 | Export PDF/DOCX des réponses (reporté de la phase 4) | phase 8 |
 
 ## 5. Décisions prises
@@ -73,10 +73,12 @@ remplie.**
 - Un modèle externe n'est jamais utilisé si la politique, le plafond ou l'absence de test
   le refusent : le routeur retombe sur un modèle local, jamais l'inverse.
 - L'audit des appels externes ne contient ni la question ni la réponse ni les extraits.
+- Anthropic passe par son SDK officiel (licence Apache-2.0, dépendances BSD, MIT et Apache), et
+  non par une couche « compatible OpenAI » : seule l'API Messages expose le repli côté serveur
+  et la raison d'arrêt `refusal`.
 
 ## 6. Prochaines tâches
 
 1. Phase 7 (Server) : Docker Compose de production, HTTPS, supervision, sauvegarde et
    restauration, tests de charge sur un serveur GPU loué.
 2. Connecteur M-Files dès qu'un coffre de test est disponible.
-3. Adaptateur Claude si un client le demande.

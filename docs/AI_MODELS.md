@@ -31,7 +31,7 @@ configurés par organisation (`urag_core.ai.catalog`), consommation et plafonds
 |---|---|---|
 | `ollama` | Ollama local (et Ollama Cloud, déclaré externe) | oui |
 | `openai_compatible` | vLLM, LM Studio, llama.cpp server, toute API compatible OpenAI | oui |
-| `anthropic` | API Claude | oui (prévu, non implémenté en phase 5) |
+| `anthropic` | API Messages d'Anthropic (Claude), par le SDK officiel `anthropic` (Apache-2.0) ; toujours externe | oui |
 | `gemini` | API Gemini | oui |
 | `openai` | API OpenAI | oui |
 
@@ -48,6 +48,20 @@ class ProviderAdapter(Protocol):
 
 Un modèle n'est proposé dans l'interface que si son dernier test de disponibilité
 a réussi (`ai_models.available`).
+
+**Adaptateur Anthropic** (phase 5) :
+
+- la clé de l'organisation est passée explicitement au client : le SDK ne lit alors aucun
+  identifiant de l'environnement du serveur (`ANTHROPIC_API_KEY`, profils `ant`) ; sans clé,
+  aucun appel ;
+- le test de disponibilité vérifie la clé (`GET /v1/models`) et le nom du modèle
+  (`GET /v1/models/{nom}`), sans envoyer de contenu ;
+- pas de température (refusée par les modèles Claude récents) ; consignes dans le champ `system` ;
+- **repli côté serveur** (`fallbacks: "default"`, en-tête bêta `server-side-fallback-2026-07-01`) :
+  si le modèle décline une requête pour raison de sécurité, Anthropic la reprend sur son modèle
+  de repli, toujours chez Anthropic ; un refus final (`refusal`) ou une coupure (`max_tokens`)
+  est présenté comme réponse incomplète ;
+- jetons comptés : entrée (y compris le cache) et sortie, depuis le message final du flux.
 
 ### 2.2 Sélection
 
