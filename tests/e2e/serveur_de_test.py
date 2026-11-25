@@ -46,23 +46,18 @@ class DemoAdapter:
         content = messages[-1].content
         blocks = re.findall(r"<<<EXTRAIT\n(.*?)\nEXTRAIT>>>", content, flags=re.S)
         if not blocks:
-            words = [
-                "Les",
-                "documents",
-                "disponibles",
-                "ne",
-                "permettent",
-                "pas",
-                "de",
-                "répondre",
-                "avec",
-                "suffisamment",
-                "de",
-                "certitude.",
-            ]
+            from urag_core.citations import INSUFFICIENT
+
+            words = INSUFFICIENT.split(" ")
         else:
-            first = re.split(r"(?<=[.!?])\s", " ".join(blocks[0].split()))[0]
-            words = f"D'après les documents, {first[0].lower()}{first[1:].rstrip('.')} [1].".split()
+            # Phrase du premier extrait qui partage le plus de mots avec la question.
+            asked = re.search(r"QUESTION : (.*)", content)
+            wanted = {w for w in re.findall(r"\w{4,}", (asked.group(1) if asked else "").lower())}
+            sentences = [
+                x.strip(" .…") for x in re.split(r"(?<=[.!?])\s", " ".join(blocks[0].split())) if x.strip(" .…")
+            ]
+            best = max(sentences, key=lambda x: len(wanted & set(re.findall(r"\w{4,}", x.lower()))))
+            words = f"D'après les documents : {best} [1].".split()
         result.tokens_in, result.tokens_out, result.finish_reason = len(content) // 4, len(words), "STOP"
         for i, word in enumerate(words):
             time.sleep(self.delay)

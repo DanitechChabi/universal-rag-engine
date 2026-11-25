@@ -270,3 +270,8 @@ def test_flux_gemini_interrompu_jamais_presente_comme_complet():
         for piece in adapter.chat(ModelSpec("g", "m", "gemini", "external"), [ChatMessage("user", "q")], ChatResult()):
             pieces.append(piece)
     assert pieces == ["Le capital est de 10 à"]
+
+
+def test_espace_avant_deux_points_conservee():
+    v = validate("Le loyer est fixé : 450 000 FCFA [1] .", [_passage(1, "Le loyer mensuel est fixé à 450 000 FCFA.")])
+    assert v.text.startswith("Le loyer est fixé : 450 000 FCFA [1].")
