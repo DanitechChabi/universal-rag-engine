@@ -73,6 +73,45 @@ _NUMERIC = re.compile(r"\b[\w/.-]*\d[\w/.-]*\b")
 _WORD = re.compile(r"[a-zàâäéèêëîïôöùûüç]{6,}")
 
 
+_MONTHS = {
+    m: i
+    for i, names in enumerate(
+        [
+            ("janvier", "january", "jan"),
+            ("février", "fevrier", "february", "feb"),
+            ("mars", "march", "mar"),
+            ("avril", "april", "apr"),
+            ("mai", "may"),
+            ("juin", "june", "jun"),
+            ("juillet", "july", "jul"),
+            ("août", "aout", "august", "aug"),
+            ("septembre", "september", "sept", "sep"),
+            ("octobre", "october", "oct"),
+            ("novembre", "november", "nov"),
+            ("décembre", "decembre", "december", "dec"),
+        ],
+        start=1,
+    )
+    for m in names
+}
+_MONTH = "|".join(sorted(_MONTHS, key=len, reverse=True))
+_DATE_DMY = re.compile(rf"\b(\d{{1,2}})(?:er)? ({_MONTH})\.? (\d{{4}})\b")
+_DATE_MDY = re.compile(rf"\b({_MONTH})\.? (\d{{1,2}}),? (\d{{4}})\b")
+_DATE_NUM = re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b")
+
+
+def _date(day: str, month: int, year: str, original: str) -> str:
+    d = int(day)
+    return f"{d:02d}/{month:02d}/{year}" if 1 <= d <= 31 and 1 <= month <= 12 else original
+
+
+def _norm_dates(text: str) -> str:
+    """« 7 septembre 2026 », « September 7, 2026 » et « 7/9/2026 » deviennent « 07/09/2026 »."""
+    text = _DATE_DMY.sub(lambda m: _date(m[1], _MONTHS[m[2]], m[3], m[0]), text)
+    text = _DATE_MDY.sub(lambda m: _date(m[2], _MONTHS[m[1]], m[3], m[0]), text)
+    return _DATE_NUM.sub(lambda m: _date(m[1], int(m[2]), m[3], m[0]), text)
+
+
 def _norm(text: str) -> str:
     text = re.sub(r"\s+", " ", text.lower().replace("\u202f", " ").replace("\u00a0", " "))
     return re.sub(r"(\d) ?[-–—] ?(\d)", r"\1-\2", text)  # « loi n° 2025 — 19 » (OCR) = « 2025-19 »
@@ -91,7 +130,7 @@ def attribute(answer: str, passages: list[Passage]) -> tuple[str, list[int]]:
     moitié de ses mots significatifs s'y trouvent. Sinon, la phrase reste sans citation.
     """
     texts = [_norm(_supporting_text(p)) for p in passages]
-    tokens = [_number_tokens(t) for t in texts]
+    tokens = [_support_tokens(t) for t in texts]
     out, used = [], []
     for sentence in _SENTENCE.split(answer):
         low = _norm(sentence)
@@ -112,6 +151,19 @@ def attribute(answer: str, passages: list[Passage]) -> tuple[str, list[int]]:
     return " ".join(out), used
 
 
+def _support_tokens(text: str) -> set[str]:
+    """Chiffres d'un extrait, y compris ses dates sous leurs autres formes.
+
+    « 07/09/2026 » justifie « 7 septembre 2026 » (jour, mois et année) et inversement ; la phrase
+    de la réponse, elle, n'est pas transformée : la vérification ne devient jamais plus stricte.
+    """
+    dated = _norm_dates(text)
+    tokens = _number_tokens(text) | _number_tokens(dated)
+    for d, m, y in _DATE_NUM.findall(dated):
+        tokens |= {d, m, y, str(int(d)), str(int(m))}
+    return tokens
+
+
 def _number_tokens(text: str) -> set[str]:
     """Chiffres et références comparés en entier : « 45 » ne correspond pas à « 450 »."""
     return {n.strip(".-/") for n in _NUMERIC.findall(text)}
@@ -127,7 +179,7 @@ def verify_support(answer: str, passages: list[Passage]) -> tuple[str, int, set[
     Sinon la citation est remplacée par l'extrait qui les contient (citation déduite),
     ou retirée si aucun extrait ne les contient. Renvoie (texte, citations corrigées, rangs déduits).
     """
-    tokens = [_number_tokens(_norm(_supporting_text(p))) for p in passages]
+    tokens = [_support_tokens(_norm(_supporting_text(p))) for p in passages]
     fixed, inferred, out = 0, set(), []
     for sentence in _SENTENCE.split(answer):
         cited = [int(n) for group in _CITE.findall(sentence) for n in re.split(r"\s*[,;]\s*", group)]

@@ -122,6 +122,12 @@ Les contraintes de la base empêchent une politique incohérente (testé).
 Ces chiffres sont des hypothèses : le rapport de tests de charge (phase 7) les
 remplacera.
 
+**Mesure de la qualité (phase 5, ADR-0024)** : six modèles de 7 à 14 milliards de paramètres,
+mêmes extraits, GPU Tesla T4 (16 Go), Ollama Q4_K_M. Modèle recommandé : **`qwen2.5:14b`**
+(Apache-2.0, 92,5 % de réponses exactes et bien citées, ≈ 9 Go de mémoire graphique, 8,5 s
+par question) ; sur 8 Go : **`qwen2.5:7b`** (90,0 %). Référence externe : Gemini flash-lite,
+97,5 %. Détail : `docs/reports/COMPARAISON-MODELES-LOCAUX.md`.
+
 ---
 
 ## 5. Consigne de génération (principes)

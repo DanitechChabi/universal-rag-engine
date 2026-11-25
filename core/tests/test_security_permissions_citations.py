@@ -227,6 +227,18 @@ def test_tirets_entre_chiffres_equivalents():
     assert "[1]" in v.text and v.citations
 
 
+def test_dates_sous_une_autre_forme_equivalentes():
+    p = _passage(1, "ADJUDICATION N° : 36/H/2026 DU : 07/09/2026 TAUX MOYEN PONDERE : 3,2973%")
+    v = validate("Le taux de l'adjudication n°36/H/2026 du 7 septembre 2026 est de 3,2973% [1].", [p])
+    assert "[1]" in v.text and v.citations
+    en = validate("The rate of auction 36/H/2026 of September 7, 2026 was 3.2973% [1].", [p])
+    assert "[1]" not in en.text  # 3.2973 n'est pas 3,2973 : la vérification reste stricte
+    autre = validate("Le taux de l'adjudication du 18 septembre 2026 est de 3,2973% [1].", [p])
+    assert "[1]" not in autre.text  # une autre date ne justifie rien
+    texte = _passage(1, "Les banques agréées avant le 1er janvier 2024 disposent de trois ans.")
+    assert validate("Banks approved before 01/01/2024 have three years [1].", [texte]).citations
+
+
 def test_adaptateur_gemini_reprise_et_flux():
     import httpx
     from urag_core.ai import GeminiAdapter

@@ -27,5 +27,6 @@ Une fiche par décision structurante : contexte, décision, alternatives écart�
 | [ADR-0021](ADR-0021-reclassement-et-contexte-du-document.md) | Reclassement des candidats et contexte du document (mesuré) | acceptée |
 | [ADR-0022](ADR-0022-m-files-interface-grpc.md) | M-Files : API gRPC (étude de la documentation officielle) | **proposée** — coffre de test requis |
 | [ADR-0023](ADR-0023-interface-web.md) | Interface web : React, sessions par cookies seulement, aucun HTML injecté | acceptée |
+| [ADR-0024](ADR-0024-modele-local-par-defaut.md) | Modèle de génération local recommandé : Qwen2.5 14B (mesuré sur GPU) | acceptée |
 
 Modèle pour une nouvelle fiche : `ADR-XXXX-titre.md` avec les sections Contexte, Décision, Alternatives écartées, Conséquences.
