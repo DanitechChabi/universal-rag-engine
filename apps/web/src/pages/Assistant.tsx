@@ -54,11 +54,7 @@ export function Assistant() {
   });
 
   useEffect(() => {
-    if (!conversationId) {
-      setTurns([]);
-      setSelected(null);
-      return;
-    }
+    if (!conversationId) return; // conversation vidée par « Nouvelle conversation », jamais en différé
     if (createdHere.current === conversationId) return;
     let cancelled = false;
     api<ConversationDetail>(`/conversations/${conversationId}`)
@@ -151,6 +147,8 @@ export function Assistant() {
   function newConversation() {
     abortRef.current?.abort();
     createdHere.current = null;
+    setTurns([]);
+    setSelected(null);
     setParams({});
   }
 
