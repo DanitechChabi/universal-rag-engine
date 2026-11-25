@@ -100,11 +100,14 @@ class RagOrchestrator:
         candidates: int = 30,
         context_passages: int = 6,
         router_for: Callable[[uuid.UUID], ModelRouter | None] | None = None,
+        trace: Callable[[str, list, list[ChatMessage]], None] | None = None,
     ) -> None:
         self.db = db
         self.retriever = retriever
         self.router = router  # routeur par défaut de l'installation (modèle local)
         self.router_for = router_for  # modèles configurés par l'organisation (catalogue), s'il y en a
+        # Observation (mesure de qualité uniquement) : question, extraits retenus et messages envoyés au modèle.
+        self.trace = trace
         self.candidates = candidates
         self.context_passages = context_passages
 
@@ -242,6 +245,8 @@ class RagOrchestrator:
                 f"LANGUE DE LA RÉPONSE : {'anglais' if detect_language(question) == 'en' else 'français'}",
             ),
         ]
+        if self.trace is not None:
+            self.trace(question, passages, messages)
         try:
             result, stream = self._router(org_id).chat(
                 policy,
