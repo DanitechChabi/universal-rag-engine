@@ -112,3 +112,36 @@ def test_07_supprimer_une_source(env):
     assert all(x["title"] != "circulaire_tarifs" for x in search(env, "bob", "frais de tenue de compte"))
     assert (folder / "circulaire_tarifs.txt").is_file()  # jamais supprimé de la source d'origine
     assert client.get(f"/api/v1/sources/{sid}", headers=h).status_code == 404
+
+
+def test_08_tableau_de_bord_sans_contenu(env):
+    env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Quel est le loyer mensuel ?"})
+    r = env["client"].get("/api/v1/admin/dashboard", headers=env["admin_a"])
+    assert r.status_code == 200
+    data = r.json()
+    assert data["documents"]["total"] >= 4 and data["fragments"] >= 4 and data["sources"]["active"] >= 1
+    assert data["services"] == {"postgres": "ok", "qdrant": "ok"} and data["policy"] == "local_only"
+    assert data["usage_30d"]["answers"] >= 1 and data["usage_30d"]["external"] == 0
+    assert {"action", "actor", "at"} <= set(data["activity"][0])
+    assert "loyer" not in r.text and "450 000" not in r.text  # ni questions ni contenu
+    assert env["client"].get("/api/v1/admin/dashboard", headers=env["bob"]).status_code == 403
+
+
+def test_09_modifier_un_compte(env, database):
+    client, h = env["client"], env["admin_a"]
+    users = {u["login"].split(".")[0]: u for u in client.get("/api/v1/users", headers=h).json()["items"]}
+    carol = users["carol"]
+    r = client.patch(f"/api/v1/users/{carol['id']}", headers=h, json={"roles": ["user", "doc_admin"]})
+    assert r.status_code == 204
+    assert client.get("/api/v1/documents", headers=env["carol"]).status_code == 200  # nouveau rôle pris en compte
+    assert client.patch(f"/api/v1/users/{carol['id']}", headers=h, json={"status": "disabled"}).status_code == 204
+    assert client.get("/api/v1/auth/me", headers=env["carol"]).status_code == 401  # sessions révoquées
+    me = client.get("/api/v1/auth/me", headers=h).json()["user_id"]
+    assert client.patch(f"/api/v1/users/{me}", headers=h, json={"roles": ["user"]}).status_code == 422
+    assert client.patch(f"/api/v1/users/{me}", headers=h, json={"status": "disabled"}).status_code == 422
+
+
+def test_10_espaces_et_autorisations(env):
+    spaces = env["client"].get("/api/v1/spaces", headers=env["admin_a"]).json()["items"]
+    juridique = next(s for s in spaces if s["id"] == env["space"])
+    assert juridique["sources"] >= 1 and [g["principal_id"] for g in juridique["grants"]] == [env["bob_id"]]

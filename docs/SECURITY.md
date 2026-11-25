@@ -97,7 +97,9 @@ Un changement de droits change le hachage des clés et invalide le cache.
   démarrage partagé entre Tauri et le service local.
 - Verrouillage : 5 échecs ⇒ 1 min, puis durée doublée à chaque série (max. 1 h) ;
   message d'erreur identique pour compte inconnu et mauvais mot de passe.
-- Comptes désactivés : refus immédiat, sessions révoquées.
+- Comptes désactivés : refus immédiat, sessions révoquées. **À chaque requête**, l'API vérifie en
+  base que la session est ouverte et le compte actif, et relit les rôles : un rôle retiré ou une
+  session fermée s'applique à la requête suivante, sans attendre l'expiration du jeton (phase 4).
 - LDAP / Active Directory : interface prévue (ADR-0016), implémentation après le MVP.
 - Identités externes : une correspondance compte local ↔ utilisateur de la source n'est
   **active qu'une fois confirmée** par un administrateur d'organisation (vérifié dans
