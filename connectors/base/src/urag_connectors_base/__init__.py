@@ -129,9 +129,17 @@ class BrowseItem:
 
 
 @dataclass(frozen=True)
+class PrincipalInfo:
+    display_name: str | None = None
+    login: str | None = None  # identifiant dans la source : sert seulement à *proposer* une correspondance
+    email: str | None = None
+
+
+@dataclass(frozen=True)
 class PrincipalSnapshot:
     principals: tuple[ExternalPrincipalRef, ...] = ()
     memberships: tuple[tuple[ExternalPrincipalRef, ExternalPrincipalRef], ...] = ()  # (groupe, utilisateur)
+    info: dict[ExternalPrincipalRef, PrincipalInfo] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -233,6 +241,7 @@ __all__ = [
     "ExternalPrincipalRef",
     "FetchedFile",
     "NotFoundError",
+    "PrincipalInfo",
     "PrincipalSnapshot",
     "SourceDocument",
     "TransientError",

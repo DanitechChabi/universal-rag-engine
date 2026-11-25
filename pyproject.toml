@@ -18,15 +18,17 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "reportlab>=4.2",
+    "urag-connector-simulator",  # source simulée : tests seulement, jamais dans le produit
 ]
 
 [tool.uv.workspace]
-members = ["core", "connectors/base", "connectors/local_files", "services/api", "services/worker"]
+members = ["core", "connectors/base", "connectors/local_files", "connectors/simulator", "services/api", "services/worker"]
 
 [tool.uv.sources]
 urag-core = { workspace = true }
 urag-connectors-base = { workspace = true }
 urag-connector-local-files = { workspace = true }
+urag-connector-simulator = { workspace = true }
 urag-api = { workspace = true }
 urag-worker = { workspace = true }
 

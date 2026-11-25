@@ -122,11 +122,22 @@ reprend au dernier lot terminé (scénario de recette 16).
 
 ### 2.4 Tests de conformité
 
-Une **suite de tests commune** (`connectors/base/conformance/`) sera exécutée sur
-chaque connecteur : idempotence de la liste, curseur repris après interruption,
-suppression détectée, droits incomplets ⇒ `complete=False`, fermeture propre.
-Pour M-Files, la même suite tourne d'abord sur un **simulateur** puis sur un vrai
-coffre.
+La **suite de tests commune** (`urag_connectors_base.conformance`, phase 3) est
+exécutée sur chaque connecteur à partir d'un *banc* qui crée et modifie une source de
+test : connexion, idempotence de la liste, contenu lisible, document inconnu,
+modification et suppression détectées, un droit par document, droits incomplets ⇒
+`complete=False`, curseur repris après interruption sans doublon ni perte, refus
+explicite prioritaire (y compris dans `check_access`), fermeture propre. Les tests
+sans objet pour une source (pas de droits, pas de curseur) sont sautés et signalés.
+
+### 2.5 Source simulée
+
+`connectors/simulator` décrit un « coffre » dans un fichier JSON : utilisateurs,
+groupes, appartenances, droits par document (dont refus explicites et droits non
+résolus), versions, journal de changements, lien d'ouverture. Il **ne simule pas
+M-Files** et ne suppose aucune de ses interfaces : il sert à tester le cœur tant
+qu'aucun coffre réel n'est disponible. Paquet de développement, jamais livré dans le
+produit.
 
 ---
 
@@ -218,8 +229,8 @@ Décision Q8 : **aucun coffre M-Files n'est disponible pour l'instant.** Les ét
 connecteur M-Files est présenté comme « en développement, non validé ».
 
 
-1. Implémenter le connecteur contre un **simulateur** qui respecte le contrat
-   (permet de tester tout le cœur sans M-Files).
+1. ~~Tester le cœur contre un **simulateur** qui respecte le contrat~~ : fait en
+   phase 3 (§2.5, `tests/integration/test_phase3.py`).
 2. Étude de l'API sur la documentation officielle de la version cible ; ADR du
    choix d'interface.
 3. Implémentation réelle, suite de conformité sur le coffre de test.

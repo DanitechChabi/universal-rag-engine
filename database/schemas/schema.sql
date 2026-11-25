@@ -46,7 +46,7 @@ CREATE FUNCTION urag_valid_access_keys(keys text[]) RETURNS boolean
 CREATE TYPE user_role       AS ENUM ('super_admin', 'org_admin', 'doc_admin', 'user', 'auditor');
 CREATE TYPE account_status  AS ENUM ('active', 'disabled');
 CREATE TYPE principal_kind  AS ENUM ('user', 'group');
-CREATE TYPE source_kind     AS ENUM ('local_files', 'mfiles');
+CREATE TYPE source_kind     AS ENUM ('local_files', 'mfiles', 'simulator');
 CREATE TYPE source_status   AS ENUM ('active', 'disabled', 'error');
 CREATE TYPE index_status    AS ENUM ('pending', 'processing', 'indexed', 'indexed_with_warning',
                                      'failed', 'excluded', 'deleted');
@@ -203,6 +203,8 @@ CREATE TABLE external_principals (
     external_id   text NOT NULL,
     display_name  text,
     synced_at     timestamptz NOT NULL DEFAULT now(),
+    login         text,                    -- identifiant dans la source (proposition de correspondance)
+    email         text,                    -- courriel dans la source (proposition de correspondance)
     UNIQUE (org_id, id),
     UNIQUE (source_id, kind, external_id),
     FOREIGN KEY (org_id, source_id) REFERENCES sources(org_id, id) ON DELETE CASCADE
@@ -633,7 +635,9 @@ CREATE FUNCTION urag_user_access_keys(p_user uuid) RETURNS text[]
            OR (sg.principal_type = 'group' AND sg.principal_id IN (SELECT group_id FROM my_groups))
     ),
     my_external AS (
+        -- Seules les correspondances confirmées donnent des droits (ADR-0016).
         SELECT pl.external_principal_id AS id FROM principal_links pl JOIN me ON pl.user_id = me.id
+        WHERE pl.verified
     ),
     my_external_groups AS (
         SELECT egm.external_group_id AS id FROM external_group_members egm

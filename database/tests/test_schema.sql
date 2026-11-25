@@ -149,6 +149,21 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(cardinality(urag_user_access_keys('b1000000-0000-0000-0000-000000000001')) = 0,
     'aucune clé pour un utilisateur d''une autre organisation');
 
+-- 7 bis. Correspondance proposée automatiquement, non confirmée : aucun droit (ADR-0016).
+INSERT INTO external_principals (id, org_id, source_id, kind, external_id, login, email) VALUES
+  ('a5000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'a4000000-0000-0000-0000-000000000001',
+   'user', '43', 'arnaud', 'arnaud@exemple.test');
+INSERT INTO principal_links (org_id, user_id, external_principal_id, verified) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000003', false);
+SELECT pg_temp.check(NOT urag_user_access_keys('a1000000-0000-0000-0000-000000000002')
+    @> ARRAY['xu:a5000000-0000-0000-0000-000000000003'],
+    'correspondance non confirmée : pas de clé xu');
+UPDATE principal_links SET verified = true WHERE external_principal_id = 'a5000000-0000-0000-0000-000000000003';
+SELECT pg_temp.check(urag_user_access_keys('a1000000-0000-0000-0000-000000000002')
+    @> ARRAY['xu:a5000000-0000-0000-0000-000000000003'],
+    'correspondance confirmée : clé xu');
+DELETE FROM principal_links WHERE external_principal_id = 'a5000000-0000-0000-0000-000000000003';
+
 -- 8. Fragments interrogeables par Alice : seulement D1, version courante.
 CREATE TEMP TABLE alice_hits AS
 SELECT document_id, text FROM searchable_chunks

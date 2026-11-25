@@ -48,6 +48,8 @@ class SyncReport:
     unchanged: int = 0
     deleted: int = 0
     access_changed: int = 0
+    principals: int = 0  # identités externes (utilisateurs et groupes) synchronisées
+    link_proposals: int = 0  # correspondances proposées, à confirmer par un administrateur
     errors: list[str] = field(default_factory=list)
 
 
@@ -146,6 +148,76 @@ class IngestionService:
         )
         return {ExternalPrincipalRef(r.kind, r.external_id): r.id for r in rows}
 
+    @staticmethod
+    def _sync_principals(conn: Connection, org_id: uuid.UUID, source_id: uuid.UUID, snapshot: Any) -> tuple[int, int]:
+        """Recopie utilisateurs, groupes et appartenances de la source (ADR-0016).
+
+        Une identité disparue de la source est supprimée, avec ses correspondances : l'accès
+        tombe immédiatement. Une correspondance n'est que *proposée* (identifiant ou courriel
+        identique, un seul compte possible) ; elle ne donne aucun droit avant confirmation.
+        """
+        for ref in snapshot.principals:
+            info = snapshot.info.get(ref)
+            conn.execute(
+                text("""
+                INSERT INTO external_principals (org_id, source_id, kind, external_id, display_name, login, email)
+                VALUES (:o, :s, CAST(:k AS principal_kind), :x, :n, :l, :e)
+                ON CONFLICT (source_id, kind, external_id) DO UPDATE SET display_name = EXCLUDED.display_name,
+                    login = EXCLUDED.login, email = EXCLUDED.email, synced_at = now()"""),
+                {
+                    "o": org_id,
+                    "s": source_id,
+                    "k": ref.kind,
+                    "x": ref.external_id,
+                    "n": info.display_name if info else None,
+                    "l": info.login if info else None,
+                    "e": info.email if info else None,
+                },
+            )
+        conn.execute(
+            text("""
+            DELETE FROM external_principals WHERE source_id = :s
+              AND NOT (kind::text || ':' || external_id = ANY(CAST(:keep AS text[])))"""),
+            {"s": source_id, "keep": [f"{r.kind}:{r.external_id}" for r in snapshot.principals]},
+        )
+        conn.execute(
+            text("""DELETE FROM external_group_members WHERE external_group_id IN
+                    (SELECT id FROM external_principals WHERE source_id = :s)"""),
+            {"s": source_id},
+        )
+        if snapshot.memberships:
+            conn.execute(
+                text("""
+                INSERT INTO external_group_members (org_id, external_group_id, external_user_id)
+                SELECT :o, g.id, u.id
+                FROM unnest(CAST(:groups AS text[]), CAST(:users AS text[])) AS m(gx, ux)
+                JOIN external_principals g ON g.source_id = :s AND g.kind = 'group' AND g.external_id = m.gx
+                JOIN external_principals u ON u.source_id = :s AND u.kind = 'user' AND u.external_id = m.ux
+                ON CONFLICT DO NOTHING"""),
+                {
+                    "o": org_id,
+                    "s": source_id,
+                    "groups": [g.external_id for g, _ in snapshot.memberships],
+                    "users": [u.external_id for _, u in snapshot.memberships],
+                },
+            )
+        proposals = conn.execute(
+            text("""
+            INSERT INTO principal_links (org_id, user_id, external_principal_id, verified)
+            SELECT :o, (array_agg(u.id))[1], ep.id, false
+            FROM external_principals ep
+            JOIN users u ON u.status = 'active' AND (
+                 (ep.login IS NOT NULL AND lower(u.login) = lower(ep.login))
+              OR (ep.email IS NOT NULL AND lower(u.email) = lower(ep.email)))
+            WHERE ep.source_id = :s AND ep.kind = 'user'
+              AND NOT EXISTS (SELECT 1 FROM principal_links pl WHERE pl.external_principal_id = ep.id)
+            GROUP BY ep.id
+            HAVING count(DISTINCT u.id) = 1  -- ambigu : aucune proposition
+            ON CONFLICT DO NOTHING"""),
+            {"o": org_id, "s": source_id},
+        ).rowcount
+        return len(snapshot.principals), proposals
+
     def sync_source(self, org_id: uuid.UUID, source_id: uuid.UUID) -> SyncReport:
         report = SyncReport()
         with self.db.org(org_id) as conn:
@@ -155,10 +227,13 @@ class IngestionService:
             profile = self.profile(conn)
         connector = self.connector_for(source)
         with connector:
+            principals = connector.list_principals() if connector.capabilities.access else None
             documents = list(connector.list_documents())
             accesses = {a.ref.external_id: a for a in connector.get_access([d.ref for d in documents])}
 
         with self.db.org(org_id) as conn:
+            if principals is not None:
+                report.principals, report.link_proposals = self._sync_principals(conn, org_id, source_id, principals)
             external_ids = self._external_ids(conn, source_id)
             seen: list[str] = []
             for doc in documents:

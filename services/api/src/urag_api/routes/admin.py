@@ -148,7 +148,7 @@ def set_grants(
 
 
 class SourceIn(BaseModel):
-    kind: Literal["local_files", "mfiles"]
+    kind: Literal["local_files", "mfiles", "simulator"]
     name: str = Field(min_length=1, max_length=200)
     space_id: uuid.UUID
     config: dict = Field(default_factory=dict)
