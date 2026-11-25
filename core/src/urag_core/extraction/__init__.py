@@ -73,7 +73,8 @@ def _paragraphs(text: str, page: int | None) -> list[Block]:
         if not para:
             continue
         # Lignes courtes successives d'un même paragraphe : on les recolle.
-        joined = re.sub(r"(?<![.:;!?])\n(?=[a-zàâäéèêëîïôöùûüç0-9])", " ", para)
+        # Les éléments de liste numérotée (« 1 BANGE BANK », « 2) Article ») restent sur leur ligne.
+        joined = re.sub(r"(?<![.:;!?])\n(?=[a-zàâäéèêëîïôöùûüç]|[0-9](?!\d{0,2}[.)]?\s+[A-ZÀ-Ý]))", " ", para)
         blocks.append(Block(joined, "paragraph", page))
     return blocks
 
