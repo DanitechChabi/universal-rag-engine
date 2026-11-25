@@ -33,6 +33,8 @@ REPORTS = ROOT / "docs" / "reports"
 
 def norm(s: str) -> str:
     s = s.lower().replace(" ", " ").replace(" ", " ").replace("’", "'")
+    s = re.sub(r"\s*[-–—]\s*", "-", s)  # « 2025 — 19 » = « 2025-19 »
+    s = re.sub(r"\s*\(\d+\)", "", s)  # « six (6) ans » = « six ans »
     return re.sub(r"\s+", " ", s)
 
 
@@ -286,6 +288,7 @@ def main() -> int:
                     "abstention": bool(done and done["insufficient"]),
                     "lien_externe": "http" in answer,
                     "passages_suspects_ecartes": (done or {}).get("passages_suspects_ecartes", 0),
+                    "fin_generation": (done or {}).get("fin_generation"),
                     "repris_le_document_piege": "5 milliards" in answer,
                     "documents_trouves": found_titles,
                     "duree_s": round(latency, 1),

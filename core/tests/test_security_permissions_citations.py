@@ -211,7 +211,7 @@ def test_adaptateur_gemini_reprise_et_flux():
             return httpx.Response(503, json={"error": {"message": "high demand"}})
         sse = (
             'data: {"candidates":[{"content":{"parts":[{"text":"Le loyer "}]}}]}\n\n'
-            'data: {"candidates":[{"content":{"parts":[{"text":"est de 450 000 FCFA [1]."}]}}],'
+            'data: {"candidates":[{"content":{"parts":[{"text":"est de 450 000 FCFA [1]."}]},"finishReason":"STOP"}],'
             '"usageMetadata":{"promptTokenCount":120,"candidatesTokenCount":12}}\n\n'
         )
         return httpx.Response(200, text=sse, headers={"content-type": "text/event-stream"})
@@ -224,3 +224,20 @@ def test_adaptateur_gemini_reprise_et_flux():
     body = json.loads(calls[-1].content)
     assert body["systemInstruction"]["parts"][0]["text"] == "règles" and body["contents"][0]["role"] == "user"
     assert len(calls) == 2  # une reprise après le 503
+
+
+def test_flux_gemini_interrompu_jamais_presente_comme_complet():
+    import httpx
+    from urag_core.ai import GeminiAdapter
+
+    def handler(request):  # le flux s'arrête sans finishReason
+        return httpx.Response(
+            200, text='data: {"candidates":[{"content":{"parts":[{"text":"Le capital est de 10 à"}]}}]}\n\n'
+        )
+
+    adapter = GeminiAdapter("cle-test", transport=httpx.MockTransport(handler), backoff_s=0)
+    pieces = []
+    with pytest.raises(ProviderError, match="interrompu"):
+        for piece in adapter.chat(ModelSpec("g", "m", "gemini", "external"), [ChatMessage("user", "q")], ChatResult()):
+            pieces.append(piece)
+    assert pieces == ["Le capital est de 10 à"]

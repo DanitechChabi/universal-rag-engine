@@ -17,14 +17,15 @@ from sqlalchemy import text
 from ..ai import ChatMessage, DataKind, ModelRouter, Policy, PolicyError, ProviderError
 from ..audit import record
 from ..citations import INSUFFICIENT, build_context, pages_label, validate
+from ..extraction import detect_language
 from ..permissions import AccessScope
 from ..retrieval import Retriever, SearchFilters
 from ..storage import Database
 
-PROMPT_VERSION = "2026-11-p2"
+PROMPT_VERSION = "2026-11-p3"
 
-SYSTEM_PROMPT = f"""Tu es l'assistant documentaire d'une organisation. Tu réponds en français, \
-sauf si la question est posée dans une autre langue.
+SYSTEM_PROMPT = f"""Tu es l'assistant documentaire d'une organisation. Tu réponds dans la langue indiquée \
+après la question (« LANGUE DE LA RÉPONSE »), même si les extraits sont dans une autre langue.
 
 Règles impératives :
 1. Réponds uniquement à partir des extraits fournis dans le bloc EXTRAITS. N'invente rien.
@@ -144,7 +145,11 @@ class RagOrchestrator:
 
         messages = [
             ChatMessage("system", SYSTEM_PROMPT),
-            ChatMessage("user", f"EXTRAITS :\n\n{build_context(passages)}\n\nQUESTION : {question}"),
+            ChatMessage(
+                "user",
+                f"EXTRAITS :\n\n{build_context(passages)}\n\nQUESTION : {question}\n\n"
+                f"LANGUE DE LA RÉPONSE : {'anglais' if detect_language(question) == 'en' else 'français'}",
+            ),
         ]
         try:
             result, stream = self.router.chat(
@@ -257,5 +262,7 @@ class RagOrchestrator:
                 "removed_citations": removed,
                 "prompt_version": PROMPT_VERSION,
                 "passages_suspects_ecartes": excluded,
+                "fin_generation": result.finish_reason if result else None,
+                "reponse_incomplete": bool(result and result.incomplete),
             },
         )

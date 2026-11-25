@@ -70,6 +70,11 @@ class ChatResult:
     tokens_out: int = 0
     latency_ms: int = 0
     model: ModelSpec | None = None
+    finish_reason: str | None = None  # ex. STOP, MAX_TOKENS, RECITATION, SAFETY (fournisseur)
+
+    @property
+    def incomplete(self) -> bool:
+        return self.finish_reason not in (None, "STOP", "stop", "end_turn")
 
 
 class PolicyError(Exception):
@@ -124,6 +129,7 @@ class OllamaAdapter:
                     if piece:
                         yield piece
                     if chunk.get("done"):
+                        result.finish_reason = chunk.get("done_reason") or "stop"
                         result.tokens_in = chunk.get("prompt_eval_count", 0)
                         result.tokens_out = chunk.get("eval_count", 0)
         except httpx.HTTPError as e:
@@ -203,9 +209,14 @@ class GeminiAdapter:
                         result.tokens_in = usage.get("promptTokenCount", result.tokens_in)
                         result.tokens_out = usage.get("candidatesTokenCount", result.tokens_out)
                         for cand in chunk.get("candidates", [])[:1]:
+                            if cand.get("finishReason"):
+                                result.finish_reason = cand["finishReason"]
                             for part in cand.get("content", {}).get("parts", []):
                                 if part.get("text") and not part.get("thought"):
                                     yield part["text"]
+                    if result.finish_reason is None:
+                        # Flux coupé sans signal de fin : la réponse est partielle, jamais présentée comme complète.
+                        raise ProviderError("Gemini : flux interrompu avant la fin de la réponse")
                     return
             except httpx.HTTPError as e:
                 if attempt == self.max_attempts:
