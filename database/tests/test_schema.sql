@@ -213,6 +213,8 @@ SELECT pg_temp.check((SELECT mode FROM ai_policies) = 'local_only', 'politique p
 SELECT pg_temp.expect_error($$UPDATE ai_policies SET allow_external_documents = true$$, '23514');
 SELECT pg_temp.expect_error($$INSERT INTO ai_providers (org_id, kind, name, locality)
     VALUES ('a0000000-0000-0000-0000-000000000001', 'anthropic', 'Claude', 'local')$$, '23514');
+SELECT pg_temp.expect_error($$INSERT INTO ai_providers (org_id, kind, name, locality)
+    VALUES ('a0000000-0000-0000-0000-000000000001', 'openrouter', 'OpenRouter', 'local')$$, '23514');
 WITH p AS (INSERT INTO ai_providers (org_id, kind, name, locality)
     VALUES ('a0000000-0000-0000-0000-000000000001', 'anthropic', 'Claude', 'external') RETURNING enabled)
 SELECT pg_temp.check(NOT enabled, 'un fournisseur ajouté est désactivé par défaut') FROM p;

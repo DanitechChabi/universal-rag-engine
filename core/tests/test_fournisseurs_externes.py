@@ -123,3 +123,28 @@ def test_sans_cle_aucun_appel_et_aucun_identifiant_de_l_environnement(monkeypatc
     list(configured.chat(SPEC, MESSAGES, ChatResult()))
     sent = fake.requests[-1].headers
     assert sent["authorization"] == f"Bearer {KEY}" and "cle-du-serveur" not in str(sent)  # clé de l'organisation
+
+
+def test_services_compatibles_openai_adresses_officielles_et_cle_verifiee():
+    import httpx
+    from urag_core.ai.catalog import DEFAULT_ENDPOINTS, build_adapter
+
+    assert DEFAULT_ENDPOINTS["openrouter"] == "https://openrouter.ai/api/v1"
+    assert DEFAULT_ENDPOINTS["groq"] == "https://api.groq.com/openai/v1"
+    assert DEFAULT_ENDPOINTS["mistral"] == "https://api.mistral.ai/v1"
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.headers.get("authorization") != "Bearer bonne":
+            return httpx.Response(401)
+        return httpx.Response(200, json={"data": [{"id": "google/gemma-4-31b-it:free"}]})
+
+    router = build_adapter("openrouter", None, "bonne")
+    router._client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert router.health() and seen[-1] == "/api/v1/key"  # liste publique : la clé est vérifiée ailleurs
+    assert router.available_models() == {"google/gemma-4-31b-it:free"}
+    groq = build_adapter("groq", None, "mauvaise")
+    groq._client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert groq.health() is False and seen[-1] == "/openai/v1/models"
+    assert groq.available_models() is None

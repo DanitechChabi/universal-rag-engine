@@ -25,8 +25,8 @@ from ..state import AppState
 
 router = APIRouter(tags=["intelligence artificielle"])
 
-SUPPORTED = ("ollama", "openai_compatible", "openai", "gemini", "anthropic")
-EXTERNAL_KINDS = ("openai", "gemini", "anthropic")
+SUPPORTED = ("ollama", "openai_compatible", "openai", "gemini", "anthropic", "openrouter", "groq", "mistral")
+EXTERNAL_KINDS = ("openai", "gemini", "anthropic", "openrouter", "groq", "mistral")
 
 
 # ------------------------------------------------------------------ vue d'ensemble
@@ -143,10 +143,10 @@ def _http_url(value: str | None) -> str | None:
 
 
 class ProviderIn(BaseModel):
-    kind: Literal["ollama", "openai_compatible", "openai", "gemini", "anthropic"]
+    kind: Literal["ollama", "openai_compatible", "openai", "gemini", "anthropic", "openrouter", "groq", "mistral"]
     name: str = Field(min_length=1, max_length=120)
     endpoint: str | None = Field(default=None, max_length=500)
-    locality: Literal["local", "external"] | None = None  # imposé pour Ollama, OpenAI, Gemini et Anthropic
+    locality: Literal["local", "external"] | None = None  # imposé sauf pour « compatible OpenAI »
     api_key: str | None = Field(default=None, min_length=1, max_length=500)
     enabled: bool = True
 
@@ -253,7 +253,7 @@ def update_provider(
             target_type="ai_provider",
             target_id=str(provider_id),
             details=body.model_dump(exclude={"api_key"}, exclude_none=True)
-            | ({"api_key": "remplacée"} if body.api_key else {}),
+            | ({"cle_remplacee": True} if body.api_key else {}),  # jamais la clé, ni un champ « api_key »
         )
     state.routers.invalidate(user.org_id)
 
@@ -408,6 +408,10 @@ def test_model(
         if ok and r.kind == "ollama":
             ok = r.name in adapter.available_models()
             detail = "modèle présent sur le serveur" if ok else "modèle absent du serveur Ollama"
+        elif ok and r.kind in ("openai", "openrouter", "groq", "mistral"):
+            names = adapter.available_models()
+            ok = names is None or r.name in names
+            detail = "modèle disponible pour cette clé" if ok else "modèle inconnu de ce fournisseur"
         elif ok and r.kind == "anthropic":
             ok = adapter.has_model(r.name)
             detail = "modèle disponible pour cette clé" if ok else "modèle inconnu d'Anthropic pour cette clé"

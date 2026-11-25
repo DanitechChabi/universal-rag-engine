@@ -61,7 +61,8 @@ CREATE TYPE job_status      AS ENUM ('queued', 'running', 'succeeded', 'failed',
 CREATE TYPE message_role    AS ENUM ('user', 'assistant');
 CREATE TYPE model_purpose   AS ENUM ('chat', 'embedding', 'rerank');
 CREATE TYPE model_locality  AS ENUM ('local', 'external');
-CREATE TYPE provider_kind   AS ENUM ('ollama', 'openai_compatible', 'anthropic', 'gemini', 'openai');
+CREATE TYPE provider_kind   AS ENUM ('ollama', 'openai_compatible', 'anthropic', 'gemini', 'openai',
+                                     'openrouter', 'groq', 'mistral');
 CREATE TYPE ai_policy_mode  AS ENUM ('local_only', 'hybrid', 'cloud_allowed');
 CREATE TYPE embedding_state AS ENUM ('building', 'active', 'retired');
 
@@ -449,7 +450,7 @@ CREATE TABLE ai_providers (
     UNIQUE (org_id, name),
     FOREIGN KEY (org_id, secret_id) REFERENCES secrets(org_id, id) ON DELETE RESTRICT,
     CHECK (kind <> 'ollama' OR locality = 'local'),
-    CHECK (kind NOT IN ('anthropic', 'gemini', 'openai') OR locality = 'external')
+    CHECK (kind::text NOT IN ('anthropic', 'gemini', 'openai', 'openrouter', 'groq', 'mistral') OR locality = 'external')
 );
 
 CREATE TABLE ai_models (

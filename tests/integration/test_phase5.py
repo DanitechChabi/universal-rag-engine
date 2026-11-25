@@ -26,6 +26,7 @@ from tests.integration.test_phase1 import env, sync  # noqa: F401
 pytestmark = pytest.mark.integration
 SECRET_KEY = "cle-de-test-externe-123"
 CLAUDE_KEY = "cle-de-test-anthropic-456"
+ROUTER_KEY = "cle-de-test-openrouter-789"
 
 
 class FakeProvider:
@@ -52,6 +53,11 @@ class FakeProvider:
                 yield "data: [DONE]\n\n"
 
             return StreamingResponse(stream(), media_type="text/event-stream")
+
+        @self.app.get("/v1/key")
+        def openrouter_key(request: Request):  # contrôle de clé à la façon d'OpenRouter
+            ok = request.headers.get("authorization") == f"Bearer {ROUTER_KEY}"
+            return JSONResponse({"data": {"label": "test"}} if ok else {"error": {"code": 401}}, 200 if ok else 401)
 
         @self.app.get("/v1/models/{name}")
         def anthropic_model(name: str):
@@ -282,3 +288,25 @@ def test_07_claude_par_l_adaptateur_anthropic(env, provider, database):
     c.put("/api/v1/admin/ai/policy", headers=h, json={"mode": "local_only"})
     events = chat(env, "Quel est le loyer mensuel du bail ?", model_id=claude)
     assert meta(events)["model"]["locality"] == "local"  # scénario 15 : Claude coupé immédiatement
+
+
+def test_08_openrouter_cle_verifiee_et_modele_connu(env, provider):
+    c, h = env["client"], env["admin_a"]
+    r = c.post(
+        "/api/v1/admin/ai/providers",
+        headers=h,
+        json={"kind": "openrouter", "name": "OpenRouter", "endpoint": provider.url, "api_key": "cle-fausse"},
+    )
+    assert r.status_code == 201 and r.json()["locality"] == "external"
+    pid = r.json()["id"]
+    model = c.post("/api/v1/admin/ai/models", headers=h, json={"provider_id": pid, "name": "cloud-large"}).json()["id"]
+    assert c.post(f"/api/v1/admin/ai/models/{model}/test", headers=h).json()["available"] is False  # clé refusée
+    assert c.patch(f"/api/v1/admin/ai/providers/{pid}", headers=h, json={"api_key": ROUTER_KEY}).status_code == 204
+    assert c.post(f"/api/v1/admin/ai/models/{model}/test", headers=h).json()["available"] is True
+    absent = c.post("/api/v1/admin/ai/models", headers=h, json={"provider_id": pid, "name": "absent:free"}).json()["id"]
+    test = c.post(f"/api/v1/admin/ai/models/{absent}/test", headers=h).json()
+    assert test["available"] is False and "inconnu" in test["detail"]
+    c.put("/api/v1/admin/ai/policy", headers=h, json={"mode": "cloud_allowed", "allow_external_documents": True})
+    events = chat(env, "Quel est le loyer mensuel du bail ?", model_id=model)
+    assert meta(events)["model"]["id"] == model and provider.calls[-1]["auth"] == f"Bearer {ROUTER_KEY}"
+    c.put("/api/v1/admin/ai/policy", headers=h, json={"mode": "local_only"})

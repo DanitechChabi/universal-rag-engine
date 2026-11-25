@@ -34,6 +34,19 @@ configurés par organisation (`urag_core.ai.catalog`), consommation et plafonds
 | `anthropic` | API Messages d'Anthropic (Claude), par le SDK officiel `anthropic` (Apache-2.0) ; toujours externe | oui |
 | `gemini` | API Gemini | oui |
 | `openai` | API OpenAI | oui |
+| `openrouter` | OpenRouter (`https://openrouter.ai/api/v1`) : accès à de nombreux modèles, dont des modèles gratuits (suffixe `:free`) ; clé vérifiée par `/key`, la liste des modèles étant publique | oui |
+| `groq` | Groq (`https://api.groq.com/openai/v1`), offre gratuite limitée en débit | oui |
+| `mistral` | Mistral AI (`https://api.mistral.ai/v1`), offre gratuite d'expérimentation | oui |
+
+OpenRouter, Groq et Mistral passent par l'adaptateur compatible OpenAI, avec leur adresse
+officielle par défaut (migration 0007) ; ils sont **toujours externes**. Le test de
+disponibilité vérifie la clé et la présence du nom du modèle dans la liste du fournisseur.
+
+**Offres gratuites** : elles conviennent aux essais et aux documents publics. Leurs conditions
+peuvent autoriser la conservation ou la réutilisation des données envoyées, et elles changent
+souvent : l'administrateur les lit avant de les activer, et ne les autorise pas pour des
+documents confidentiels (la politique « local uniquement » reste le défaut). L'écran
+d'administration le rappelle.
 
 Interface commune :
 

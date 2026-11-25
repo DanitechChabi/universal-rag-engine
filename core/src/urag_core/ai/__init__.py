@@ -239,19 +239,36 @@ class OpenAICompatibleAdapter:
     """API « chat completions » compatible OpenAI : vLLM, LM Studio, llama.cpp server (local) ou
     OpenAI et services équivalents (externe). Clé facultative, jamais journalisée."""
 
-    def __init__(self, base_url: str, api_key: str | None = None, transport: httpx.BaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str | None = None,
+        transport: httpx.BaseTransport | None = None,
+        key_check_path: str = "/models",
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self._key = api_key
         self._client = httpx.Client(transport=transport, timeout=300.0)
+        # Chemin qui exige une clé valide (la liste des modèles d'OpenRouter est publique : « /key »).
+        self._key_check = key_check_path
 
     def _headers(self) -> dict[str, str]:
         return {"authorization": f"Bearer {self._key}"} if self._key else {}
 
     def health(self) -> bool:
         try:
-            return self._client.get(f"{self.base_url}/models", headers=self._headers(), timeout=10).status_code == 200
+            r = self._client.get(f"{self.base_url}{self._key_check}", headers=self._headers(), timeout=10)
+            return r.status_code == 200
         except httpx.HTTPError:
             return False
+
+    def available_models(self) -> set[str] | None:
+        """Identifiants annoncés par ``/models`` ; ``None`` si le serveur ne les donne pas."""
+        try:
+            r = self._client.get(f"{self.base_url}/models", headers=self._headers(), timeout=30)
+            return {m["id"] for m in r.json().get("data", []) if "id" in m} if r.status_code == 200 else None
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            return None
 
     def chat(self, model: ModelSpec, messages: list[ChatMessage], result: ChatResult) -> Iterator[str]:
         body = {

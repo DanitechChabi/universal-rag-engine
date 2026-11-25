@@ -27,7 +27,12 @@ DEFAULT_ENDPOINTS = {
     "openai": "https://api.openai.com/v1",
     "gemini": GeminiAdapter.BASE_URL,
     "anthropic": AnthropicAdapter.BASE_URL,
+    # Services compatibles OpenAI (adresses officielles, vérifiées le 25 novembre 2026).
+    "openrouter": "https://openrouter.ai/api/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "mistral": "https://api.mistral.ai/v1",
 }
+OPENAI_COMPATIBLE_KINDS = ("openai", "openai_compatible", "openrouter", "groq", "mistral")
 
 
 def provider_secret_purpose(provider_id: uuid.UUID | str) -> str:
@@ -50,11 +55,11 @@ def build_adapter(kind: str, endpoint: str | None, api_key: str | None) -> Provi
         return GeminiAdapter(api_key or "", endpoint or DEFAULT_ENDPOINTS["gemini"])
     if kind == "anthropic":
         return AnthropicAdapter(api_key, endpoint or DEFAULT_ENDPOINTS["anthropic"])
-    if kind in ("openai", "openai_compatible"):
+    if kind in OPENAI_COMPATIBLE_KINDS:
         base = endpoint or DEFAULT_ENDPOINTS.get(kind)
         if not base:
             raise ValueError("adresse de l'API requise")
-        return OpenAICompatibleAdapter(base, api_key)
+        return OpenAICompatibleAdapter(base, api_key, key_check_path="/key" if kind == "openrouter" else "/models")
     raise ValueError(f"fournisseur non pris en charge : {kind}")
 
 

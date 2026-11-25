@@ -202,7 +202,7 @@ export function AdminAI() {
             <select className="input" id="am-provider" name="provider_id" required>
               {d.providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select></div>
-          <div className="field"><label htmlFor="am-name">{m.modelName}</label><input className="input" id="am-name" name="name" required placeholder="qwen2.5:7b, gpt-4o-mini…" /></div>
+          <div className="field"><label htmlFor="am-name">{m.modelName}</label><input className="input" id="am-name" name="name" required placeholder="qwen2.5:14b, claude-opus-5-5, google/gemma-4-31b-it:free…" /></div>
           <div className="field"><label htmlFor="am-priority">{m.priority}</label><input className="input" id="am-priority" name="priority" type="number" defaultValue={100} /></div>
           <div className="field"><label htmlFor="am-in">{m.priceIn}</label><input className="input" id="am-in" name="in" type="number" step="0.0001" min="0" /></div>
           <div className="field"><label htmlFor="am-out">{m.priceOut}</label><input className="input" id="am-out" name="out" type="number" step="0.0001" min="0" /></div>

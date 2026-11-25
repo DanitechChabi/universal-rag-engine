@@ -19,15 +19,16 @@ Format imposé par la directive 27.7 du cahier des charges.
 | **Consommation et coûts** : jetons et coût estimé enregistrés à chaque appel (prix par million de jetons saisis par l'administrateur) ; audit `ai.external_call` **sans contenu** | `rag._finish` | `test_phase5` 03 |
 | Écran d'administration « Modèles d'IA » : politique, fournisseurs (clé masquée), modèles, plafonds et leur état, consommation du mois | `AdminAI.tsx` | Playwright 9 |
 | Administration réservée aux administrateurs | `routes/ai_admin.py` | `test_phase5` 06 |
-| **Adaptateur Anthropic (Claude)** par le SDK officiel : flux progressif, jetons et coût, repli côté serveur en cas de refus de sécurité, refus ou coupure signalés comme incomplets ; aucun identifiant lu dans l'environnement du serveur | `AnthropicAdapter` | `test_anthropic_adapter` (5), `test_phase5` 07 |
+| **Adaptateur Anthropic (Claude)** par le SDK officiel : flux progressif, jetons et coût, repli côté serveur en cas de refus de sécurité, refus ou coupure signalés comme incomplets ; aucun identifiant lu dans l'environnement du serveur | `AnthropicAdapter` | `test_fournisseurs_externes` (5), `test_phase5` 07 |
+| **OpenRouter, Groq et Mistral** (dont modèles gratuits) : adresses officielles par défaut, toujours externes (migration 0007), clé vérifiée et nom du modèle contrôlé au test de disponibilité ; avertissement sur les offres gratuites dans l'administration | `catalog.py`, `ai_admin.py` | `test_phase5` 08, unitaire, schéma |
 | **Choix du modèle local mesuré sur GPU** (Kaggle, 2 × Tesla T4) : six modèles ouverts, mêmes extraits, même notation que le moteur | `eval/kaggle`, `eval/score_answers.py` | `COMPARAISON-MODELES-LOCAUX.md`, ADR-0024 |
 
 ## 2. Tests exécutés et résultats
 
 | Suite | Résultat |
 |---|---|
-| Schéma PostgreSQL | **48 vérifications passées** |
-| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **138 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
+| Schéma PostgreSQL | **49 vérifications passées** |
+| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **140 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
 | Interface : Vitest | **2 passés** |
 | **Parcours de bout en bout Playwright** contre la vraie API | **9 passés** (dont scénarios 14 et 15) |
 | Style (`ruff check`, `ruff format`) | aucun écart |
@@ -53,7 +54,10 @@ remplie.**
    « 07/09/2026 » dans le document) : les six modèles locaux perdaient Q08. Les dates sont
    reconnues sous leurs différentes formes, sans rendre la vérification plus stricte
    (`test_dates_sous_une_autre_forme_equivalentes`).
-2. Notebook Kaggle : l'installateur d'Ollama exige `zstd`, absent de l'image ; et un compte
+2. **Remplacer la clé d'un fournisseur échouait** (erreur 500) : le journal d'audit refusait, à
+   juste titre, un champ nommé `api_key` dans ses détails. L'audit note désormais seulement
+   `cle_remplacee` (trouvé par `test_phase5` 08).
+3. Notebook Kaggle : l'installateur d'Ollama exige `zstd`, absent de l'image ; et un compte
    non vérifié par téléphone n'a ni GPU ni Internet (documenté dans `eval/kaggle/README.md`).
 
 ## 4. Limites restantes
