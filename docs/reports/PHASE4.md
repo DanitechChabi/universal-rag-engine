@@ -19,6 +19,7 @@ Format imposé par la directive 27.7 du cahier des charges.
 | **Administration** (§10.7) : utilisateurs (rôles, désactivation, création), espaces et autorisations, correspondance des comptes (confirmer, lier, délier, import CSV), tâches | `Admin.tsx` | `test_phase4` 09, 10, Playwright 6 |
 | **Révocation immédiate** : session, statut du compte et rôles relus à chaque requête | `deps.py` | `test_phase4` 09 |
 | **Questions de suite reformulées** (« Et sa durée ? » → « Quelle est la durée du bail ? ») avec le modèle autorisé par la politique, à partir des deux derniers échanges ; question d'origine conservée si la reformulation échoue ; question cherchée affichée et auditée | `rag.standalone_question` | `test_phase4` 11, Playwright 3, unitaire |
+| **Sommaires, tables des matières et index** reconnus à l'indexation (fragments « navigation », migration 0006) et placés après le contenu au classement ; distingués des tableaux chiffrés et des formulaires (89 passages sur 12 229 dans le corpus public) | `chunking.is_navigational` | unitaire, `test_phase4` 12 |
 | Serveur de démonstration et de test : vraie API, base neuve, corpus indexé, modèle déterministe | `tests/e2e/serveur_de_test.py` | utilisé par Playwright |
 
 ## 2. Tests exécutés et résultats
@@ -26,13 +27,30 @@ Format imposé par la directive 27.7 du cahier des charges.
 | Suite | Résultat |
 |---|---|
 | Schéma PostgreSQL | **48 vérifications passées** |
-| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **123 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
+| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **125 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
 | Interface : types (`tsc`), Vitest | **2 passés** |
 | **Parcours de bout en bout Playwright** contre la vraie API | **8 passés** |
 | Style (`ruff`) | aucun écart |
 
 Condition de sortie de la phase (`ROADMAP.md`) : **tests Playwright des parcours principaux —
 remplie.** Les parcours sont aussi ajoutés à l'intégration continue.
+
+### Mesure de qualité (corpus public, 40 questions, Gemini flash-lite)
+
+Corpus réindexé avec le traitement version 3 (sommaires reconnus), reclassement activé ; rapport
+`docs/reports/eval-phase4-gemini.json`.
+
+| Mesure | Phase 3 | **Phase 4** |
+|---|---|---|
+| Bon document parmi les 6 premiers | 100 % | **100 %** |
+| Réponse exacte | 92,5 % | **100 %** |
+| Réponse exacte **et** citation pertinente | 87,5 % | **97,5 %** |
+
+Lecture honnête du gain : les 4 questions gagnées viennent de **3 coupures réseau** de l'API
+Gemini absentes cette fois (Q09, Q23, Q30) et du **correctif des tirets** fait après la mesure de
+la phase 3 (Q29). La mise à l'écart des sommaires ne fait rien perdre, mais n'apporte pas de gain
+mesurable sur ce corpus : aucune des 40 questions n'était gênée par un sommaire. Seul échec
+restant : Q22 (réponse juste, phrase combinant deux passages dont un seul cité).
 
 ## 3. Anomalies trouvées et corrigées pendant la phase
 
@@ -68,6 +86,5 @@ remplie.** Les parcours sont aussi ajoutés à l'intégration continue.
 
 ## 6. Prochaines tâches
 
-1. Écarter les pages de sommaire et d'index du classement.
-2. Phase 5 : routeur d'IA hybride, choix d'un modèle local mesuré sur GPU, quotas et coûts.
-3. Connecteur M-Files dès qu'un coffre de test est disponible.
+1. Phase 5 : routeur d'IA hybride, choix d'un modèle local mesuré sur GPU, quotas et coûts.
+2. Connecteur M-Files dès qu'un coffre de test est disponible.
