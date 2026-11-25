@@ -390,7 +390,7 @@ class IngestionService:
                 access_keys = EXCLUDED.access_keys, deny_keys = EXCLUDED.deny_keys, acl_status = EXCLUDED.acl_status,
                 acl_snapshot = EXCLUDED.acl_snapshot, acl_synced_at = now(), deleted_at = NULL,
                 source_version = EXCLUDED.source_version, updated_at = now()
-            RETURNING id, status::text AS status, current_version_id,
+            RETURNING id, status::text AS status, current_version_id, excluded,
                 (xmax = 0) AS inserted,
                 (SELECT d.source_version FROM documents d WHERE d.id = documents.id) AS old_version,
                 (SELECT d.access_keys FROM documents d WHERE d.id = documents.id) AS old_keys,
@@ -433,7 +433,7 @@ class IngestionService:
             # traitement d'indexation amélioré depuis (découpage, contexte…) : réindexation
             or (row.current_pipeline is not None and row.current_pipeline < PIPELINE_VERSION)
         )
-        if changed:
+        if changed and not row.excluded:  # exclu par un administrateur : jamais réindexé automatiquement
             if (
                 enqueue(
                     conn,
