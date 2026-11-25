@@ -169,6 +169,37 @@ def main() -> int:
         },
     ).json()["id"]
     client.post(f"/api/v1/sources/{source}/sync", headers=h).raise_for_status()
+    # Source simulée (GED avec identités) : montre la correspondance des comptes.
+    vault = work / "ged.json"
+    vault.write_text(
+        json.dumps(
+            {
+                "users": [
+                    {"id": "42", "name": "Alice Mensah", "login": users["alice"]["login"]},
+                    {"id": "57", "name": "Yao Kouassi", "login": "ykouassi", "email": "y.kouassi@exemple.test"},
+                ],
+                "groups": [{"id": "7", "name": "Direction juridique", "members": ["42", "57"]}],
+                "documents": [
+                    {
+                        "id": "901",
+                        "title": "politique_credit_2026",
+                        "filename": "politique_credit_2026.txt",
+                        "class": "Politique",
+                        "text": "Politique de crédit 2026. Le taux d'endettement maximal est fixé à 33 % des revenus.",
+                        "acl": [{"group": "7"}],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ged_space = client.post("/api/v1/spaces", headers=h, json={"name": "GED"}).json()["id"]
+    ged = client.post(
+        "/api/v1/sources",
+        headers=h,
+        json={"kind": "simulator", "name": "GED (simulée)", "space_id": ged_space, "config": {"path": str(vault)}},
+    ).json()["id"]
+    client.post(f"/api/v1/sources/{ged}/sync", headers=h).raise_for_status()
     worker = Worker(state.db, state.ingestion)
     worker.run_until_idle()
 
