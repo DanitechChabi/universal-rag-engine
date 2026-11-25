@@ -33,7 +33,9 @@ class Worker:
     def handle(self, job: Job) -> None:
         payload = job.payload
         if job.kind == "sync_source":
-            report = self.ingestion.sync_source(job.org_id, uuid.UUID(payload["source_id"]))
+            report = self.ingestion.sync_source(
+                job.org_id, uuid.UUID(payload["source_id"]), payload.get("mode", "auto")
+            )
             log.info("synchronisation %s : %s", payload["source_id"], report)
         elif job.kind == "ingest_document":
             report = self.ingestion.ingest_document(job.org_id, uuid.UUID(payload["document_id"]))
@@ -104,7 +106,12 @@ def build(settings: Settings, encoder: Encoder | None = None) -> Worker:
     from urag_core.ocr import build_engine
 
     ingestion = IngestionService(
-        db, VectorStore(settings.qdrant_url, api_key), encoder, settings.tmp_dir, ocr=build_engine(settings.ocr_engine)
+        db,
+        VectorStore(settings.qdrant_url, api_key),
+        encoder,
+        settings.tmp_dir,
+        ocr=build_engine(settings.ocr_engine),
+        tika_url=settings.tika_url,
     )
     return Worker(db, ingestion)
 

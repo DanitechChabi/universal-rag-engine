@@ -11,6 +11,7 @@ members = [
     "universal-rag-engine",
     "urag-api",
     "urag-connector-local-files",
+    "urag-connector-simulator",
     "urag-connectors-base",
     "urag-core",
     "urag-worker",
@@ -1558,6 +1559,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "reportlab" },
     { name = "ruff" },
+    { name = "urag-connector-simulator" },
 ]
 
 [package.metadata]
@@ -1576,6 +1578,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "reportlab", specifier = ">=4.2" },
     { name = "ruff", specifier = ">=0.8" },
+    { name = "urag-connector-simulator", editable = "connectors/simulator" },
 ]
 
 [[package]]
@@ -1599,6 +1602,17 @@ requires-dist = [
 name = "urag-connector-local-files"
 version = "0.1.0"
 source = { editable = "connectors/local_files" }
+dependencies = [
+    { name = "urag-connectors-base" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "urag-connectors-base", editable = "connectors/base" }]
+
+[[package]]
+name = "urag-connector-simulator"
+version = "0.1.0"
+source = { editable = "connectors/simulator" }
 dependencies = [
     { name = "urag-connectors-base" },
 ]

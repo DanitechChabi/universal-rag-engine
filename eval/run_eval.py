@@ -70,6 +70,7 @@ def main() -> int:
     p.add_argument("--embedding", choices=("ollama", "onnx"), default="ollama")
     p.add_argument("--model-dir", type=Path, default=Path.home() / "urag-models" / "bge-m3-onnx")
     p.add_argument("--ocr", choices=("tesseract", "rapidocr", "none"), default="none")
+    p.add_argument("--rerank-dir", type=Path, help="dossier du modèle de reclassement ONNX (ADR-0021) ; absent : sans")
     p.add_argument("--from-dump", type=Path, help="réutiliser un index déjà construit (pg_dump) au lieu d'indexer")
     p.add_argument("--pause-s", type=float, default=0.0, help="pause entre questions (quota d'une API gratuite)")
     p.add_argument("--dump", type=Path, help="copier l'index (pg_dump) juste après l'indexation")
@@ -126,6 +127,7 @@ def main() -> int:
         )
         if restored.returncode != 0:  # avertissements de pg_restore (extensions déjà présentes…)
             print("pg_restore :", restored.stderr.strip().splitlines()[-1:], flush=True)
+        cli.main(["--admin-url", admin_db, "migrate"])  # index ancien : migrations manquantes appliquées
     else:
         cli.main(["--admin-url", admin_db, "migrate"])
     cli.create_run_role(admin_db, app_role, app_password)
@@ -162,6 +164,8 @@ def main() -> int:
             cookie_secure=False,
             tmp_dir=Path(tempfile.gettempdir()) / name,
             ocr_engine=args.ocr,
+            rerank_backend="onnx" if args.rerank_dir else "none",
+            rerank_model_dir=args.rerank_dir or Path("."),
         )
         if external:
             adapter = GeminiAdapter(os.environ["URAG_GEMINI_API_KEY"])
@@ -338,6 +342,7 @@ def main() -> int:
             "index_reutilise": bool(args.from_dump),
             "modele_embedding": f"bge-m3 ({args.embedding})",
             "ocr": args.ocr,
+            "reclassement": "bge-reranker-v2-m3 (onnx int8)" if args.rerank_dir else None,
             "indexation": {
                 "documents": len(docs),
                 "fragments": chunks,

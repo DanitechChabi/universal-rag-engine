@@ -197,7 +197,7 @@ def test_06_reponse_sourcee_citations_validees(env):
     assert cite["title"] == "contrat_bail_alpha" and cite["pages"] == "page 2" and "450 000" in cite["excerpt"]
     context = env["adapter"].last_messages[1].content
     rank_line = next(line for line in context.splitlines() if line.startswith(f"[{cite['rank']}] "))
-    assert rank_line.startswith(f"[{cite['rank']}] contrat_bail_alpha — Partage juridique")
+    assert rank_line.startswith(f"[{cite['rank']}] contrat_bail_alpha — CONTRAT DE BAIL COMMERCIAL — Partage juridique")
     done = events[-1][1]
     assert done["removed_citations"] >= 1 and "exfiltration" not in done["answer"]
     # Le contexte envoyé au modèle ne contient que des passages autorisés, encadrés comme données.
@@ -466,3 +466,40 @@ def test_21_reprise_apres_interruption_du_worker(env):
     ]
     assert len(docs) == 1 and docs[0]["status"] == "indexed"  # indexé une seule fois
     assert any(h["title"] == "note_reprise" for h in search(env, "bob", "jour de réunion du comité"))
+
+
+def test_22_ouvrir_le_document_original(env, database):
+    """Scénario 7 : ouvrir le document cité, avec revérification des droits."""
+    hit = search(env, "bob", "loyer mensuel du bail")[0]
+    url = f"/api/v1/documents/{hit['document_id']}/open"
+    r = env["client"].get(url, headers=env["bob"])
+    assert r.status_code == 200, r.text
+    original = next(p for p in env["corpus"].rglob("*") if p.is_file() and p.stem == hit["title"])
+    assert r.content == original.read_bytes()  # le fichier de la source, tel quel
+    assert r.headers["content-type"].startswith("application/pdf")
+    assert r.headers["content-disposition"].startswith("inline")
+    assert r.headers["content-security-policy"].startswith("sandbox")
+    assert r.headers["cache-control"] == "no-store"
+    # Sans droit, autre organisation ou identifiant inconnu : même réponse, rien n'est révélé.
+    assert env["client"].get(url, headers=env["carol"]).status_code == 404
+    assert env["client"].get(url, headers=env["admin_b"]).status_code == 404
+    assert env["client"].get(f"/api/v1/documents/{uuid.uuid4()}/open", headers=env["bob"]).status_code == 404
+    with create_engine(database["admin_url"]).connect() as c:
+        actions = [
+            r.action
+            for r in c.execute(text("SELECT action FROM audit_log WHERE target_id = :d"), {"d": hit["document_id"]})
+        ]
+    assert "document.open" in actions and "document.open_denied" in actions
+
+
+def test_23_document_actif_propose_au_telechargement(env):
+    """Un fichier HTML n'est jamais affiché dans le navigateur depuis l'API (pas de script exécuté)."""
+    (env["corpus"] / "page_intranet.html").write_text(
+        "<html><body><p>Le guichet ferme à 16 heures.</p><script>alert(1)</script></body></html>", encoding="utf-8"
+    )
+    sync(env)
+    hit = next(h for h in search(env, "bob", "heure de fermeture du guichet") if h["title"] == "page_intranet")
+    r = env["client"].get(f"/api/v1/documents/{hit['document_id']}/open", headers=env["bob"])
+    assert r.status_code == 200
+    assert r.headers["content-disposition"].startswith("attachment")
+    assert r.headers["content-security-policy"].startswith("sandbox")

@@ -122,10 +122,12 @@ Matériel et modèle consignés dans le rapport (livrable 20).
 
 | Test | Fichier | Résultat |
 |---|---|---|
-| Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **42 vérifications passées** (PostgreSQL 16.15) |
-| Unitaires : extraction, découpage, OCR, formats Excel/PowerPoint/HTML, encodeur ONNX, passages piégés, sécurité, droits, citations, recherche, routeur, connecteur local, page de test de l'API | `core/tests`, `connectors/`, `services/api/tests` | **41 passés** |
-| Intégration sur pile réelle : scénarios 1–6, 8–13, 16 (OCR, activation de l'OCR, reprise après arrêt d'un worker), isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **21 passés** |
+| Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **48 vérifications passées** (PostgreSQL 16) |
+| Unitaires : extraction, découpage, OCR, formats Excel/PowerPoint/HTML et anciens formats (Tika), contexte du document, encodeur ONNX, reclassement, passages piégés, sécurité, droits et refus, citations, recherche, routeur, page de test de l'API | `core/tests`, `services/api/tests` | **43 passés** |
+| Connecteurs : connecteur fichiers locaux et suite de conformité commune (fichiers locaux, source simulée) | `connectors/` | **29** (3 sautés : fonctions absentes des fichiers locaux) |
+| Intégration sur pile réelle : scénarios 1–13, 16 (OCR, ouverture du document original, reprise après arrêt d'un worker), isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **23 passés** |
+| Intégration phase 3 (source simulée) : identités externes et correspondances, droits par document et par groupe, refus explicites, revérification à la question, scénarios 12, 13, 16 (synchronisation incrémentale) | `tests/integration/test_phase3.py` | **12 passés** |
 | Migrations Alembic identiques au schéma de référence | `tests/integration/test_migrations.py` | **1 passé** |
-| Qdrant : index HNSW par organisation, migration des collections, isolation | `tests/integration/test_vectors.py` | **3 passés** |
+| Qdrant : index HNSW par organisation, migration des collections, isolation, clés de refus | `tests/integration/test_vectors.py` | **4 passés** |
 | Mesure de qualité sur le corpus public (40 questions) | `eval/run_eval.py` | rapports `docs/reports/eval-*.json`, synthèse dans `docs/reports/PHASE2.md` |
 | Chaîne complète avec bge-m3 et qwen2.5:1.5b, mesure de qualité | `tests/integration/test_real_models.py` | **1 passé** (rapport `docs/reports/phase1-qualite.json`) |

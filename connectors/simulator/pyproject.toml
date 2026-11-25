@@ -1,0 +1,13 @@
+[project]
+name = "urag-connector-simulator"
+version = "0.1.0"
+description = "Source simulée (coffre décrit dans un fichier JSON) pour tester le cœur sans GED réelle"
+requires-python = ">=3.12"
+dependencies = ["urag-connectors-base"]
+
+[project.entry-points."urag.connectors"]
+simulator = "urag_connector_simulator:SimulatorConnector"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

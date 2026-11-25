@@ -129,9 +129,17 @@ class BrowseItem:
 
 
 @dataclass(frozen=True)
+class PrincipalInfo:
+    display_name: str | None = None
+    login: str | None = None  # identifiant dans la source : sert seulement à *proposer* une correspondance
+    email: str | None = None
+
+
+@dataclass(frozen=True)
 class PrincipalSnapshot:
     principals: tuple[ExternalPrincipalRef, ...] = ()
     memberships: tuple[tuple[ExternalPrincipalRef, ExternalPrincipalRef], ...] = ()  # (groupe, utilisateur)
+    info: dict[ExternalPrincipalRef, PrincipalInfo] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -199,6 +207,16 @@ class BaseConnector:
     def check_access(self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]) -> dict[DocumentRef, bool]:
         raise UnsupportedError("revérification des droits non prise en charge")
 
+    def current_cursor(self) -> dict[str, JsonValue] | None:
+        """Position actuelle du journal de changements, relevée avant une liste complète
+        (sources incrémentales). ``None`` : la source n'en a pas."""
+        return None
+
+    def external_link(self, ref: DocumentRef) -> str | None:
+        """Lien d'ouverture dans l'application de la source (ex. client de GED), sinon ``None`` :
+        le fichier est alors servi par l'API."""
+        return None
+
 
 def load_connector_class(kind: str) -> type[BaseConnector]:
     """Registre : les connecteurs sont découverts par points d'entrée ``urag.connectors``."""
@@ -228,6 +246,7 @@ __all__ = [
     "ExternalPrincipalRef",
     "FetchedFile",
     "NotFoundError",
+    "PrincipalInfo",
     "PrincipalSnapshot",
     "SourceDocument",
     "TransientError",

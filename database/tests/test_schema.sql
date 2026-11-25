@@ -149,6 +149,21 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(cardinality(urag_user_access_keys('b1000000-0000-0000-0000-000000000001')) = 0,
     'aucune clé pour un utilisateur d''une autre organisation');
 
+-- 7 bis. Correspondance proposée automatiquement, non confirmée : aucun droit (ADR-0016).
+INSERT INTO external_principals (id, org_id, source_id, kind, external_id, login, email) VALUES
+  ('a5000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'a4000000-0000-0000-0000-000000000001',
+   'user', '43', 'arnaud', 'arnaud@exemple.test');
+INSERT INTO principal_links (org_id, user_id, external_principal_id, verified) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000003', false);
+SELECT pg_temp.check(NOT urag_user_access_keys('a1000000-0000-0000-0000-000000000002')
+    @> ARRAY['xu:a5000000-0000-0000-0000-000000000003'],
+    'correspondance non confirmée : pas de clé xu');
+UPDATE principal_links SET verified = true WHERE external_principal_id = 'a5000000-0000-0000-0000-000000000003';
+SELECT pg_temp.check(urag_user_access_keys('a1000000-0000-0000-0000-000000000002')
+    @> ARRAY['xu:a5000000-0000-0000-0000-000000000003'],
+    'correspondance confirmée : clé xu');
+DELETE FROM principal_links WHERE external_principal_id = 'a5000000-0000-0000-0000-000000000003';
+
 -- 8. Fragments interrogeables par Alice : seulement D1, version courante.
 CREATE TEMP TABLE alice_hits AS
 SELECT document_id, text FROM searchable_chunks
@@ -156,6 +171,20 @@ WHERE access_keys && urag_user_access_keys('a1000000-0000-0000-0000-000000000001
 SELECT pg_temp.check((SELECT array_agg(DISTINCT document_id) FROM alice_hits) = ARRAY['a6000000-0000-0000-0000-000000000001'::uuid],
     'Alice ne voit que D1 (pas D2 incertain, D3 supprimé, D4 d''Arnaud)');
 SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM alice_hits WHERE text LIKE 'ANCIENNE VERSION%'), 'l''ancienne version de D1 ne ressort jamais');
+
+-- 8 bis. Refus explicite (ADR-0020) : il l'emporte sur l'accès accordé par le groupe.
+UPDATE documents SET deny_keys = ARRAY['xu:a5000000-0000-0000-0000-000000000001']
+    WHERE id = 'a6000000-0000-0000-0000-000000000001';
+SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM searchable_chunks
+    WHERE urag_doc_visible(access_keys, deny_keys, urag_user_access_keys('a1000000-0000-0000-0000-000000000001'))),
+    'refus explicite : Alice ne voit plus D1 malgré son groupe');
+SELECT pg_temp.check(urag_doc_visible(ARRAY['xg:a5000000-0000-0000-0000-000000000002'], '{}',
+    urag_user_access_keys('a1000000-0000-0000-0000-000000000001')), 'sans refus : D1 visible');
+SELECT pg_temp.expect_error($$UPDATE documents SET deny_keys = ARRAY['refus']
+    WHERE id = 'a6000000-0000-0000-0000-000000000001'$$, '23514');
+SELECT pg_temp.expect_error($$UPDATE documents SET deny_keys = ARRAY['xu:a5000000-0000-0000-0000-000000000001']
+    WHERE id = 'a6000000-0000-0000-0000-000000000002'$$, '23514');
+UPDATE documents SET deny_keys = '{}' WHERE id = 'a6000000-0000-0000-0000-000000000001';
 
 -- 9. Révocation immédiate : Alice quitte le groupe externe ⇒ plus rien.
 DELETE FROM external_group_members WHERE external_user_id = 'a5000000-0000-0000-0000-000000000001';

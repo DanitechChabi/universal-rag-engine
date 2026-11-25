@@ -53,3 +53,26 @@ def test_recherche_limitee_a_l_organisation(store):
     hits = s.search(name, org_a, same, ["g:tous"], 10)
     assert len(hits) == 1 and hits[0].payload["org_id"] == str(org_a)
     assert s.search(name, org_a, same, [], 10) == []  # sans clé d'accès : rien
+
+
+def test_refus_explicite_exclut_le_point(store):
+    s, name = store
+    s.ensure_collection(name, 8)
+    org = uuid.uuid4()
+    same = [1.0, 0, 0, 0, 0, 0, 0, 0]
+    point = uuid.uuid4()
+    s.upsert(
+        name,
+        org,
+        [
+            VectorPoint(
+                point,
+                same,
+                {"org_id": str(org), "access_keys": ["xg:juridique"], "deny_keys": ["xu:bruno"], "document_id": "d1"},
+            )
+        ],
+    )
+    assert len(s.search(name, org, same, ["xg:juridique", "xu:alice"], 10)) == 1
+    assert s.search(name, org, same, ["xg:juridique", "xu:bruno"], 10) == []  # le refus l'emporte
+    s.set_access_keys(name, org, "d1", ["xg:juridique"], [])
+    assert len(s.search(name, org, same, ["xg:juridique", "xu:bruno"], 10)) == 1

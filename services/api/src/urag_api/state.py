@@ -35,14 +35,32 @@ class AppState:
         from urag_core.ocr import build_engine
 
         return IngestionService(
-            self.db, self.vectors, self.encoder, self.settings.tmp_dir, ocr=build_engine(self.settings.ocr_engine)
+            self.db,
+            self.vectors,
+            self.encoder,
+            self.settings.tmp_dir,
+            ocr=build_engine(self.settings.ocr_engine),
+            tika_url=self.settings.tika_url,
         )
+
+    @cached_property
+    def reranker(self):
+        from urag_core.rerank import build_reranker
+
+        return build_reranker(self.settings)
 
     @cached_property
     def retriever(self) -> Retriever:
         with self.db.anonymous() as conn:
             profile = self.ingestion.profile(conn)
-        return Retriever(self.vectors, self.encoder, profile.collection)
+        return Retriever(
+            self.vectors,
+            self.encoder,
+            profile.collection,
+            self.settings.late_access_check,
+            self.reranker,
+            self.settings.rerank_candidates,
+        )
 
     @cached_property
     def router(self) -> ModelRouter:

@@ -61,7 +61,7 @@ class VectorStore:
         self.client.create_payload_index(
             name, "org_id", field_schema=qm.KeywordIndexParams(type=qm.KeywordIndexType.KEYWORD, is_tenant=True)
         )
-        for key in ("access_keys", "document_id", "version_id", "source_id", "space_id", "doc_class"):
+        for key in ("access_keys", "deny_keys", "document_id", "version_id", "source_id", "space_id", "doc_class"):
             self.client.create_payload_index(name, key, field_schema=qm.PayloadSchemaType.KEYWORD)
 
     @staticmethod
@@ -97,10 +97,13 @@ class VectorStore:
             must.append(qm.FieldCondition(key="source_id", match=qm.MatchAny(any=[str(s) for s in source_ids])))
         if doc_classes:
             must.append(qm.FieldCondition(key="doc_class", match=qm.MatchAny(any=list(doc_classes))))
+        query_filter = self._org_filter(org_id, *must)
+        # Refus explicite (ADR-0020) : une clé de refus commune exclut le point.
+        query_filter.must_not = [qm.FieldCondition(key="deny_keys", match=qm.MatchAny(any=list(access_keys)))]
         result = self.client.query_points(
             collection_name=collection,
             query=vector,
-            query_filter=self._org_filter(org_id, *must),
+            query_filter=query_filter,
             limit=limit,
             with_payload=True,
         )
@@ -114,11 +117,18 @@ class VectorStore:
             wait=True,
         )
 
-    def set_access_keys(self, collection: str, org_id: uuid.UUID, document_id: uuid.UUID, keys: Sequence[str]) -> None:
+    def set_access_keys(
+        self,
+        collection: str,
+        org_id: uuid.UUID,
+        document_id: uuid.UUID,
+        keys: Sequence[str],
+        deny_keys: Sequence[str] = (),
+    ) -> None:
         cond = qm.FieldCondition(key="document_id", match=qm.MatchValue(value=str(document_id)))
         self.client.set_payload(
             collection_name=collection,
-            payload={"access_keys": list(keys)},
+            payload={"access_keys": list(keys), "deny_keys": list(deny_keys)},
             points=qm.FilterSelector(filter=self._org_filter(org_id, cond)),
             wait=True,
         )

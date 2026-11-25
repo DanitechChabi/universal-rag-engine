@@ -21,6 +21,9 @@ jobs:
         env:
           QDRANT__SERVICE__API_KEY: dev-qdrant-key
         ports: ["6333:6333"]
+      tika:
+        image: apache/tika:3.2.3.0  # formats anciens (DOC, XLS, PPT, RTF, ODT), Apache-2.0
+        ports: ["9998:9998"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

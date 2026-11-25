@@ -40,13 +40,19 @@ CREATE FUNCTION urag_valid_access_keys(keys text[]) RETURNS boolean
     AS $$ SELECT coalesce(bool_and(k ~ '^(u|g|sp|xu|xg):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'), true)
           FROM unnest(keys) AS k $$;
 
+-- Visibilité d'un document pour un utilisateur (ADR-0020) : au moins une clé d'accès commune
+-- et aucune clé de refus commune. Seule règle utilisée par la recherche, l'ouverture et les citations.
+CREATE FUNCTION urag_doc_visible(access_keys text[], deny_keys text[], user_keys text[]) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $$ SELECT access_keys && user_keys AND NOT (deny_keys && user_keys) $$;
+
 -- -----------------------------------------------------------------------------
 -- Types
 -- -----------------------------------------------------------------------------
 CREATE TYPE user_role       AS ENUM ('super_admin', 'org_admin', 'doc_admin', 'user', 'auditor');
 CREATE TYPE account_status  AS ENUM ('active', 'disabled');
 CREATE TYPE principal_kind  AS ENUM ('user', 'group');
-CREATE TYPE source_kind     AS ENUM ('local_files', 'mfiles');
+CREATE TYPE source_kind     AS ENUM ('local_files', 'mfiles', 'simulator');
 CREATE TYPE source_status   AS ENUM ('active', 'disabled', 'error');
 CREATE TYPE index_status    AS ENUM ('pending', 'processing', 'indexed', 'indexed_with_warning',
                                      'failed', 'excluded', 'deleted');
@@ -203,6 +209,8 @@ CREATE TABLE external_principals (
     external_id   text NOT NULL,
     display_name  text,
     synced_at     timestamptz NOT NULL DEFAULT now(),
+    login         text,                    -- identifiant dans la source (proposition de correspondance)
+    email         text,                    -- courriel dans la source (proposition de correspondance)
     UNIQUE (org_id, id),
     UNIQUE (source_id, kind, external_id),
     FOREIGN KEY (org_id, source_id) REFERENCES sources(org_id, id) ON DELETE CASCADE
@@ -282,11 +290,15 @@ CREATE TABLE documents (
     deleted_at          timestamptz,           -- supprimé de la source ou retiré de l'index
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
+    -- Refus explicites de la source (ADR-0020) : une clé commune avec l'utilisateur l'emporte sur tout accès.
+    deny_keys           text[] NOT NULL DEFAULT '{}',
     UNIQUE (org_id, id),
     UNIQUE (source_id, external_id),           -- idempotence de la synchronisation
     FOREIGN KEY (org_id, source_id) REFERENCES sources(org_id, id) ON DELETE CASCADE,
     CHECK (acl_status = 'complete' OR access_keys = '{}'),        -- fermé par défaut
-    CHECK (urag_valid_access_keys(access_keys))
+    CHECK (urag_valid_access_keys(access_keys)),
+    CONSTRAINT documents_deny_keys_valid CHECK (urag_valid_access_keys(deny_keys)),
+    CONSTRAINT documents_deny_keys_closed CHECK (acl_status = 'complete' OR deny_keys = '{}')
 );
 CREATE INDEX documents_access_keys_gin ON documents USING gin (access_keys);
 CREATE INDEX documents_source_status_idx ON documents (source_id, status);
@@ -311,12 +323,14 @@ CREATE TABLE document_versions (
     created_at            timestamptz NOT NULL DEFAULT now(),
     indexed_at            timestamptz,
     superseded_at         timestamptz,         -- remplacée par une version plus récente (traçabilité)
+    context               text,                -- titre et date du document, rappelés en tête des passages
+    pipeline_version      integer NOT NULL DEFAULT 1,  -- version du traitement d'indexation (réindexation)
     UNIQUE (org_id, id),
     FOREIGN KEY (org_id, document_id) REFERENCES documents(org_id, id) ON DELETE CASCADE
 );
--- Idempotence : une version par contenu, profil d'embedding et moteur OCR (réindexation si l'OCR change).
+-- Idempotence : une version par contenu, profil d'embedding, moteur OCR et version du traitement.
 CREATE UNIQUE INDEX document_versions_content_uq
-    ON document_versions (document_id, sha256, embedding_profile_id, coalesce(ocr_engine, ''));
+    ON document_versions (document_id, sha256, embedding_profile_id, coalesce(ocr_engine, ''), pipeline_version);
 
 ALTER TABLE documents
     ADD CONSTRAINT documents_current_version_fk
@@ -355,7 +369,7 @@ CREATE INDEX chunks_document_idx ON chunks (document_id);
 
 -- Fragments interrogeables : version courante, document non supprimé, non exclu, droits complets.
 CREATE VIEW searchable_chunks WITH (security_barrier = true, security_invoker = true) AS
-SELECT c.*, d.source_id, d.access_keys, d.doc_class, d.title, d.source_modified_at
+SELECT c.*, d.source_id, d.access_keys, d.doc_class, d.title, d.source_modified_at, d.deny_keys
 FROM chunks c
 JOIN documents d ON d.org_id = c.org_id AND d.id = c.document_id
 WHERE c.version_id = d.current_version_id
@@ -633,7 +647,9 @@ CREATE FUNCTION urag_user_access_keys(p_user uuid) RETURNS text[]
            OR (sg.principal_type = 'group' AND sg.principal_id IN (SELECT group_id FROM my_groups))
     ),
     my_external AS (
+        -- Seules les correspondances confirmées donnent des droits (ADR-0016).
         SELECT pl.external_principal_id AS id FROM principal_links pl JOIN me ON pl.user_id = me.id
+        WHERE pl.verified
     ),
     my_external_groups AS (
         SELECT egm.external_group_id AS id FROM external_group_members egm

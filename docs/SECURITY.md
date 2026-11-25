@@ -99,6 +99,15 @@ Un changement de droits change le hachage des clés et invalide le cache.
   message d'erreur identique pour compte inconnu et mauvais mot de passe.
 - Comptes désactivés : refus immédiat, sessions révoquées.
 - LDAP / Active Directory : interface prévue (ADR-0016), implémentation après le MVP.
+- Identités externes : une correspondance compte local ↔ utilisateur de la source n'est
+  **active qu'une fois confirmée** par un administrateur d'organisation (vérifié dans
+  `urag_user_access_keys`) ; une identité disparue de la source perd ses liens à la
+  synchronisation suivante ; un refus explicite de la source devient une **clé de
+  refus** qui l'emporte sur tout accès (ADR-0020), un refus non résolu rend le document
+  invisible à tous.
+- Revérification à la question : pour les sources qui le permettent, les droits effectifs
+  sont redemandés à la source à chaque recherche, question et ouverture ; source
+  injoignable ⇒ ses documents sont écartés (audit `access.late_denied`).
 
 ---
 

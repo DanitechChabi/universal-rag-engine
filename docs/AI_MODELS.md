@@ -13,7 +13,7 @@ l'autre).
 |---|---|---|---|
 | Génération des réponses | local ou externe | Qwen, Gemma, Llama (local) ; Claude, Gemini, OpenAI (externe) | choisi par le routeur selon la politique |
 | Embeddings | local (par défaut) | BGE-M3 (multilingue, 1024 dimensions) | indépendant du modèle de génération |
-| Reranking | local | bge-reranker-v2-m3 | facultatif, après le filtrage des droits |
+| Reranking | local | bge-reranker-v2-m3 (Apache-2.0), ONNX int8 | facultatif (`rerank_backend = onnx`), après le filtrage des droits ; ADR-0021 |
 | OCR | local | **Tesseract** (défaut, mesuré), RapidOCR (modèles PaddleOCR en ONNX) en alternative | ADR-0017 (remplace le choix par défaut de l'ADR-0009) |
 | Détection de langue | local | bibliothèque légère (ex. lingua) | français / anglais d'abord |
 

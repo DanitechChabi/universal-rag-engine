@@ -23,5 +23,8 @@ Une fiche par décision structurante : contexte, décision, alternatives écart�
 | [ADR-0017](ADR-0017-ocr-tesseract-par-defaut.md) | OCR : Tesseract par défaut, RapidOCR en alternative (mesuré) | acceptée |
 | [ADR-0018](ADR-0018-encodeur-onnx-int8.md) | Embeddings : BGE-M3 ONNX int8 local, 10 fois plus rapide (mesuré) | acceptée |
 | [ADR-0019](ADR-0019-qdrant-index-hnsw-par-organisation.md) | Qdrant : un index HNSW par organisation, pas de graphe global (mesuré) | acceptée |
+| [ADR-0020](ADR-0020-cles-de-refus.md) | Refus explicites des sources : clés de refus | acceptée |
+| [ADR-0021](ADR-0021-reclassement-et-contexte-du-document.md) | Reclassement des candidats et contexte du document (mesuré) | acceptée |
+| [ADR-0022](ADR-0022-m-files-interface-grpc.md) | M-Files : API gRPC (étude de la documentation officielle) | **proposée** — coffre de test requis |
 
 Modèle pour une nouvelle fiche : `ADR-XXXX-titre.md` avec les sections Contexte, Décision, Alternatives écartées, Conséquences.

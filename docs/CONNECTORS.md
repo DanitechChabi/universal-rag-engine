@@ -106,8 +106,19 @@ class Connector(Protocol):
 ```
 
 `ChangeBatch` contient les changements **et** le nouveau curseur. Le curseur n'est
-enregistré qu'après le traitement complet du lot : une synchronisation interrompue
-reprend au dernier lot terminé (scénario de recette 16).
+enregistré qu'après le traitement complet du lot, dans la même transaction : une
+synchronisation interrompue reprend au dernier lot terminé (scénario de recette 16,
+`test_phase3.py::test_10`).
+
+Modes de synchronisation (`POST /sources/{id}/sync {mode}`) :
+
+- `auto` (défaut) : incrémental si la source le permet et qu'un curseur existe ;
+- `full` : liste complète, disparus retirés ; pour une source incrémentale, le
+  curseur est relevé **avant** la liste (`current_cursor()`) pour ne rien perdre.
+
+Une source qui ne journalise pas tous ses changements (par exemple les droits) exige
+une synchronisation complète de contrôle périodique ; les identités (utilisateurs,
+groupes, appartenances) sont relues à chaque synchronisation, quel que soit le mode.
 
 ### 2.3 Erreurs
 
@@ -122,11 +133,22 @@ reprend au dernier lot terminé (scénario de recette 16).
 
 ### 2.4 Tests de conformité
 
-Une **suite de tests commune** (`connectors/base/conformance/`) sera exécutée sur
-chaque connecteur : idempotence de la liste, curseur repris après interruption,
-suppression détectée, droits incomplets ⇒ `complete=False`, fermeture propre.
-Pour M-Files, la même suite tourne d'abord sur un **simulateur** puis sur un vrai
-coffre.
+La **suite de tests commune** (`urag_connectors_base.conformance`, phase 3) est
+exécutée sur chaque connecteur à partir d'un *banc* qui crée et modifie une source de
+test : connexion, idempotence de la liste, contenu lisible, document inconnu,
+modification et suppression détectées, un droit par document, droits incomplets ⇒
+`complete=False`, curseur repris après interruption sans doublon ni perte, refus
+explicite prioritaire (y compris dans `check_access`), fermeture propre. Les tests
+sans objet pour une source (pas de droits, pas de curseur) sont sautés et signalés.
+
+### 2.5 Source simulée
+
+`connectors/simulator` décrit un « coffre » dans un fichier JSON : utilisateurs,
+groupes, appartenances, droits par document (dont refus explicites et droits non
+résolus), versions, journal de changements, lien d'ouverture. Il **ne simule pas
+M-Files** et ne suppose aucune de ses interfaces : il sert à tester le cœur tant
+qu'aucun coffre réel n'est disponible. Paquet de développement, jamais livré dans le
+produit.
 
 ---
 
@@ -218,10 +240,11 @@ Décision Q8 : **aucun coffre M-Files n'est disponible pour l'instant.** Les ét
 connecteur M-Files est présenté comme « en développement, non validé ».
 
 
-1. Implémenter le connecteur contre un **simulateur** qui respecte le contrat
-   (permet de tester tout le cœur sans M-Files).
-2. Étude de l'API sur la documentation officielle de la version cible ; ADR du
-   choix d'interface.
+1. ~~Tester le cœur contre un **simulateur** qui respecte le contrat~~ : fait en
+   phase 3 (§2.5, `tests/integration/test_phase3.py`).
+2. Étude de l'API sur la documentation officielle : faite en phase 3 (ADR-0022,
+   **proposée**) ; l'API gRPC est retenue sous réserve de vérifications sur un coffre
+   (licence du paquet, refus explicites, droits effectifs d'un autre utilisateur).
 3. Implémentation réelle, suite de conformité sur le coffre de test.
 4. Tests de droits spécifiques : chaque utilisateur de test pose les mêmes
    questions ; les réponses ne doivent citer que ce qu'il peut ouvrir dans M-Files.

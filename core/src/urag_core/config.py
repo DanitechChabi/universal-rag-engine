@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     chunk_max_chars: int = 1200
     chunk_overlap_chars: int = 150
     retrieval_candidates: int = 30
+    late_access_check: bool = True  # droits revérifiés auprès des sources qui le permettent
+    rerank_backend: str = "none"  # none | onnx (ADR-0021)
+    rerank_model_dir: Path = Path.home() / "urag-models" / "bge-reranker-v2-m3-onnx"
+    rerank_candidates: int = 20
+    tika_url: str | None = None  # ex. http://tika:9998 ; absent : formats anciens exclus
     context_passages: int = 6
 
     cookie_secure: bool = True

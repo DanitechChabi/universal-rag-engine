@@ -71,6 +71,19 @@ Rôles : **SA** super_admin · **OA** org_admin · **DA** doc_admin · **U** use
 | POST | `/sources/{id}/sync` | DA, OA, SA | `{mode: "incremental" \| "full"}` ⇒ 202 + tâche |
 | POST | `/sources/{id}/disable`, `/enable` | DA, OA, SA | — |
 
+### Identités externes (ADR-0016)
+
+| Méthode | Route | Rôles | Contrat |
+|---|---|---|---|
+| GET | `/sources/{id}/identities` | OA | utilisateurs et groupes de la source, appartenances, compte lié et état (`verified`) ; compteurs « à confirmer » et « sans compte » |
+| PUT | `/principal-links` | OA | `{user_id, external_principal_id}` ⇒ lien **confirmé** (remplace une proposition) ; un groupe ne se lie pas ; audit `identity.link` |
+| POST | `/principal-links/{external_principal_id}/confirm` | OA | confirme une proposition automatique ; audit `identity.confirm` |
+| DELETE | `/principal-links/{external_principal_id}` | OA | supprime le lien, effet immédiat ; audit `identity.unlink` |
+| POST | `/sources/{id}/principal-links/import` | OA | `{csv}` « login_local;identifiant_externe » ; tout ou rien (une ligne invalide ⇒ 422, rien d'importé) |
+
+Les propositions automatiques (identifiant ou courriel identique, un seul compte possible)
+sont créées à la synchronisation et **ne donnent aucun droit** avant confirmation.
+
 ### Documents
 
 | Méthode | Route | Rôles | Contrat |
@@ -80,7 +93,7 @@ Rôles : **SA** super_admin · **OA** org_admin · **DA** doc_admin · **U** use
 | POST | `/documents/{id}/reindex` | DA, OA, SA | 202 + tâche |
 | POST | `/documents/{id}/exclude`, `/include` | DA, OA, SA | — |
 | DELETE | `/documents/{id}/index` | DA, OA, SA | retire de l'index ; le document original n'est jamais supprimé |
-| GET | `/documents/{id}/open` | Tous | **revérifie les droits** puis redirige vers la source (lien M-Files) ou sert le fichier local ; audit `document.open` |
+| GET | `/documents/{id}/open` | Tous | **revérifie les droits** puis redirige vers la source (lien fourni par le connecteur) ou sert le fichier relu dans la source, sous CSP `sandbox` ; types actifs (HTML…) en téléchargement ; 404 identique pour absent, supprimé ou interdit ; audit `document.open` / `document.open_denied` |
 | GET | `/chunks/{id}` | Tous | extrait d'une citation, **droits revérifiés** |
 
 ### Recherche et conversations

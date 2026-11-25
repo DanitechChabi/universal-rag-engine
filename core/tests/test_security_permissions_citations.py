@@ -73,7 +73,18 @@ def test_cles_document_ferme_par_defaut():
     incomplete = DocumentAccess(ref, (AccessEntry("space"),), complete=False, reason="pseudo-utilisateur")
     assert document_keys(incomplete, space, True, {}).complete is False
     deny = DocumentAccess(ref, (AccessEntry(ExternalPrincipalRef("user", "7"), allow=False),), complete=True)
-    assert document_keys(deny, space, True, {}).keys == ()
+    assert document_keys(deny, space, True, {}).complete is False  # refus visant une identité inconnue
+    group, bruno = uuid.uuid4(), uuid.uuid4()
+    ids = {ExternalPrincipalRef("group", "3"): group, ExternalPrincipalRef("user", "7"): bruno}
+    mixed = DocumentAccess(
+        ref,
+        (AccessEntry(ExternalPrincipalRef("group", "3")), AccessEntry(ExternalPrincipalRef("user", "7"), allow=False)),
+        complete=True,
+    )
+    keys = document_keys(mixed, space, False, ids)
+    assert keys.complete and keys.keys == (f"xg:{group}",) and keys.deny == (f"xu:{bruno}",)  # ADR-0020
+    space_deny = DocumentAccess(ref, (AccessEntry("space", allow=False),), complete=True)
+    assert document_keys(space_deny, space, True, {}).complete is False
     known = uuid.uuid4()
     mapped = DocumentAccess(ref, (AccessEntry(ExternalPrincipalRef("group", "3")),), complete=True)
     assert document_keys(mapped, space, False, {ExternalPrincipalRef("group", "3"): known}).keys == (f"xg:{known}",)
@@ -196,6 +207,24 @@ def test_citation_qui_ne_justifie_pas_la_phrase_est_corrigee():
     assert [(c.rank, c.inferred) for c in v.citations] == [(2, True)] and v.removed == 1
     gone = validate("Le délai de recours est de 45 jours [1].", passages)
     assert gone.citations == [] and "[1]" not in gone.text  # aucun extrait ne le justifie
+
+
+def test_contexte_du_document_justifie_la_citation():
+    """La date figure dans le contexte du document (lu par le modèle), pas dans le passage."""
+    import dataclasses
+
+    p = dataclasses.replace(
+        _passage(1, "L'encours des dépôts s'est établi à 2.793,1 milliards FCFA."),
+        context="Situation de la microfinance à fin décembre 2025",
+    )
+    v = validate("À fin décembre 2025, l'encours des dépôts est de 2.793,1 milliards FCFA [1].", [p])
+    assert "[1]" in v.text and [(c.rank, c.inferred) for c in v.citations] == [(1, False)]
+
+
+def test_tirets_entre_chiffres_equivalents():
+    p = _passage(1, "LOI N° 2025 — 19 DU 22 JUILLET 2025 relative aux associations.")
+    v = validate("Il s'agit de la loi n° 2025-19 du 22 juillet 2025 [1].", [p])
+    assert "[1]" in v.text and v.citations
 
 
 def test_adaptateur_gemini_reprise_et_flux():

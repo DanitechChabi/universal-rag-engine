@@ -6,10 +6,13 @@
 3. Fusion par rang réciproque (RRF).
 4. Relecture des passages retenus dans ``searchable_chunks`` : revérifie version
    courante, suppression et droits (un retard de Qdrant ne peut qu'exclure).
+5. Revérification auprès de la source (droits effectifs) quand elle le permet.
+6. Reclassement facultatif des premiers candidats autorisés (ADR-0021).
 """
 
 from __future__ import annotations
 
+import dataclasses
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -18,7 +21,7 @@ from sqlalchemy import Connection, text
 
 from ..embeddings import Encoder
 from ..extraction import detect_language
-from ..permissions import AccessScope
+from ..permissions import AccessScope, late_check
 from ..storage import VectorStore
 
 RRF_K = 60
@@ -47,6 +50,7 @@ class Passage:
     score: float
     channels: tuple[str, ...] = field(default_factory=tuple)
     suspicious: str | None = None  # raison, si le passage contient des consignes adressées à une IA
+    context: str | None = None  # titre et date du document (ADR-0021)
 
 
 def rrf(rankings: dict[str, list[uuid.UUID]], k: int = RRF_K) -> list[tuple[uuid.UUID, float, tuple[str, ...]]]:
@@ -67,10 +71,21 @@ def references_in(query: str) -> list[str]:
 
 
 class Retriever:
-    def __init__(self, vectors: VectorStore, encoder: Encoder, collection: str) -> None:
+    def __init__(
+        self,
+        vectors: VectorStore,
+        encoder: Encoder,
+        collection: str,
+        late_check: bool = True,
+        reranker=None,
+        rerank_candidates: int = 20,
+    ) -> None:
         self.vectors = vectors
         self.encoder = encoder
         self.collection = collection
+        self.late_check = late_check  # revérification auprès des sources qui le permettent
+        self.reranker = reranker  # reclassement des premiers candidats (ADR-0021), facultatif
+        self.rerank_candidates = rerank_candidates
 
     def dense(self, scope: AccessScope, query: str, limit: int, filters: SearchFilters) -> list[uuid.UUID]:
         vector = self.encoder.encode([query])[0]
@@ -99,7 +114,7 @@ class Retriever:
             "src": [str(s) for s in filters.source_ids] or None,
             "cls": list(filters.doc_classes) or None,
         }
-        common = """access_keys && CAST(:keys AS text[])
+        common = """urag_doc_visible(access_keys, deny_keys, CAST(:keys AS text[]))
                     AND (CAST(:src AS uuid[]) IS NULL OR source_id = ANY(CAST(:src AS uuid[])))
                     AND (CAST(:cls AS text[]) IS NULL OR doc_class = ANY(CAST(:cls AS text[])))"""
         rows = (
@@ -140,11 +155,13 @@ class Retriever:
         rows = conn.execute(
             text("""
             SELECT c.id, c.document_id, c.version_id, c.title, c.source_id, s.name AS source_name, c.text,
-                   c.page_start, c.page_end, c.section_path, d.source_version, c.suspicious_reason
+                   c.page_start, c.page_end, c.section_path, d.source_version, c.suspicious_reason, v.context
             FROM searchable_chunks c
             JOIN sources s ON s.id = c.source_id
             JOIN documents d ON d.id = c.document_id
-            WHERE c.id = ANY(CAST(:ids AS uuid[])) AND c.access_keys && CAST(:keys AS text[])"""),
+            JOIN document_versions v ON v.id = c.version_id
+            WHERE c.id = ANY(CAST(:ids AS uuid[]))
+              AND urag_doc_visible(c.access_keys, c.deny_keys, CAST(:keys AS text[]))"""),
             {"ids": [str(cid) for cid, _, _ in ranked], "keys": list(scope.keys)},
         ).all()
         by_id = {r.id: r for r in rows}
@@ -169,6 +186,7 @@ class Retriever:
                     score,
                     channels,
                     r.suspicious_reason,
+                    r.context,
                 )
             )
         return passages
@@ -191,4 +209,17 @@ class Retriever:
                 "lexical": self.lexical(conn, scope, query, candidates, filters),
             }
         )
-        return self.load(conn, scope, ranked[:candidates])[:limit]
+        passages = self.load(conn, scope, ranked[:candidates])
+        if self.late_check and passages:
+            allowed = late_check(conn, scope, list(dict.fromkeys(p.document_id for p in passages)))
+            passages = [p for p in passages if p.document_id in allowed]
+        if self.reranker is not None and len(passages) > 1:
+            passages = self.rerank(query, passages)
+        return passages[:limit]
+
+    def rerank(self, query: str, passages: list[Passage]) -> list[Passage]:
+        """Reclasse les premiers candidats ; appelé après le filtrage des droits, jamais avant."""
+        head, tail = passages[: self.rerank_candidates], passages[self.rerank_candidates :]
+        scores = self.reranker.scores(query, [f"{p.context}\n{p.text}" if p.context else p.text for p in head])
+        ranked = sorted(zip(scores, range(len(head)), head, strict=True), key=lambda x: (-x[0], x[1]))
+        return [dataclasses.replace(p, score=s, channels=(*p.channels, "rerank")) for s, _, p in ranked] + tail
