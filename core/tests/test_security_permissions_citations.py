@@ -73,7 +73,18 @@ def test_cles_document_ferme_par_defaut():
     incomplete = DocumentAccess(ref, (AccessEntry("space"),), complete=False, reason="pseudo-utilisateur")
     assert document_keys(incomplete, space, True, {}).complete is False
     deny = DocumentAccess(ref, (AccessEntry(ExternalPrincipalRef("user", "7"), allow=False),), complete=True)
-    assert document_keys(deny, space, True, {}).keys == ()
+    assert document_keys(deny, space, True, {}).complete is False  # refus visant une identité inconnue
+    group, bruno = uuid.uuid4(), uuid.uuid4()
+    ids = {ExternalPrincipalRef("group", "3"): group, ExternalPrincipalRef("user", "7"): bruno}
+    mixed = DocumentAccess(
+        ref,
+        (AccessEntry(ExternalPrincipalRef("group", "3")), AccessEntry(ExternalPrincipalRef("user", "7"), allow=False)),
+        complete=True,
+    )
+    keys = document_keys(mixed, space, False, ids)
+    assert keys.complete and keys.keys == (f"xg:{group}",) and keys.deny == (f"xu:{bruno}",)  # ADR-0020
+    space_deny = DocumentAccess(ref, (AccessEntry("space", allow=False),), complete=True)
+    assert document_keys(space_deny, space, True, {}).complete is False
     known = uuid.uuid4()
     mapped = DocumentAccess(ref, (AccessEntry(ExternalPrincipalRef("group", "3")),), complete=True)
     assert document_keys(mapped, space, False, {ExternalPrincipalRef("group", "3"): known}).keys == (f"xg:{known}",)

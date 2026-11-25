@@ -38,6 +38,7 @@ class DocumentKeys:
     keys: tuple[str, ...]
     complete: bool
     reason: str | None
+    deny: tuple[str, ...] = ()  # refus explicites (ADR-0020)
 
 
 def document_keys(
@@ -50,20 +51,21 @@ def document_keys(
     if not access.complete:
         return DocumentKeys((), False, access.reason or "droits incomplets")
     keys: set[str] = set()
+    deny: set[str] = set()
     for entry in access.entries:
-        if not entry.allow:
-            # Un refus explicite ne peut pas être représenté par des clés positives.
-            return DocumentKeys((), False, "refus explicite non représentable")
         if entry.principal == "space":
+            if not entry.allow:
+                return DocumentKeys((), False, "refus visant tout l'espace")
             if inherit_space_access:
                 keys.add(f"sp:{space_id}")
             continue
         internal = external_ids.get(entry.principal)
         if internal is None:
+            # Un refus mal résolu pourrait laisser passer la personne visée : document invisible.
             return DocumentKeys((), False, f"identité externe inconnue : {entry.principal.external_id}")
         prefix = "xu" if entry.principal.kind == "user" else "xg"
-        keys.add(f"{prefix}:{internal}")
-    return DocumentKeys(tuple(sorted(keys)), True, None)
+        (keys if entry.allow else deny).add(f"{prefix}:{internal}")
+    return DocumentKeys(tuple(sorted(keys)), True, None, tuple(sorted(deny)))
 
 
 def late_check(conn: Connection, scope: AccessScope, document_ids: list[uuid.UUID]) -> set[uuid.UUID]:

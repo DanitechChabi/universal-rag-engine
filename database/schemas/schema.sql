@@ -40,6 +40,12 @@ CREATE FUNCTION urag_valid_access_keys(keys text[]) RETURNS boolean
     AS $$ SELECT coalesce(bool_and(k ~ '^(u|g|sp|xu|xg):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'), true)
           FROM unnest(keys) AS k $$;
 
+-- Visibilité d'un document pour un utilisateur (ADR-0020) : au moins une clé d'accès commune
+-- et aucune clé de refus commune. Seule règle utilisée par la recherche, l'ouverture et les citations.
+CREATE FUNCTION urag_doc_visible(access_keys text[], deny_keys text[], user_keys text[]) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $$ SELECT access_keys && user_keys AND NOT (deny_keys && user_keys) $$;
+
 -- -----------------------------------------------------------------------------
 -- Types
 -- -----------------------------------------------------------------------------
@@ -284,11 +290,15 @@ CREATE TABLE documents (
     deleted_at          timestamptz,           -- supprimé de la source ou retiré de l'index
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
+    -- Refus explicites de la source (ADR-0020) : une clé commune avec l'utilisateur l'emporte sur tout accès.
+    deny_keys           text[] NOT NULL DEFAULT '{}',
     UNIQUE (org_id, id),
     UNIQUE (source_id, external_id),           -- idempotence de la synchronisation
     FOREIGN KEY (org_id, source_id) REFERENCES sources(org_id, id) ON DELETE CASCADE,
     CHECK (acl_status = 'complete' OR access_keys = '{}'),        -- fermé par défaut
-    CHECK (urag_valid_access_keys(access_keys))
+    CHECK (urag_valid_access_keys(access_keys)),
+    CONSTRAINT documents_deny_keys_valid CHECK (urag_valid_access_keys(deny_keys)),
+    CONSTRAINT documents_deny_keys_closed CHECK (acl_status = 'complete' OR deny_keys = '{}')
 );
 CREATE INDEX documents_access_keys_gin ON documents USING gin (access_keys);
 CREATE INDEX documents_source_status_idx ON documents (source_id, status);
@@ -357,7 +367,7 @@ CREATE INDEX chunks_document_idx ON chunks (document_id);
 
 -- Fragments interrogeables : version courante, document non supprimé, non exclu, droits complets.
 CREATE VIEW searchable_chunks WITH (security_barrier = true, security_invoker = true) AS
-SELECT c.*, d.source_id, d.access_keys, d.doc_class, d.title, d.source_modified_at
+SELECT c.*, d.source_id, d.access_keys, d.doc_class, d.title, d.source_modified_at, d.deny_keys
 FROM chunks c
 JOIN documents d ON d.org_id = c.org_id AND d.id = c.document_id
 WHERE c.version_id = d.current_version_id

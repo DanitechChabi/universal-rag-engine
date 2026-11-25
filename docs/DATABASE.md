@@ -143,6 +143,7 @@ Chaque point a pour identifiant `chunks.id` et pour charge utile :
 |---|---|---|
 | `org_id` | `keyword`, `is_tenant` | isolation (filtre obligatoire) |
 | `access_keys` | `keyword` | filtre de sécurité |
+| `deny_keys` | `keyword` | refus explicites, exclus par `must_not` (ADR-0020) |
 | `document_id`, `version_id`, `source_id`, `space_id` | `keyword` | filtres et invalidation |
 | `doc_class`, `mime_type`, `author` | `keyword` | filtres documentaires |
 | `modified_at` | `datetime` | filtre par date |

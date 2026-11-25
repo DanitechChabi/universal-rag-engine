@@ -128,7 +128,7 @@ def conversation(
         cites = conn.execute(
             text("""
             SELECT c.message_id, c.rank, c.document_id, c.page_start, c.page_end, c.excerpt, d.title,
-                   (d.access_keys && CAST(:keys AS text[]) AND d.acl_status = 'complete'
+                   (urag_doc_visible(d.access_keys, d.deny_keys, CAST(:keys AS text[])) AND d.acl_status = 'complete'
                     AND d.deleted_at IS NULL) AS accessible
             FROM citations c JOIN documents d ON d.id = c.document_id
             WHERE c.message_id = ANY(CAST(:ids AS uuid[])) ORDER BY c.rank"""),

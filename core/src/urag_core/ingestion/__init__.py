@@ -368,9 +368,10 @@ class IngestionService:
             text("""
             INSERT INTO documents (org_id, source_id, external_id, title, filename, extension, mime_type,
                 size_bytes, source_created_at, source_modified_at, source_version, author, doc_class,
-                location, metadata, source_metadata, access_keys, acl_status, acl_snapshot, acl_synced_at)
+                location, metadata, source_metadata, access_keys, deny_keys, acl_status, acl_snapshot, acl_synced_at)
             VALUES (:o, :s, :x, :t, :fn, :ext, :mime, :size, :cr, :mo, :v, :au, :dc, :loc,
-                CAST(:md AS jsonb), CAST(:smd AS jsonb), CAST(:keys AS text[]), CAST(:acl AS acl_status),
+                CAST(:md AS jsonb), CAST(:smd AS jsonb), CAST(:keys AS text[]), CAST(:deny AS text[]),
+                CAST(:acl AS acl_status),
                 CAST(:snap AS jsonb), now())
             ON CONFLICT (source_id, external_id) DO UPDATE SET
                 title = EXCLUDED.title, filename = EXCLUDED.filename, extension = EXCLUDED.extension,
@@ -378,13 +379,14 @@ class IngestionService:
                 source_modified_at = EXCLUDED.source_modified_at, author = EXCLUDED.author,
                 doc_class = EXCLUDED.doc_class, location = EXCLUDED.location,
                 metadata = EXCLUDED.metadata, source_metadata = EXCLUDED.source_metadata,
-                access_keys = EXCLUDED.access_keys, acl_status = EXCLUDED.acl_status,
+                access_keys = EXCLUDED.access_keys, deny_keys = EXCLUDED.deny_keys, acl_status = EXCLUDED.acl_status,
                 acl_snapshot = EXCLUDED.acl_snapshot, acl_synced_at = now(), deleted_at = NULL,
                 source_version = EXCLUDED.source_version, updated_at = now()
             RETURNING id, status::text AS status, current_version_id,
                 (xmax = 0) AS inserted,
                 (SELECT d.source_version FROM documents d WHERE d.id = documents.id) AS old_version,
                 (SELECT d.access_keys FROM documents d WHERE d.id = documents.id) AS old_keys,
+                (SELECT d.deny_keys FROM documents d WHERE d.id = documents.id) AS old_deny,
                 (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted,
                 (SELECT v.ocr_engine FROM document_versions v WHERE v.id = documents.current_version_id)
                     AS current_ocr"""),
@@ -406,6 +408,7 @@ class IngestionService:
                 "md": json.dumps(doc.metadata, default=str),
                 "smd": json.dumps(doc.source_metadata, default=str),
                 "keys": list(keys.keys),
+                "deny": list(keys.deny),
                 "acl": "complete" if keys.complete else "uncertain",
                 "snap": json.dumps({"reason": keys.reason, **access.raw}, default=str),
             },
@@ -433,9 +436,10 @@ class IngestionService:
                 report.queued += 1
         else:
             report.unchanged += 1
-            if list(row.old_keys or []) != list(keys.keys) and row.current_version_id:
+            changed_keys = list(row.old_keys or []) != list(keys.keys) or list(row.old_deny or []) != list(keys.deny)
+            if changed_keys and row.current_version_id:
                 report.access_changed += 1
-                self.vectors.set_access_keys(profile.collection, org_id, row.id, keys.keys)
+                self.vectors.set_access_keys(profile.collection, org_id, row.id, keys.keys, keys.deny)
 
     # -------------------------------------------------------------- document
 
@@ -469,7 +473,7 @@ class IngestionService:
         with self.db.org(org_id) as conn:
             doc = conn.execute(
                 text("""
-                SELECT d.id, d.external_id, d.source_version, d.title, d.doc_class, d.access_keys,
+                SELECT d.id, d.external_id, d.source_version, d.title, d.doc_class, d.access_keys, d.deny_keys,
                        d.current_version_id, d.deleted_at, s.id AS source_id, s.space_id, s.kind::text AS kind,
                        s.config
                 FROM documents d JOIN sources s ON s.id = d.source_id WHERE d.id = :i"""),
@@ -598,6 +602,7 @@ class IngestionService:
             "doc_class": doc.doc_class or "",
             "language": language,
             "access_keys": list(doc.access_keys or []),
+            "deny_keys": list(doc.deny_keys or []),
         }
         try:
             self.vectors.upsert(

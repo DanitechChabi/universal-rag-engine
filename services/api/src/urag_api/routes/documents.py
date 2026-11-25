@@ -42,7 +42,8 @@ def open_document(
             SELECT d.id, d.external_id, d.source_version, d.title, d.filename, d.mime_type,
                    s.kind::text AS kind, s.config
             FROM documents d JOIN sources s ON s.id = d.source_id
-            WHERE d.id = :i AND d.deleted_at IS NULL AND d.access_keys && CAST(:keys AS text[])"""),
+            WHERE d.id = :i AND d.deleted_at IS NULL AND d.acl_status = 'complete'
+              AND urag_doc_visible(d.access_keys, d.deny_keys, CAST(:keys AS text[]))"""),
             {"i": document_id, "keys": list(scope.keys)},
         ).first()
         if doc is not None and state.settings.late_access_check and not late_check(conn, scope, [doc.id]):

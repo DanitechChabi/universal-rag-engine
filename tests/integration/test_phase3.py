@@ -167,8 +167,8 @@ def test_03_confirmation_droits_par_document(env):
     ids = identities(env)
     r = env["client"].post(f"/api/v1/principal-links/{ids['42']['id']}/confirm", headers=env["admin"])
     assert r.status_code == 204, r.text
-    # Alice : via le groupe 7 (bail) et en personne (dossier RH).
-    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
+    # Alice : via le groupe 7 (bail, audit) et en personne (dossier RH).
+    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice", "audit_interne"}
 
 
 def test_03b_droit_retire_dans_la_source_effet_immediat(env):
@@ -186,7 +186,7 @@ def test_03b_droit_retire_dans_la_source_effet_immediat(env):
     next(d for d in changed["documents"] if d["id"] == "102")["acl"] = []  # retiré dans la GED, pas encore synchronisé
     env["path"].write_text(json.dumps(changed), encoding="utf-8")
     try:
-        assert visible(env, "alice") == {"bail_pins"}
+        assert visible(env, "alice") == {"bail_pins", "audit_interne"}
         assert client.get(f"/api/v1/documents/{hit['document_id']}/open", headers=alice).status_code == 404
         env["adapter"].last_messages = None
         r = client.post("/api/v1/chat", headers=alice, json={"question": "Quelle prime annuelle exceptionnelle ?"})
@@ -196,7 +196,7 @@ def test_03b_droit_retire_dans_la_source_effet_immediat(env):
         assert "Dossier RH" not in sent and "dossier_rh_alice" not in r.text  # ni transmis au modèle, ni cité
     finally:
         env["path"].write_text(json.dumps(env["vault"]), encoding="utf-8")
-    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
+    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice", "audit_interne"}
 
 
 def test_03c_source_injoignable_ferme_par_defaut(env):
@@ -206,15 +206,17 @@ def test_03c_source_injoignable_ferme_par_defaut(env):
         assert visible(env, "alice") == set()
     finally:
         hidden.rename(env["path"])
-    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice"}
+    assert visible(env, "alice") == {"bail_pins", "dossier_rh_alice", "audit_interne"}
 
 
-def test_04_refus_explicite_et_droits_incomplets_invisibles_pour_tous(env):
+def test_04_refus_explicite_et_droits_incomplets(env):
     docs = {d["title"]: d for d in env["client"].get("/api/v1/documents", headers=env["admin"]).json()["items"]}
-    assert docs["audit_interne"]["acl_status"] == "uncertain"  # refus explicite non représentable
-    assert docs["projet_fusion"]["acl_status"] == "uncertain"  # droits non résolus par la source
-    assert docs["audit_interne"]["access_key_count"] == 0 and docs["projet_fusion"]["access_key_count"] == 0
-    assert not {"audit_interne", "projet_fusion"} & visible(env, "alice")
+    # Refus explicite (ADR-0020) : document indexé avec ses droits ; seul Bruno, visé par le refus, est exclu.
+    assert docs["audit_interne"]["acl_status"] == "complete"
+    assert "audit_interne" in visible(env, "alice")
+    # Droits non résolus par la source : invisible pour tous.
+    assert docs["projet_fusion"]["acl_status"] == "uncertain" and docs["projet_fusion"]["access_key_count"] == 0
+    assert "projet_fusion" not in visible(env, "alice")
 
 
 def test_05_import_csv(env):
@@ -231,7 +233,7 @@ def test_05_import_csv(env):
         json={"csv": f"login_local;identifiant_externe\nbruno.{sfx};43\n"},
     )
     assert r.status_code == 200 and r.json() == {"imported": 1}
-    assert visible(env, "bruno") == {"bail_pins"}  # pas le dossier RH d'Alice
+    assert visible(env, "bruno") == {"bail_pins"}  # ni le dossier RH d'Alice, ni l'audit (refus explicite)
     assert visible(env, "chloe") == set()  # aucun lien : aucun document de la source
 
 

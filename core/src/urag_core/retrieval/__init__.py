@@ -101,7 +101,7 @@ class Retriever:
             "src": [str(s) for s in filters.source_ids] or None,
             "cls": list(filters.doc_classes) or None,
         }
-        common = """access_keys && CAST(:keys AS text[])
+        common = """urag_doc_visible(access_keys, deny_keys, CAST(:keys AS text[]))
                     AND (CAST(:src AS uuid[]) IS NULL OR source_id = ANY(CAST(:src AS uuid[])))
                     AND (CAST(:cls AS text[]) IS NULL OR doc_class = ANY(CAST(:cls AS text[])))"""
         rows = (
@@ -146,7 +146,8 @@ class Retriever:
             FROM searchable_chunks c
             JOIN sources s ON s.id = c.source_id
             JOIN documents d ON d.id = c.document_id
-            WHERE c.id = ANY(CAST(:ids AS uuid[])) AND c.access_keys && CAST(:keys AS text[])"""),
+            WHERE c.id = ANY(CAST(:ids AS uuid[]))
+              AND urag_doc_visible(c.access_keys, c.deny_keys, CAST(:keys AS text[]))"""),
             {"ids": [str(cid) for cid, _, _ in ranked], "keys": list(scope.keys)},
         ).all()
         by_id = {r.id: r for r in rows}
