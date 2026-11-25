@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
-type Info = { password: string; admin: string; alice: string; chloe: string; doc_admin: string };
+type Info = { password: string; admin: string; alice: string; chloe: string; doc_admin: string; base_url: string };
 const info = (): Info => JSON.parse(readFileSync(process.env.URAG_E2E_INFO!, "utf-8"));
 
-async function login(page: Page, who: keyof Omit<Info, "password">) {
+async function login(page: Page, who: "admin" | "alice" | "chloe" | "doc_admin") {
   await page.goto("/connexion");
   await page.getByLabel("Identifiant").fill(info()[who]);
   await page.getByLabel("Mot de passe").fill(info().password);
@@ -145,4 +145,59 @@ test("tableau de bord et thème sombre", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark"); // préférence retenue
+});
+
+// Dernier parcours : il remplace le modèle de l'installation par des modèles configurés.
+test("IA hybride : choisir un modèle externe (scénario 14), puis couper l'externe (scénario 15)", async ({ browser }) => {
+  const admin = await (await browser.newContext()).newPage();
+  await login(admin, "admin");
+  await admin.goto("/administration?onglet=ia");
+  const endpoint = `${info().base_url}/demo-llm/v1`;
+  for (const [kind, name, locality, key] of [
+    ["openai_compatible", "Serveur IA interne", "local", ""],
+    ["openai", "Service externe", "", "cle-de-demonstration"],
+  ]) {
+    await admin.getByLabel("Type").selectOption(kind);
+    await admin.getByLabel("Nom", { exact: true }).fill(name);
+    await admin.getByLabel("Adresse", { exact: true }).fill(endpoint);
+    if (locality) await admin.getByLabel("Où (serveur compatible OpenAI)").selectOption(locality);
+    if (key) await admin.getByLabel("Clé d'API (facultative)").fill(key);
+    await admin.getByRole("button", { name: "Ajouter le fournisseur" }).click();
+    await expect(admin.getByRole("cell", { name: name, exact: true })).toBeVisible();
+  }
+  await expect(admin.getByText("enregistrée (chiffrée)")).toBeVisible();
+  await expect(admin.locator("body")).not.toContainText("cle-de-demonstration"); // jamais réaffichée
+  for (const [provider, model, priority] of [
+    ["Serveur IA interne", "demo-local", "10"],
+    ["Service externe", "demo-externe", "20"],
+  ]) {
+    await admin.getByLabel("Fournisseur", { exact: true }).selectOption({ label: provider });
+    await admin.getByLabel("Nom du modèle chez le fournisseur").fill(model);
+    await admin.getByLabel("Priorité", { exact: true }).fill(priority);
+    await admin.getByRole("button", { name: "Ajouter le modèle" }).click();
+    const row = admin.getByRole("row", { name: new RegExp(model) });
+    await row.getByRole("button", { name: "Tester" }).click();
+    await expect(row.getByText("Disponible")).toBeVisible();
+  }
+  await admin.getByLabel(/IA externe autorisée/).check();
+  await admin.getByLabel("Autoriser l'envoi des extraits de documents vers l'externe").check();
+  await admin.getByRole("button", { name: "Enregistrer" }).first().click();
+  await expect(admin.getByText("Politique enregistrée")).toBeVisible();
+
+  const alice = await (await browser.newContext()).newPage();
+  await login(alice, "alice");
+  await alice.getByLabel("Modèle de réponse").selectOption({ label: "demo-externe (Modèle externe)" });
+  await expect(alice.getByRole("note")).toContainText("seront envoyés à « demo-externe », un service externe");
+  const answer = await ask(alice, "Quel est le loyer mensuel du bail ?");
+  await expect(answer.getByText("Modèle externe · demo-externe")).toBeVisible();
+  await expect(answer).toContainText("450 000 FCFA");
+
+  await admin.getByLabel(/IA locale uniquement/).check();
+  await admin.getByRole("button", { name: "Enregistrer" }).first().click();
+  await expect(admin.getByText("Politique enregistrée")).toBeVisible();
+  await alice.reload();
+  await expect(alice.getByLabel("Modèle de réponse")).toHaveCount(0); // un seul modèle autorisé : pas de choix
+  await alice.getByRole("button", { name: "Nouvelle conversation" }).click();
+  const local = await ask(alice, "Quel est le loyer mensuel du bail ?");
+  await expect(local.getByText("Modèle local · demo-local")).toBeVisible();
 });

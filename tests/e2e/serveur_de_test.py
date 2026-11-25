@@ -26,6 +26,8 @@ import uuid
 from datetime import timedelta
 from pathlib import Path
 
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
@@ -84,6 +86,36 @@ class DemoAdapter:
             yield word if i == 0 else f" {word}"
 
 
+def fake_openai_app(adapter: DemoAdapter):
+    """Faux fournisseur compatible OpenAI (même logique que le modèle de démonstration) : permet de
+    configurer des modèles « locaux » et « externes » depuis l'interface, sans clé ni Internet."""
+    from urag_core.ai import ChatMessage, ChatResult
+
+    fake = FastAPI()
+
+    @fake.get("/v1/models")
+    def models():
+        return {"data": [{"id": "demo-local"}, {"id": "demo-externe"}]}
+
+    @fake.post("/v1/chat/completions")
+    async def chat(request: Request):
+        body = await request.json()
+        messages = [ChatMessage(m["role"], m["content"]) for m in body["messages"]]
+
+        def stream():
+            result = ChatResult()
+            for piece in adapter.chat(None, messages, result):
+                yield f"data: {json.dumps({'choices': [{'delta': {'content': piece}, 'finish_reason': None}]})}\n\n"
+            yield f"data: {json.dumps({'choices': [{'delta': {}, 'finish_reason': 'stop'}]})}\n\n"
+            usage = {"prompt_tokens": result.tokens_in, "completion_tokens": result.tokens_out}
+            yield f"data: {json.dumps({'choices': [], 'usage': usage})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(stream(), media_type="text/event-stream")
+
+    return fake
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--port", type=int, default=8000)
@@ -106,7 +138,7 @@ def main() -> int:
     from urag_core.ai import ModelRouter, ModelSpec
     from urag_core.config import Settings
     from urag_core.embeddings import HashingEncoder
-    from urag_core.security import TokenService
+    from urag_core.security import SecretBox, TokenService
     from urag_core.storage import Database, VectorStore
     from urag_worker.main import Worker
 
@@ -146,8 +178,10 @@ def main() -> int:
         tokens,
         encoder_override=HashingEncoder(256),
         router_override=ModelRouter({"demo": DemoAdapter(args.delay)}, [model]),
+        secrets=SecretBox(secrets.token_bytes(32)),  # clé maîtresse jetable (démonstration)
     )
     app = create_app(state)
+    app.mount("/demo-llm", fake_openai_app(DemoAdapter(args.delay)))  # faux fournisseur « compatible OpenAI »
 
     from fastapi.testclient import TestClient
 

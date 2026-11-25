@@ -21,7 +21,9 @@ l'autre).
 
 ## 2. Model Router
 
-Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014).
+Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014). Phase 5 : modèles
+configurés par organisation (`urag_core.ai.catalog`), consommation et plafonds
+(`urag_core.usage`) ; implémentés et testés : `ollama`, `openai_compatible`, `openai`, `gemini`.
 
 ### 2.1 Adaptateurs
 
@@ -29,7 +31,7 @@ Module `urag_core.ai`, utilisé dans les processus api et worker (ADR-0014).
 |---|---|---|
 | `ollama` | Ollama local (et Ollama Cloud, déclaré externe) | oui |
 | `openai_compatible` | vLLM, LM Studio, llama.cpp server, toute API compatible OpenAI | oui |
-| `anthropic` | API Claude | oui |
+| `anthropic` | API Claude | oui (prévu, non implémenté en phase 5) |
 | `gemini` | API Gemini | oui |
 | `openai` | API OpenAI | oui |
 

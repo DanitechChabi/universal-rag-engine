@@ -132,5 +132,6 @@ Matériel et modèle consignés dans le rapport (livrable 20).
 | Qdrant : index HNSW par organisation, migration des collections, isolation, clés de refus | `tests/integration/test_vectors.py` | **4 passés** |
 | Mesure de qualité sur le corpus public (40 questions) | `eval/run_eval.py` | rapports `docs/reports/eval-*.json`, synthèse dans `docs/reports/PHASE2.md` |
 | Chaîne complète avec bge-m3 et qwen2.5:1.5b, mesure de qualité | `tests/integration/test_real_models.py` | **1 passé** (rapport `docs/reports/phase1-qualite.json`) |
+| Intégration phase 5 : modèles configurés par l'organisation, clé chiffrée jamais renvoyée, politique (scénarios 14 et 15), coût et audit sans contenu, plafond externe | `tests/integration/test_phase5.py` (faux fournisseur HTTP) | **6 passés** |
 | Interface web : flux de réponse, références sans HTML interprété | `apps/web/src/*.test.ts` (Vitest) | **2 passés** |
-| Parcours de bout en bout contre la vraie API (connexion, réponse sourcée, ouverture du document, arrêt, utilisateur sans droit, exclusion, correspondance des comptes, tableau de bord) | `apps/web/tests/e2e` (Playwright) | **8 passés** |
+| Parcours de bout en bout contre la vraie API (connexion, réponse sourcée, ouverture du document, arrêt, utilisateur sans droit, exclusion, correspondance des comptes, tableau de bord) | `apps/web/tests/e2e` (Playwright) | **9 passés** |

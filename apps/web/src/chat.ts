@@ -42,10 +42,11 @@ export async function streamChat(
   conversationId: string | null,
   signal: AbortSignal,
   onEvent: (e: ChatEvent) => void,
+  modelId: string | null = null,
 ): Promise<void> {
   const response = await raw("/chat", {
     method: "POST",
-    body: JSON.stringify({ question, conversation_id: conversationId }),
+    body: JSON.stringify({ question, conversation_id: conversationId, model_id: modelId }),
     signal,
   });
   const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
