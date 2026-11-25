@@ -37,6 +37,8 @@ def save(answers):
 
 def main():
     subprocess.run("nvidia-smi --query-gpu=name,memory.total --format=csv", shell=True, check=False)
+    # L'installateur d'Ollama a besoin de zstd, absent de l'image Kaggle.
+    subprocess.run("apt-get update -qq && apt-get install -y -qq zstd", shell=True, check=True)
     subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True, check=True)
     subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(60):
