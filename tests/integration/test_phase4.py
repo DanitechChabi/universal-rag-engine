@@ -145,3 +145,50 @@ def test_10_espaces_et_autorisations(env):
     spaces = env["client"].get("/api/v1/spaces", headers=env["admin_a"]).json()["items"]
     juridique = next(s for s in spaces if s["id"] == env["space"])
     assert juridique["sources"] >= 1 and [g["principal_id"] for g in juridique["grants"]] == [env["bob_id"]]
+
+
+def test_11_question_de_suite_reformulee(env, database):
+    """« Et sa durée ? » après une question sur le bail : recherche faite sur la question autonome."""
+    from sqlalchemy import create_engine, text
+    from urag_core.rag import REWRITE_PROMPT
+
+    from tests.integration.conftest import sse_events
+
+    client, adapter = env["client"], env["adapter"]
+    first = sse_events(
+        client.post("/api/v1/chat", headers=env["bob"], json={"question": "Quel est le loyer mensuel du bail ?"}).text
+    )
+    conversation = first[0][1]["conversation_id"]
+    seen: list[list] = []
+    original = adapter.chat
+
+    def scripted(model, messages, result):
+        seen.append(messages)
+        result.finish_reason = "STOP"
+        if messages[0].content == REWRITE_PROMPT:
+            assert "loyer mensuel" in messages[1].content and "[1]" not in messages[1].content.split("QUESTION")[0]
+            yield "Quelle est la durée du bail commercial ?"
+        else:
+            yield "Le bail arrive à échéance le 31/12/2026 [1]."
+
+    adapter.chat = scripted
+    try:
+        events = sse_events(
+            client.post(
+                "/api/v1/chat", headers=env["bob"], json={"question": "Et sa durée ?", "conversation_id": conversation}
+            ).text
+        )
+    finally:
+        adapter.chat = original
+    meta = events[0][1]
+    assert meta["question_reformulee"] == "Quelle est la durée du bail commercial ?"
+    answer_prompt = seen[-1][1].content
+    assert "QUESTION : Quelle est la durée du bail commercial ?" in answer_prompt
+    assert "31/12/2026" in answer_prompt  # le bon extrait a été retrouvé grâce à la reformulation
+    done = next(d for n, d in events if n == "done")
+    assert "31/12/2026" in done["answer"]
+    with create_engine(database["admin_url"]).connect() as c:
+        details = c.execute(
+            text("SELECT details FROM audit_log WHERE action = 'ai.query' ORDER BY id DESC LIMIT 1")
+        ).scalar()
+    assert details == {"question": "Et sa durée ?", "reformulee": "Quelle est la durée du bail commercial ?"}

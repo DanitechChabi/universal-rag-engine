@@ -61,6 +61,15 @@ test("assistant : réponse sourcée, extrait, ouverture du document, historique"
   await expect(page.locator(".history-item").first()).toContainText("Quel est le loyer mensuel");
 });
 
+test("assistant : question de suite reformulée à partir de la conversation", async ({ page }) => {
+  await login(page, "alice");
+  await page.getByRole("button", { name: "Nouvelle conversation" }).click();
+  await ask(page, "Quel est le loyer mensuel du bail ?");
+  const answer = await ask(page, "Et sa durée ?");
+  await expect(answer.getByText("Recherche effectuée pour : « Quelle est la durée du bail ? »")).toBeVisible();
+  await expect(answer).toContainText("31/12/2026");
+});
+
 test("assistant : arrêt d'une génération en cours", async ({ page }) => {
   await login(page, "alice");
   await page.getByLabel("Posez votre question…").fill("Quelle est la durée de conservation des dossiers de crédit ?");

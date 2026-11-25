@@ -18,6 +18,7 @@ Format imposé par la directive 27.7 du cahier des charges.
 | **Tableau de bord** (§10.3) : sources, documents, fragments, tâches, erreurs, services, modèle actif, politique d'IA, usage sur 30 jours, activité récente (sans le texte des questions) | `Dashboard.tsx`, `routes/dashboard.py` | `test_phase4` 08, Playwright 7 |
 | **Administration** (§10.7) : utilisateurs (rôles, désactivation, création), espaces et autorisations, correspondance des comptes (confirmer, lier, délier, import CSV), tâches | `Admin.tsx` | `test_phase4` 09, 10, Playwright 6 |
 | **Révocation immédiate** : session, statut du compte et rôles relus à chaque requête | `deps.py` | `test_phase4` 09 |
+| **Questions de suite reformulées** (« Et sa durée ? » → « Quelle est la durée du bail ? ») avec le modèle autorisé par la politique, à partir des deux derniers échanges ; question d'origine conservée si la reformulation échoue ; question cherchée affichée et auditée | `rag.standalone_question` | `test_phase4` 11, Playwright 3, unitaire |
 | Serveur de démonstration et de test : vraie API, base neuve, corpus indexé, modèle déterministe | `tests/e2e/serveur_de_test.py` | utilisé par Playwright |
 
 ## 2. Tests exécutés et résultats
@@ -25,9 +26,9 @@ Format imposé par la directive 27.7 du cahier des charges.
 | Suite | Résultat |
 |---|---|
 | Schéma PostgreSQL | **48 vérifications passées** |
-| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **121 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
+| Python : unitaires, conformité des connecteurs, intégration (PostgreSQL 16, Qdrant 1.15, Tika 3.2) | **123 passés**, 3 sautés (fonctions absentes des fichiers locaux) |
 | Interface : types (`tsc`), Vitest | **2 passés** |
-| **Parcours de bout en bout Playwright** contre la vraie API | **7 passés** |
+| **Parcours de bout en bout Playwright** contre la vraie API | **8 passés** |
 | Style (`ruff`) | aucun écart |
 
 Condition de sortie de la phase (`ROADMAP.md`) : **tests Playwright des parcours principaux —
@@ -55,7 +56,6 @@ remplie.** Les parcours sont aussi ajoutés à l'intégration continue.
 | Groupes d'utilisateurs : pas d'écran (les autorisations d'espace se font par utilisateur) | phase 7 |
 | Gestion des modèles d'IA, paramètres RAG, journaux, sauvegardes, licences (§10.7) | phases 5, 7 et 8 |
 | Interface en français seulement (textes regroupés, traduction possible) | selon les clients |
-| Questions de suite non reformulées (« Et sa durée ? ») | prochaine tâche |
 
 ## 5. Décisions prises
 
@@ -68,7 +68,6 @@ remplie.** Les parcours sont aussi ajoutés à l'intégration continue.
 
 ## 6. Prochaines tâches
 
-1. Reformuler les questions de suite à partir de l'historique de la conversation (modèle local).
-2. Écarter les pages de sommaire et d'index du classement.
-3. Phase 5 : routeur d'IA hybride, choix d'un modèle local mesuré sur GPU, quotas et coûts.
-4. Connecteur M-Files dès qu'un coffre de test est disponible.
+1. Écarter les pages de sommaire et d'index du classement.
+2. Phase 5 : routeur d'IA hybride, choix d'un modèle local mesuré sur GPU, quotas et coûts.
+3. Connecteur M-Files dès qu'un coffre de test est disponible.

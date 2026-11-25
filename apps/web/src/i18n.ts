@@ -60,6 +60,7 @@ export const t = {
     stopped: "Génération interrompue.",
     interrupted: "La réponse a été interrompue avant la fin.",
     unavailable: "Le modèle de réponse est indisponible. Réessayez dans un instant.",
+    rewritten: (q: string) => `Recherche effectuée pour : « ${q} »`,
     note: "Entrée pour envoyer, Maj+Entrée pour aller à la ligne. Les réponses peuvent contenir des erreurs : vérifiez-les dans les sources citées.",
   },
   status: {

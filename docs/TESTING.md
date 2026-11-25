@@ -123,14 +123,14 @@ Matériel et modèle consignés dans le rapport (livrable 20).
 | Test | Fichier | Résultat |
 |---|---|---|
 | Schéma PostgreSQL : RLS, clés composites, fermé par défaut, clés d'accès, révocation, plein texte français, audit en ajout seul, politique IA, file de tâches, profil d'embedding unique | `database/tests/test_schema.sql` | **48 vérifications passées** (PostgreSQL 16) |
-| Unitaires : extraction, découpage, OCR, formats Excel/PowerPoint/HTML et anciens formats (Tika), contexte du document, encodeur ONNX, reclassement, passages piégés, sécurité, droits et refus, citations, recherche, routeur, page de test de l'API | `core/tests`, `services/api/tests` | **44 passés** |
+| Unitaires : extraction, découpage, OCR, formats Excel/PowerPoint/HTML et anciens formats (Tika), contexte du document, encodeur ONNX, reclassement, passages piégés, sécurité, droits et refus, citations, recherche, routeur, page de test de l'API | `core/tests`, `services/api/tests` | **45 passés** |
 | Connecteurs : connecteur fichiers locaux et suite de conformité commune (fichiers locaux, source simulée) | `connectors/` | **29** (3 sautés : fonctions absentes des fichiers locaux) |
 | Intégration sur pile réelle : scénarios 1–13, 16 (OCR, ouverture du document original, reprise après arrêt d'un worker), isolation, rôles, sessions, audit | `tests/integration/test_phase1.py` | **23 passés** |
 | Intégration phase 3 (source simulée) : identités externes et correspondances, droits par document et par groupe, refus explicites, revérification à la question, scénarios 12, 13, 16 (synchronisation incrémentale) | `tests/integration/test_phase3.py` | **12 passés** |
-| Intégration phase 4 : API des écrans (documents filtrés et paginés, fiche sans contenu, exclure, retirer de l'index, sources, tableau de bord sans contenu, comptes, révocation immédiate des rôles) | `tests/integration/test_phase4.py` | **10 passés** |
+| Intégration phase 4 : API des écrans (documents filtrés et paginés, fiche sans contenu, exclure, retirer de l'index, sources, tableau de bord sans contenu, comptes, révocation immédiate des rôles) | `tests/integration/test_phase4.py` | **11 passés** |
 | Migrations Alembic identiques au schéma de référence | `tests/integration/test_migrations.py` | **1 passé** |
 | Qdrant : index HNSW par organisation, migration des collections, isolation, clés de refus | `tests/integration/test_vectors.py` | **4 passés** |
 | Mesure de qualité sur le corpus public (40 questions) | `eval/run_eval.py` | rapports `docs/reports/eval-*.json`, synthèse dans `docs/reports/PHASE2.md` |
 | Chaîne complète avec bge-m3 et qwen2.5:1.5b, mesure de qualité | `tests/integration/test_real_models.py` | **1 passé** (rapport `docs/reports/phase1-qualite.json`) |
 | Interface web : flux de réponse, références sans HTML interprété | `apps/web/src/*.test.ts` (Vitest) | **2 passés** |
-| Parcours de bout en bout contre la vraie API (connexion, réponse sourcée, ouverture du document, arrêt, utilisateur sans droit, exclusion, correspondance des comptes, tableau de bord) | `apps/web/tests/e2e` (Playwright) | **7 passés** |
+| Parcours de bout en bout contre la vraie API (connexion, réponse sourcée, ouverture du document, arrêt, utilisateur sans droit, exclusion, correspondance des comptes, tableau de bord) | `apps/web/tests/e2e` (Playwright) | **8 passés** |

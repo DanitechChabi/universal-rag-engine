@@ -43,21 +43,41 @@ class DemoAdapter:
         return True
 
     def chat(self, model, messages, result):
+        from urag_core.rag import REWRITE_PROMPT
+
         content = messages[-1].content
+        if messages[0].content == REWRITE_PROMPT:  # reformulation : la question, plus le sujet précédent
+            previous = re.findall(r"Utilisateur : (.*)", content)
+            last = re.search(r"DERNIÈRE QUESTION : (.*)", content)
+            result.finish_reason = "STOP"
+            # « Et sa durée ? » après « … du bail ? » → « Quelle est la durée du bail ? »
+            noun = re.findall(r"\w+", last.group(1))[-1]
+            subject = re.findall(r"\w+", previous[-1])[-1]
+            yield f"Quelle est la {noun} du {subject} ?"
+            return
         blocks = re.findall(r"<<<EXTRAIT\n(.*?)\nEXTRAIT>>>", content, flags=re.S)
         if not blocks:
             from urag_core.citations import INSUFFICIENT
 
             words = INSUFFICIENT.split(" ")
         else:
-            # Phrase du premier extrait qui partage le plus de mots avec la question.
+            # Phrase la plus proche de la question, parmi tous les extraits (citée avec son numéro) ;
+            # un intertitre court (« Article 3 - Durée. ») est rattaché à la phrase qui le suit.
             asked = re.search(r"QUESTION : (.*)", content)
-            wanted = {w for w in re.findall(r"\w{4,}", (asked.group(1) if asked else "").lower())}
-            sentences = [
-                x.strip(" .…") for x in re.split(r"(?<=[.!?])\s", " ".join(blocks[0].split())) if x.strip(" .…")
-            ]
-            best = max(sentences, key=lambda x: len(wanted & set(re.findall(r"\w{4,}", x.lower()))))
-            words = f"D'après les documents : {best} [1].".split()
+            wanted = set(re.findall(r"\w{4,}", (asked.group(1) if asked else "").lower()))
+            best, rank, score = "", 1, -1
+            for n, block in enumerate(blocks, start=1):
+                parts, merged = re.split(r"(?<=[.!?])\s", " ".join(block.split())), []
+                for part in parts:
+                    if merged and len(merged[-1]) < 25:
+                        merged[-1] = f"{merged[-1]} {part}"
+                    else:
+                        merged.append(part)
+                for sentence in (x.strip(" .…") for x in merged):
+                    hits = len(wanted & set(re.findall(r"\w{4,}", sentence.lower())))
+                    if sentence and hits > score:
+                        best, rank, score = sentence, n, hits
+            words = f"D'après les documents : {best} [{rank}].".split()
         result.tokens_in, result.tokens_out, result.finish_reason = len(content) // 4, len(words), "STOP"
         for i, word in enumerate(words):
             time.sleep(self.delay)

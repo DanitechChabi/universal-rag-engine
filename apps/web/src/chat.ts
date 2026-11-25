@@ -14,7 +14,7 @@ export type Citation = {
 export type ModelInfo = { id: string; name: string; locality: "local" | "external" } | null;
 
 export type ChatEvent =
-  | { name: "meta"; data: { message_id: string; conversation_id: string; model: ModelInfo } }
+  | { name: "meta"; data: { message_id: string; conversation_id: string; model: ModelInfo; question_reformulee?: string | null } }
   | { name: "sources"; data: { candidates: number } }
   | { name: "token"; data: { text: string } }
   | { name: "citations"; data: { items: Citation[] } }

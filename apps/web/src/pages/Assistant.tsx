@@ -15,6 +15,7 @@ type Turn = {
   insufficient?: boolean;
   model?: ModelInfo;
   locality?: string | null;
+  rewritten?: string | null;
   status: "streaming" | "done" | "stopped" | "error";
   error?: string;
 };
@@ -105,7 +106,7 @@ export function Assistant() {
       await streamChat(text, conversationId, controller.signal, (ev) => {
         switch (ev.name) {
           case "meta":
-            patch(key, { model: ev.data.model, locality: ev.data.model?.locality ?? null });
+            patch(key, { model: ev.data.model, locality: ev.data.model?.locality ?? null, rewritten: ev.data.question_reformulee });
             if (!conversationId) {
               createdHere.current = ev.data.conversation_id;
               setParams({ c: ev.data.conversation_id }, { replace: true });
@@ -277,6 +278,7 @@ function Answer({ turn, active, onCite, onSources }: { turn: Turn; active: boole
 
   return (
     <div className={`msg msg-answer ${active ? "msg-active" : ""} ${turn.insufficient ? "msg-insufficient" : ""}`}>
+      {turn.rewritten && <div className="small muted">{a.rewritten(turn.rewritten)}</div>}
       <div className="answer-text">
         {turn.content === "" && turn.status === "streaming" && <span className="muted">{a.searching}</span>}
         {splitCitations(turn.content).map((part, i) =>
