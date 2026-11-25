@@ -19,7 +19,9 @@ Format ::
           "acl": [{"user": "42"}, {"group": "7"}, {"user": "43", "deny": true}],
           "acl_complete": true, "deleted": false, "properties": {"Client": "SCI Les Pins"}
       }],
-      "journal": [{"seq": 1, "kind": "upsert" | "delete" | "access_changed", "id": "101"}]
+      "journal": [{"seq": 1, "kind": "upsert" | "delete" | "access_changed", "id": "101"}],
+      "transient_errors": ["101"],   # lecture du contenu en échec temporaire (tests)
+      "fail_from_seq": 12            # journal illisible à partir de ce changement (tests)
     }
 """
 
@@ -113,6 +115,9 @@ class SimulatorConnector(BaseConnector):
         after = int((cursor or {}).get("seq", 0))
         pending = sorted((e for e in vault.get("journal", []) if int(e["seq"]) > after), key=lambda e: int(e["seq"]))
         batch, docs = pending[: self.batch_size], self._docs(vault)
+        fail_from = vault.get("fail_from_seq")  # coupure simulée de la source au milieu d'une synchronisation
+        if fail_from is not None and any(int(e["seq"]) >= int(fail_from) for e in batch):
+            raise TransientError(f"coupure simulée au changement {fail_from}")
         changes = []
         for e in batch:
             d = docs.get(str(e["id"]))
@@ -122,6 +127,9 @@ class SimulatorConnector(BaseConnector):
                 changes.append(Change(e["kind"], self._document(d).ref, self._document(d)))
         last = int(batch[-1]["seq"]) if batch else after
         return ChangeBatch(tuple(changes), {"seq": last}, complete=len(pending) <= self.batch_size)
+
+    def current_cursor(self) -> dict[str, Any]:
+        return {"seq": max((int(e["seq"]) for e in self._vault().get("journal", [])), default=0)}
 
     def fetch_content(self, ref: DocumentRef, dest_dir: Path) -> FetchedFile:
         vault = self._vault()

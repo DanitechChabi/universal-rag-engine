@@ -33,7 +33,9 @@ class Worker:
     def handle(self, job: Job) -> None:
         payload = job.payload
         if job.kind == "sync_source":
-            report = self.ingestion.sync_source(job.org_id, uuid.UUID(payload["source_id"]))
+            report = self.ingestion.sync_source(
+                job.org_id, uuid.UUID(payload["source_id"]), payload.get("mode", "auto")
+            )
             log.info("synchronisation %s : %s", payload["source_id"], report)
         elif job.kind == "ingest_document":
             report = self.ingestion.ingest_document(job.org_id, uuid.UUID(payload["document_id"]))

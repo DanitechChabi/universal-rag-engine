@@ -207,6 +207,11 @@ class BaseConnector:
     def check_access(self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]) -> dict[DocumentRef, bool]:
         raise UnsupportedError("revérification des droits non prise en charge")
 
+    def current_cursor(self) -> dict[str, JsonValue] | None:
+        """Position actuelle du journal de changements, relevée avant une liste complète
+        (sources incrémentales). ``None`` : la source n'en a pas."""
+        return None
+
     def external_link(self, ref: DocumentRef) -> str | None:
         """Lien d'ouverture dans l'application de la source (ex. client de GED), sinon ``None`` :
         le fichier est alors servi par l'API."""

@@ -242,16 +242,38 @@ def test_source(
     return {"ok": report.ok, "message": report.message, "details": report.details}
 
 
+class SyncIn(BaseModel):
+    mode: Literal["auto", "incremental", "full"] = "auto"
+
+
 @router.post("/sources/{source_id}/sync", status_code=202)
 def sync_source(
-    source_id: uuid.UUID, user: CurrentUser = Depends(require(*DOC_ADMIN)), state: AppState = Depends(get_state)
+    source_id: uuid.UUID,
+    body: SyncIn | None = None,
+    user: CurrentUser = Depends(require(*DOC_ADMIN)),
+    state: AppState = Depends(get_state),
 ):
+    """``auto`` (défaut) : incrémental si possible ; ``full`` : liste complète de contrôle."""
+    mode = (body or SyncIn()).mode
     with state.db.org(user.org_id) as conn:
         _source_row(conn, source_id)
         job_id = enqueue(
-            conn, user.org_id, "sync_source", {"source_id": str(source_id)}, dedup_key=f"sync:{source_id}", priority=20
+            conn,
+            user.org_id,
+            "sync_source",
+            {"source_id": str(source_id), "mode": "full" if mode == "full" else "auto"},
+            dedup_key=f"sync:{source_id}",
+            priority=20,
         )
-        record(conn, user.org_id, "source.sync", actor=user.user_id, target_type="source", target_id=str(source_id))
+        record(
+            conn,
+            user.org_id,
+            "source.sync",
+            actor=user.user_id,
+            target_type="source",
+            target_id=str(source_id),
+            details={"mode": mode},
+        )
     return {"job_id": job_id, "already_queued": job_id is None}
 
 

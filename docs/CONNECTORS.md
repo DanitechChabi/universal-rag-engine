@@ -106,8 +106,19 @@ class Connector(Protocol):
 ```
 
 `ChangeBatch` contient les changements **et** le nouveau curseur. Le curseur n'est
-enregistré qu'après le traitement complet du lot : une synchronisation interrompue
-reprend au dernier lot terminé (scénario de recette 16).
+enregistré qu'après le traitement complet du lot, dans la même transaction : une
+synchronisation interrompue reprend au dernier lot terminé (scénario de recette 16,
+`test_phase3.py::test_10`).
+
+Modes de synchronisation (`POST /sources/{id}/sync {mode}`) :
+
+- `auto` (défaut) : incrémental si la source le permet et qu'un curseur existe ;
+- `full` : liste complète, disparus retirés ; pour une source incrémentale, le
+  curseur est relevé **avant** la liste (`current_cursor()`) pour ne rien perdre.
+
+Une source qui ne journalise pas tous ses changements (par exemple les droits) exige
+une synchronisation complète de contrôle périodique ; les identités (utilisateurs,
+groupes, appartenances) sont relues à chaque synchronisation, quel que soit le mode.
 
 ### 2.3 Erreurs
 

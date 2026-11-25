@@ -48,6 +48,8 @@ class SyncReport:
     unchanged: int = 0
     deleted: int = 0
     access_changed: int = 0
+    mode: str = "full"
+    batches: int = 0  # lots de changements appliqués (synchronisation incrémentale)
     principals: int = 0  # identités externes (utilisateurs et groupes) synchronisées
     link_proposals: int = 0  # correspondances proposées, à confirmer par un administrateur
     errors: list[str] = field(default_factory=list)
@@ -218,15 +220,35 @@ class IngestionService:
         ).rowcount
         return len(snapshot.principals), proposals
 
-    def sync_source(self, org_id: uuid.UUID, source_id: uuid.UUID) -> SyncReport:
-        report = SyncReport()
+    def sync_source(self, org_id: uuid.UUID, source_id: uuid.UUID, mode: str = "auto") -> SyncReport:
+        """Synchronise une source.
+
+        - ``full`` : liste complète, disparus retirés de l'index ; pour une source incrémentale,
+          le curseur est relevé *avant* la liste, pour ne perdre aucun changement survenu pendant.
+        - ``auto`` : incrémental si la source le permet et qu'un curseur existe, sinon complet.
+
+        En incrémental, chaque lot est appliqué dans une transaction qui enregistre aussi le
+        curseur : une synchronisation interrompue reprend au dernier lot terminé, sans perte ni
+        doublon (scénario de recette 16).
+        """
         with self.db.org(org_id) as conn:
             source = self._source(conn, source_id)
             if not source.enabled:
                 raise UnsupportedError("source désactivée")
-            profile = self.profile(conn)
+            cursor = conn.execute(text("SELECT sync_cursor FROM sources WHERE id = :s"), {"s": source_id}).scalar()
         connector = self.connector_for(source)
+        incremental = connector.capabilities.incremental
+        if mode == "auto" and incremental and cursor is not None:
+            return self._sync_incremental(org_id, source, connector, cursor)
+        return self._sync_full(org_id, source, connector, incremental)
+
+    def _sync_full(self, org_id: uuid.UUID, source: Any, connector: BaseConnector, incremental: bool) -> SyncReport:
+        report = SyncReport(mode="full")
+        source_id = source.id
+        with self.db.org(org_id) as conn:
+            profile = self.profile(conn)
         with connector:
+            head = connector.current_cursor() if incremental else None
             principals = connector.list_principals() if connector.capabilities.access else None
             documents = list(connector.list_documents())
             accesses = {a.ref.external_id: a for a in connector.get_access([d.ref for d in documents])}
@@ -239,81 +261,7 @@ class IngestionService:
             for doc in documents:
                 report.seen += 1
                 seen.append(doc.ref.external_id)
-                keys = document_keys(
-                    accesses[doc.ref.external_id], source.space_id, source.inherit_space_access, external_ids
-                )
-                row = conn.execute(
-                    text("""
-                    INSERT INTO documents (org_id, source_id, external_id, title, filename, extension, mime_type,
-                        size_bytes, source_created_at, source_modified_at, source_version, author, doc_class,
-                        location, metadata, source_metadata, access_keys, acl_status, acl_snapshot, acl_synced_at)
-                    VALUES (:o, :s, :x, :t, :fn, :ext, :mime, :size, :cr, :mo, :v, :au, :dc, :loc,
-                        CAST(:md AS jsonb), CAST(:smd AS jsonb), CAST(:keys AS text[]), CAST(:acl AS acl_status),
-                        CAST(:snap AS jsonb), now())
-                    ON CONFLICT (source_id, external_id) DO UPDATE SET
-                        title = EXCLUDED.title, filename = EXCLUDED.filename, extension = EXCLUDED.extension,
-                        mime_type = EXCLUDED.mime_type, size_bytes = EXCLUDED.size_bytes,
-                        source_modified_at = EXCLUDED.source_modified_at, author = EXCLUDED.author,
-                        doc_class = EXCLUDED.doc_class, location = EXCLUDED.location,
-                        metadata = EXCLUDED.metadata, source_metadata = EXCLUDED.source_metadata,
-                        access_keys = EXCLUDED.access_keys, acl_status = EXCLUDED.acl_status,
-                        acl_snapshot = EXCLUDED.acl_snapshot, acl_synced_at = now(), deleted_at = NULL,
-                        source_version = EXCLUDED.source_version, updated_at = now()
-                    RETURNING id, status::text AS status, current_version_id,
-                        (xmax = 0) AS inserted,
-                        (SELECT d.source_version FROM documents d WHERE d.id = documents.id) AS old_version,
-                        (SELECT d.access_keys FROM documents d WHERE d.id = documents.id) AS old_keys,
-                        (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted,
-                        (SELECT v.ocr_engine FROM document_versions v WHERE v.id = documents.current_version_id)
-                            AS current_ocr"""),
-                    {
-                        "o": org_id,
-                        "s": source_id,
-                        "x": doc.ref.external_id,
-                        "t": doc.title[:500],
-                        "fn": doc.filename,
-                        "ext": doc.extension,
-                        "mime": doc.mime_type,
-                        "size": doc.size_bytes,
-                        "cr": doc.created_at,
-                        "mo": doc.modified_at,
-                        "v": doc.ref.version,
-                        "au": doc.author,
-                        "dc": doc.doc_class,
-                        "loc": doc.location,
-                        "md": json.dumps(doc.metadata, default=str),
-                        "smd": json.dumps(doc.source_metadata, default=str),
-                        "keys": list(keys.keys),
-                        "acl": "complete" if keys.complete else "uncertain",
-                        "snap": json.dumps({"reason": keys.reason, **accesses[doc.ref.external_id].raw}, default=str),
-                    },
-                ).first()
-                changed = (
-                    row.inserted
-                    or row.old_version != doc.ref.version
-                    or row.old_deleted is not None
-                    or row.status not in ("indexed", "indexed_with_warning")
-                    # pages scannées laissées sans texte, alors qu'un moteur OCR est maintenant disponible
-                    or (self.ocr is not None and row.status == "indexed_with_warning" and row.current_ocr is None)
-                )
-                if changed:
-                    if (
-                        enqueue(
-                            conn,
-                            org_id,
-                            "ingest_document",
-                            {"document_id": str(row.id)},
-                            dedup_key=f"ingest:{row.id}",
-                            priority=50,
-                        )
-                        is not None
-                    ):
-                        report.queued += 1
-                else:
-                    report.unchanged += 1
-                    if list(row.old_keys or []) != list(keys.keys) and row.current_version_id:
-                        report.access_changed += 1
-                        self.vectors.set_access_keys(profile.collection, org_id, row.id, keys.keys)
+                self._upsert(conn, org_id, source, profile, doc, accesses[doc.ref.external_id], external_ids, report)
 
             # Disparus de la source : retirés de l'index (jamais supprimés de la source).
             gone = (
@@ -330,12 +278,164 @@ class IngestionService:
             for doc_id in gone:
                 self.vectors.delete_where(profile.collection, org_id, "document_id", doc_id)
             report.deleted = len(gone)
-            conn.execute(
-                text("""UPDATE sources SET last_sync_at = now(), last_sync_status = :st,
-                                 status = 'active', updated_at = now() WHERE id = :s"""),
-                {"s": source_id, "st": json.dumps(report.__dict__, default=str)},
-            )
+            self._finish_sync(conn, source_id, report, head if incremental else None)
         return report
+
+    def _sync_incremental(self, org_id: uuid.UUID, source: Any, connector: BaseConnector, cursor: Any) -> SyncReport:
+        from urag_connectors_base import Change
+
+        report = SyncReport(mode="incremental")
+        source_id = source.id
+        with self.db.org(org_id) as conn:
+            profile = self.profile(conn)
+        with connector:
+            principals = connector.list_principals() if connector.capabilities.access else None
+            if principals is not None:
+                with self.db.org(org_id) as conn:
+                    report.principals, report.link_proposals = self._sync_principals(
+                        conn, org_id, source_id, principals
+                    )
+            while True:
+                batch = connector.list_changes(cursor)
+                upserts = [c for c in batch.changes if c.kind != "delete" and c.document is not None]
+                accesses = {a.ref.external_id: a for a in connector.get_access([c.ref for c in upserts])}
+                with self.db.org(org_id) as conn:  # un lot = une transaction, curseur compris
+                    external_ids = self._external_ids(conn, source_id)
+                    for change in batch.changes:
+                        report.seen += 1
+                        if change in upserts:
+                            assert isinstance(change, Change) and change.document is not None
+                            self._upsert(
+                                conn,
+                                org_id,
+                                source,
+                                profile,
+                                change.document,
+                                accesses[change.ref.external_id],
+                                external_ids,
+                                report,
+                            )
+                            continue
+                        gone = conn.execute(
+                            text("""
+                            UPDATE documents SET deleted_at = now(), status = 'deleted', updated_at = now()
+                            WHERE source_id = :s AND external_id = :x AND deleted_at IS NULL RETURNING id"""),
+                            {"s": source_id, "x": change.ref.external_id},
+                        ).scalar()
+                        if gone is not None:
+                            self.vectors.delete_where(profile.collection, org_id, "document_id", gone)
+                            report.deleted += 1
+                    conn.execute(
+                        text("UPDATE sources SET sync_cursor = CAST(:c AS jsonb) WHERE id = :s"),
+                        {"s": source_id, "c": json.dumps(batch.cursor)},
+                    )
+                    report.batches += 1
+                cursor = batch.cursor
+                if batch.complete:
+                    break
+        with self.db.org(org_id) as conn:
+            self._finish_sync(conn, source_id, report, cursor)
+        return report
+
+    @staticmethod
+    def _finish_sync(conn: Connection, source_id: uuid.UUID, report: SyncReport, cursor: Any) -> None:
+        conn.execute(
+            text("""UPDATE sources SET last_sync_at = now(), last_sync_status = :st, status = 'active',
+                     sync_cursor = CASE WHEN CAST(:c AS text) IS NULL THEN sync_cursor ELSE CAST(:c AS jsonb) END,
+                     updated_at = now() WHERE id = :s"""),
+            {
+                "s": source_id,
+                "st": json.dumps(report.__dict__, default=str),
+                "c": json.dumps(cursor) if cursor is not None else None,
+            },
+        )
+
+    def _upsert(
+        self,
+        conn: Connection,
+        org_id: uuid.UUID,
+        source: Any,
+        profile: Any,
+        doc: Any,
+        access: Any,
+        external_ids: dict,
+        report: SyncReport,
+    ) -> None:
+        """Enregistre un document de la source ; met en file son indexation s'il a changé."""
+        source_id = source.id
+        keys = document_keys(access, source.space_id, source.inherit_space_access, external_ids)
+        row = conn.execute(
+            text("""
+            INSERT INTO documents (org_id, source_id, external_id, title, filename, extension, mime_type,
+                size_bytes, source_created_at, source_modified_at, source_version, author, doc_class,
+                location, metadata, source_metadata, access_keys, acl_status, acl_snapshot, acl_synced_at)
+            VALUES (:o, :s, :x, :t, :fn, :ext, :mime, :size, :cr, :mo, :v, :au, :dc, :loc,
+                CAST(:md AS jsonb), CAST(:smd AS jsonb), CAST(:keys AS text[]), CAST(:acl AS acl_status),
+                CAST(:snap AS jsonb), now())
+            ON CONFLICT (source_id, external_id) DO UPDATE SET
+                title = EXCLUDED.title, filename = EXCLUDED.filename, extension = EXCLUDED.extension,
+                mime_type = EXCLUDED.mime_type, size_bytes = EXCLUDED.size_bytes,
+                source_modified_at = EXCLUDED.source_modified_at, author = EXCLUDED.author,
+                doc_class = EXCLUDED.doc_class, location = EXCLUDED.location,
+                metadata = EXCLUDED.metadata, source_metadata = EXCLUDED.source_metadata,
+                access_keys = EXCLUDED.access_keys, acl_status = EXCLUDED.acl_status,
+                acl_snapshot = EXCLUDED.acl_snapshot, acl_synced_at = now(), deleted_at = NULL,
+                source_version = EXCLUDED.source_version, updated_at = now()
+            RETURNING id, status::text AS status, current_version_id,
+                (xmax = 0) AS inserted,
+                (SELECT d.source_version FROM documents d WHERE d.id = documents.id) AS old_version,
+                (SELECT d.access_keys FROM documents d WHERE d.id = documents.id) AS old_keys,
+                (SELECT d.deleted_at FROM documents d WHERE d.id = documents.id) AS old_deleted,
+                (SELECT v.ocr_engine FROM document_versions v WHERE v.id = documents.current_version_id)
+                    AS current_ocr"""),
+            {
+                "o": org_id,
+                "s": source_id,
+                "x": doc.ref.external_id,
+                "t": doc.title[:500],
+                "fn": doc.filename,
+                "ext": doc.extension,
+                "mime": doc.mime_type,
+                "size": doc.size_bytes,
+                "cr": doc.created_at,
+                "mo": doc.modified_at,
+                "v": doc.ref.version,
+                "au": doc.author,
+                "dc": doc.doc_class,
+                "loc": doc.location,
+                "md": json.dumps(doc.metadata, default=str),
+                "smd": json.dumps(doc.source_metadata, default=str),
+                "keys": list(keys.keys),
+                "acl": "complete" if keys.complete else "uncertain",
+                "snap": json.dumps({"reason": keys.reason, **access.raw}, default=str),
+            },
+        ).first()
+        changed = (
+            row.inserted
+            or row.old_version != doc.ref.version
+            or row.old_deleted is not None
+            or row.status not in ("indexed", "indexed_with_warning")
+            # pages scannées laissées sans texte, alors qu'un moteur OCR est maintenant disponible
+            or (self.ocr is not None and row.status == "indexed_with_warning" and row.current_ocr is None)
+        )
+        if changed:
+            if (
+                enqueue(
+                    conn,
+                    org_id,
+                    "ingest_document",
+                    {"document_id": str(row.id)},
+                    dedup_key=f"ingest:{row.id}",
+                    priority=50,
+                )
+                is not None
+            ):
+                report.queued += 1
+        else:
+            report.unchanged += 1
+            if list(row.old_keys or []) != list(keys.keys) and row.current_version_id:
+                report.access_changed += 1
+                self.vectors.set_access_keys(profile.collection, org_id, row.id, keys.keys)
 
     # -------------------------------------------------------------- document
 

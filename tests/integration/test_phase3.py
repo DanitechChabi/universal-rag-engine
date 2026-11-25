@@ -91,7 +91,12 @@ def env(database, tmp_path_factory):
     r = client.post(
         "/api/v1/sources",
         headers=admin,
-        json={"kind": "simulator", "name": "GED simulée", "space_id": space, "config": {"path": str(path)}},
+        json={
+            "kind": "simulator",
+            "name": "GED simulée",
+            "space_id": space,
+            "config": {"path": str(path), "batch_size": 2},
+        },
     )
     assert r.status_code == 201, r.text
     return {
@@ -106,6 +111,12 @@ def env(database, tmp_path_factory):
         "org": org,
         "sfx": sfx,
     }
+
+
+def log(env, kind: str, doc_id: str) -> None:
+    """Journal de changements de la GED simulée (ce que la source enregistre à chaque modification)."""
+    journal = env["vault"].setdefault("journal", [])
+    journal.append({"seq": len(journal) + 1, "kind": kind, "id": doc_id})
 
 
 def sync(env) -> None:
@@ -227,7 +238,8 @@ def test_05_import_csv(env):
 def test_06_scenario_12_permissions_modifiees(env):
     doc = next(d for d in env["vault"]["documents"] if d["id"] == "102")
     doc["acl"] = [{"user": "43"}]  # le dossier passe d'Alice à Bruno
-    sync(env)
+    log(env, "access_changed", "102")
+    sync(env)  # incrémentale : seul le dossier 102 est relu
     assert "dossier_rh_alice" not in visible(env, "alice")
     assert "dossier_rh_alice" in visible(env, "bruno")
 
@@ -275,3 +287,56 @@ def test_09_garde_fous(env):
         json={"user_id": env["users"]["chloe"][0], "external_principal_id": str(uuid.uuid4())},
     )
     assert r.status_code == 404
+
+
+def test_10_synchronisation_incrementale_reprise_apres_coupure(env, database):
+    """Scénario 16 : coupure de la source au milieu d'une synchronisation, reprise sans perte ni doublon."""
+    from sqlalchemy import create_engine, text
+
+    for i in range(5):
+        env["vault"]["documents"].append(
+            {
+                "id": f"2{i:02d}",
+                "title": f"circulaire_{i}",
+                "filename": f"circulaire_{i}.txt",
+                "class": "Circulaire",
+                "text": f"Circulaire numéro {i} relative aux horaires du guichet.",
+                "acl": [{"group": "7"}],
+            }
+        )
+        log(env, "upsert", f"2{i:02d}")
+    first_new = env["vault"]["journal"][-5]["seq"]
+    env["vault"]["fail_from_seq"] = first_new + 2  # lots de 2 : le premier passe, le deuxième coupe
+    sync(env)
+    admin = create_engine(database["admin_url"])
+    with admin.connect() as c:
+        cursor = c.execute(text("SELECT sync_cursor FROM sources WHERE id = :s"), {"s": env["source"]}).scalar()
+        job = c.execute(
+            text("SELECT status::text, last_error FROM jobs WHERE kind = 'sync_source' ORDER BY id DESC LIMIT 1")
+        ).first()
+    assert cursor == {"seq": first_new + 1}  # le lot terminé est acquis
+    assert job.status == "queued" and "coupure simulée" in job.last_error  # nouvel essai prévu
+    del env["vault"]["fail_from_seq"]
+    env["path"].write_text(json.dumps(env["vault"]), encoding="utf-8")
+    with admin.begin() as c:  # on n'attend pas le délai du nouvel essai
+        c.execute(text("UPDATE jobs SET run_after = now() WHERE kind = 'sync_source' AND status = 'queued'"))
+    env["worker"].run_until_idle()
+    with admin.connect() as c:
+        rows = c.execute(
+            text("SELECT title, status::text FROM documents WHERE source_id = :s AND title LIKE 'circulaire_%'"),
+            {"s": env["source"]},
+        ).all()
+        cursor = c.execute(text("SELECT sync_cursor FROM sources WHERE id = :s"), {"s": env["source"]}).scalar()
+    assert sorted(r.title for r in rows) == [f"circulaire_{i}" for i in range(5)]  # aucun doublon, aucune perte
+    assert {r.status for r in rows} == {"indexed"}
+    assert cursor == {"seq": env["vault"]["journal"][-1]["seq"]}
+    # Suppression journalisée : retirée de l'index à la synchronisation incrémentale suivante.
+    next(d for d in env["vault"]["documents"] if d["id"] == "200")["deleted"] = True
+    log(env, "delete", "200")
+    sync(env)
+    with admin.connect() as c:
+        status = c.execute(
+            text("SELECT status::text FROM documents WHERE source_id = :s AND external_id = '200'"),
+            {"s": env["source"]},
+        ).scalar()
+    assert status == "deleted"
