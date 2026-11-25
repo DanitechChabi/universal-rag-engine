@@ -199,6 +199,11 @@ class BaseConnector:
     def check_access(self, principal: ExternalPrincipalRef, refs: Sequence[DocumentRef]) -> dict[DocumentRef, bool]:
         raise UnsupportedError("revérification des droits non prise en charge")
 
+    def external_link(self, ref: DocumentRef) -> str | None:
+        """Lien d'ouverture dans l'application de la source (ex. client de GED), sinon ``None`` :
+        le fichier est alors servi par l'API."""
+        return None
+
 
 def load_connector_class(kind: str) -> type[BaseConnector]:
     """Registre : les connecteurs sont découverts par points d'entrée ``urag.connectors``."""
