@@ -242,8 +242,9 @@ connecteur M-Files est présenté comme « en développement, non validé ».
 
 1. ~~Tester le cœur contre un **simulateur** qui respecte le contrat~~ : fait en
    phase 3 (§2.5, `tests/integration/test_phase3.py`).
-2. Étude de l'API sur la documentation officielle de la version cible ; ADR du
-   choix d'interface.
+2. Étude de l'API sur la documentation officielle : faite en phase 3 (ADR-0022,
+   **proposée**) ; l'API gRPC est retenue sous réserve de vérifications sur un coffre
+   (licence du paquet, refus explicites, droits effectifs d'un autre utilisateur).
 3. Implémentation réelle, suite de conformité sur le coffre de test.
 4. Tests de droits spécifiques : chaque utilisateur de test pose les mêmes
    questions ; les réponses ne doivent citer que ce qu'il peut ouvrir dans M-Files.
