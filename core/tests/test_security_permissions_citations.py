@@ -209,6 +209,18 @@ def test_citation_qui_ne_justifie_pas_la_phrase_est_corrigee():
     assert gone.citations == [] and "[1]" not in gone.text  # aucun extrait ne le justifie
 
 
+def test_contexte_du_document_justifie_la_citation():
+    """La date figure dans le contexte du document (lu par le modèle), pas dans le passage."""
+    import dataclasses
+
+    p = dataclasses.replace(
+        _passage(1, "L'encours des dépôts s'est établi à 2.793,1 milliards FCFA."),
+        context="Situation de la microfinance à fin décembre 2025",
+    )
+    v = validate("À fin décembre 2025, l'encours des dépôts est de 2.793,1 milliards FCFA [1].", [p])
+    assert "[1]" in v.text and [(c.rank, c.inferred) for c in v.citations] == [(1, False)]
+
+
 def test_adaptateur_gemini_reprise_et_flux():
     import httpx
     from urag_core.ai import GeminiAdapter

@@ -77,6 +77,11 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower().replace("\u202f", " ").replace("\u00a0", " "))
 
 
+def _supporting_text(p: Passage) -> str:
+    """Ce que le modèle a lu pour un extrait : le contexte du document (titre, date) et le passage."""
+    return f"{p.context}\n{p.text}" if p.context else p.text
+
+
 def attribute(answer: str, passages: list[Passage]) -> tuple[str, list[int]]:
     """Attribution vérifiable quand le modèle n'a rien cité.
 
@@ -84,7 +89,7 @@ def attribute(answer: str, passages: list[Passage]) -> tuple[str, list[int]]:
     (montants, dates, numéros) figurent à l'identique dans l'extrait, et si au moins la
     moitié de ses mots significatifs s'y trouvent. Sinon, la phrase reste sans citation.
     """
-    texts = [_norm(p.text) for p in passages]
+    texts = [_norm(_supporting_text(p)) for p in passages]
     tokens = [_number_tokens(t) for t in texts]
     out, used = [], []
     for sentence in _SENTENCE.split(answer):
@@ -121,7 +126,7 @@ def verify_support(answer: str, passages: list[Passage]) -> tuple[str, int, set[
     Sinon la citation est remplacée par l'extrait qui les contient (citation déduite),
     ou retirée si aucun extrait ne les contient. Renvoie (texte, citations corrigées, rangs déduits).
     """
-    tokens = [_number_tokens(_norm(p.text)) for p in passages]
+    tokens = [_number_tokens(_norm(_supporting_text(p))) for p in passages]
     fixed, inferred, out = 0, set(), []
     for sentence in _SENTENCE.split(answer):
         cited = [int(n) for group in _CITE.findall(sentence) for n in re.split(r"\s*[,;]\s*", group)]
