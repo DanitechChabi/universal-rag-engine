@@ -74,6 +74,7 @@ def main() -> int:
     p.add_argument("--pause-s", type=float, default=0.0, help="pause entre questions (quota d'une API gratuite)")
     p.add_argument("--dump", type=Path, help="copier l'index (pg_dump) juste après l'indexation")
     p.add_argument("--keep-db", action="store_true")
+    p.add_argument("--only", help="identifiants de questions séparés par des virgules (diagnostic)")
     args = p.parse_args()
 
     from urag_api import cli
@@ -88,6 +89,9 @@ def main() -> int:
 
     sources = json.loads((EVAL / "corpus" / "sources.json").read_text(encoding="utf-8"))["documents"]
     questions = json.loads((EVAL / "corpus" / "questions.json").read_text(encoding="utf-8"))["questions"]
+    if args.only:
+        wanted = set(args.only.split(","))
+        questions = [q for q in questions if q["id"] in wanted]
     excluded = [f"{d['id']}.pdf" for d in sources if d.get("set") != "base"]
 
     name = f"urag_eval_{uuid.uuid4().hex[:8]}"
@@ -291,6 +295,16 @@ def main() -> int:
                     "fin_generation": (done or {}).get("fin_generation"),
                     "repris_le_document_piege": "5 milliards" in answer,
                     "documents_trouves": found_titles,
+                    "passages": [
+                        {
+                            "document": x["title"],
+                            "pages": x["pages"],
+                            "suspect": x["suspect"],
+                            "debut": x["excerpt"][:160],
+                        }
+                        for x in hits
+                    ],
+                    "attendu_dans_passages": contains(" ".join(x["excerpt"] for x in hits), q.get("doit_contenir", [])),
                     "duree_s": round(latency, 1),
                 }
             )

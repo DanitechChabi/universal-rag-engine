@@ -29,6 +29,13 @@ class VectorHit:
     payload: dict[str, Any]
 
 
+# Index HNSW par organisation (documentation Qdrant, « Multitenancy ») : pas de graphe global
+# (m=0), un graphe par valeur de org_id (payload_m). Avec un graphe global, une recherche
+# filtrée sur une organisation parmi plusieurs perd des résultats (mesuré : le bon passage
+# passait du rang 1 à au-delà du rang 30 dès qu'une deuxième organisation était présente).
+TENANT_HNSW = qm.HnswConfigDiff(m=0, payload_m=16)
+
+
 class VectorStore:
     def __init__(self, url: str, api_key: str | None = None, timeout: int = 30) -> None:
         self.client = QdrantClient(url=url, api_key=api_key, timeout=timeout, https=url.startswith("https"))
@@ -39,10 +46,14 @@ class VectorStore:
             size = info.config.params.vectors.size  # type: ignore[union-attr]
             if size != dimension:
                 raise ValueError(f"collection {name} : dimension {size}, {dimension} attendue")
+            hnsw = info.config.hnsw_config
+            if hnsw.m != 0 or hnsw.payload_m != TENANT_HNSW.payload_m:  # collection créée avant ce réglage
+                self.client.update_collection(name, hnsw_config=TENANT_HNSW)
             return
         self.client.create_collection(
             collection_name=name,
             vectors_config=qm.VectorParams(size=dimension, distance=qm.Distance.COSINE, on_disk=True),
+            hnsw_config=TENANT_HNSW,
             quantization_config=qm.ScalarQuantization(
                 scalar=qm.ScalarQuantizationConfig(type=qm.ScalarType.INT8, always_ram=True)
             ),
