@@ -2,7 +2,8 @@
 
 - Statut : **acceptée** (phase 3, novembre 2026)
 - Complète : ADR-0007 (recherche hybride), ADR-0018 (encodeur ONNX)
-- Références : docs/AI_MODELS.md §1, mesure `docs/reports/eval-phase3-gemini.json`
+- Références : docs/AI_MODELS.md §1, mesures `docs/reports/eval-phase3-gemini.json`,
+  `docs/reports/reclassement-phase7.json`
 
 ## Contexte
 
@@ -19,7 +20,7 @@ candidats) montre deux causes distinctes :
 
 ## Décision
 
-1. **Reclassement** facultatif des 20 premiers candidats par un *cross-encoder* :
+1. **Reclassement** facultatif des 10 premiers candidats (20 à l'origine, voir « Révision ») par un *cross-encoder* :
    BAAI/bge-reranker-v2-m3 (licence Apache-2.0), export ONNX quantifié int8
    (`onnx-community/bge-reranker-v2-m3-ONNX`), exécuté localement avec ONNX Runtime.
    Il s'applique **après** le filtrage des droits et la revérification auprès de la
@@ -43,6 +44,27 @@ candidats) montre deux causes distinctes :
 - Débit du reclassement : 20 passages courts en 0,8 s (CPU 4 cœurs) ; **5,4 s pour 20 passages
   de 300 mots**, taille réelle du corpus (mesure de charge, docs/reports/PHASE7.md).
 - Effet global : voir le compte rendu de la phase 3.
+
+## Révision (phase 7) : 10 candidats au lieu de 20
+
+Les tests de charge ont montré que le reclassement limite la capacité d'un serveur sans GPU
+(≈ 5 s pour 20 passages de taille réelle sur 4 cœurs). Mesure sur l'index réel du serveur
+d'essai (92 documents, 37 questions avec réponse ; `eval/reclassement.py`,
+`docs/reports/reclassement-phase7.json`) : la réponse figure-t-elle dans les 6 passages
+transmis au modèle, et à quel rang ?
+
+| Réglage | Réponse transmise | Réponse en tête | Rang réciproque moyen | Durée médiane |
+|---|---|---|---|---|
+| Sans reclassement | 36/37 | 26 | 0,777 | 0,3 s |
+| 20 candidats, 512 jetons (ancien défaut) | 37/37 | 33 | 0,912 | 6,1 s |
+| **10 candidats, 512 jetons (nouveau défaut)** | **37/37** | **33** | **0,914** | **3,2 s** |
+| 20 candidats, 256 jetons | 35/37 | 29 | 0,838 | 3,2 s |
+| 10 candidats, 256 jetons | 36/37 | 29 | 0,843 | 1,8 s |
+
+Décision : **10 candidats**, passages non coupés (512 jetons). Même qualité, deux fois moins
+de temps. Couper les passages fait perdre des réponses (tableaux, questions sur plusieurs
+documents) : écarté. Le reclassement reste nettement utile (26 → 33 réponses en tête).
+Réglable par `URAG_RERANK_CANDIDATES` ; à remesurer sur un corpus client plus grand.
 
 ## Alternatives écartées
 

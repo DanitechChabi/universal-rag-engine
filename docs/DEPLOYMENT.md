@@ -118,10 +118,10 @@ de l'indexation initiale ; durée d'indexation annoncée au client à partir de 
 mesure réelle.
 
 **Capacité mesurée (phase 7, `docs/reports/PHASE7.md`)** : serveur de 4 cœurs et 16 Go sans GPU,
-corpus de 92 documents : ≈ 9 à 10 recherches ou questions par minute, stable de 5 à 20
-utilisateurs simultanés ; au-delà, les demandes attendent (60 s au plus) puis reçoivent
-« serveur occupé » (503). La limite est le **reclassement sur CPU** (≈ 5 s pour 20 passages
-réels), pas la génération. Réglages :
+corpus de 92 documents : ≈ 20 recherches ou questions par minute, stable de 5 à 20
+utilisateurs simultanés ; ≈ 4,5 s pour un utilisateur seul ; au-delà de la capacité, les
+demandes attendent (60 s au plus) puis reçoivent « serveur occupé » (503). La limite est le
+**reclassement sur CPU** (≈ 3 s pour 10 passages réels), pas la génération. Réglages :
 
 | Paramètre | Défaut | Rôle |
 |---|---|---|
@@ -129,6 +129,7 @@ réels), pas la génération. Réglages :
 | `URAG_ONNX_THREADS` | cœurs / processus de l'API | fils de calcul ONNX par processus |
 | `URAG_SEARCH_CONCURRENCY` | 4 | recherches simultanées par processus ; les suivantes attendent sans connexion à la base |
 | `URAG_SEARCH_QUEUE_TIMEOUT_S` | 60 | attente maximale avant le refus 503 |
+| `URAG_RERANK_CANDIDATES` | 10 | passages reclassés (ADR-0021 : même qualité que 20, deux fois plus rapide) |
 | `max_concurrency` d'un modèle | écran « IA » | générations simultanées **par processus de l'API** |
 
 **Modèle de génération local** (ADR-0024) : télécharger `qwen2.5:14b` (GPU de 12 Go et plus)

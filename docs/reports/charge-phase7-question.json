@@ -1,58 +1,55 @@
 {
  "scenario": "question",
  "duree_par_niveau_s": 60,
- "note": "Après correctifs. Même serveur ; génération par un GPU simulé (premier jeton 0,4 s, 40 jetons/s, 120 jetons, 4 générations simultanées)",
+ "note": "4 cœurs CPU, 16 Go, sans GPU ; reclassement ONNX de 10 candidats ; 92 documents / 12 941 fragments ; 2 processus API (2 fils ONNX chacun) ; 4 recherches simultanées par processus, attente maximale 60 s ; génération par un GPU simulé (premier jeton 0,4 s, 40 jetons/s, 120 jetons, 4 générations simultanées)",
  "niveaux": [
   {
    "utilisateurs": 1,
-   "requetes": 6,
+   "requetes": 8,
    "erreurs": 0,
-   "debit_par_minute": 5.2,
-   "duree_p50_s": 11.786,
-   "duree_p95_s": 12.997,
-   "duree_p99_s": 12.997,
-   "duree_moyenne_s": 11.552,
-   "premier_morceau_p50_s": 8.774,
-   "premier_morceau_p95_s": 9.986
+   "debit_par_minute": 7.8,
+   "duree_p50_s": 7.715,
+   "duree_p95_s": 8.662,
+   "duree_p99_s": 8.662,
+   "duree_moyenne_s": 7.668,
+   "premier_morceau_p50_s": 4.704,
+   "premier_morceau_p95_s": 5.65
   },
   {
    "utilisateurs": 5,
-   "requetes": 12,
+   "requetes": 22,
    "erreurs": 0,
-   "debit_par_minute": 9.4,
-   "duree_p50_s": 34.937,
-   "duree_p95_s": 40.48,
-   "duree_p99_s": 40.48,
-   "duree_moyenne_s": 30.33,
-   "premier_morceau_p50_s": 31.932,
-   "premier_morceau_p95_s": 37.46
+   "debit_par_minute": 18.5,
+   "duree_p50_s": 16.036,
+   "duree_p95_s": 18.84,
+   "duree_p99_s": 18.86,
+   "duree_moyenne_s": 15.096,
+   "premier_morceau_p50_s": 13.029,
+   "premier_morceau_p95_s": 15.824
   },
   {
    "utilisateurs": 10,
-   "requetes": 18,
-   "erreurs": 1,
-   "debit_par_minute": 7.6,
-   "duree_p50_s": 48.413,
-   "duree_p95_s": 88.348,
-   "duree_p99_s": 88.348,
-   "duree_moyenne_s": 54.307,
-   "premier_morceau_p50_s": 45.399,
-   "premier_morceau_p95_s": 85.337,
-   "erreurs_types": [
-    "200"
-   ]
+   "requetes": 26,
+   "erreurs": 0,
+   "debit_par_minute": 20.2,
+   "duree_p50_s": 23.38,
+   "duree_p95_s": 45.084,
+   "duree_p99_s": 45.852,
+   "duree_moyenne_s": 26.314,
+   "premier_morceau_p50_s": 20.36,
+   "premier_morceau_p95_s": 42.062
   },
   {
    "utilisateurs": 20,
-   "requetes": 28,
-   "erreurs": 4,
-   "debit_par_minute": 10.6,
-   "duree_p50_s": 83.772,
-   "duree_p95_s": 88.333,
-   "duree_p99_s": 91.309,
-   "duree_moyenne_s": 68.971,
-   "premier_morceau_p50_s": 80.765,
-   "premier_morceau_p95_s": 85.316,
+   "requetes": 37,
+   "erreurs": 5,
+   "debit_par_minute": 17.1,
+   "duree_p50_s": 45.092,
+   "duree_p95_s": 69.25,
+   "duree_p99_s": 69.91,
+   "duree_moyenne_s": 40.195,
+   "premier_morceau_p50_s": 42.082,
+   "premier_morceau_p95_s": 66.241,
    "erreurs_types": [
     "200"
    ]

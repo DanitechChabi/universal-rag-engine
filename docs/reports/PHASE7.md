@@ -48,20 +48,39 @@ Même serveur, corpus complet, 60 s par niveau. Génération par un **GPU simul�
 0,4 s, 40 jetons/s) pour mesurer le moteur seul ; le GPU réel est mesuré à part
 (`COMPARAISON-MODELES-LOCAUX.md`).
 
-| Utilisateurs | Recherches/min | Durée médiane | Questions/min | 1er morceau médian | Échecs |
-|---|---|---|---|---|---|
-| 1 | 6,7 | 8,7 s | 5,2 | 8,8 s | 0 |
-| 5 | 9,5 | 38 s | 9,4 | 32 s | 0 |
-| 10 | 8,8 | 42 s | 7,6 | 45 s | 1 question « serveur occupé » |
-| 20 | 9,1 | 43 s | 10,6 | 81 s | 36 % des recherches, 14 % des questions : refus 503 propres |
+Deux réglages du reclassement ont été mesurés après correctifs : 20 passages reclassés (réglage
+d'origine, `charge-phase7-*-20-candidats.json`) puis **10 passages** (nouveau défaut, voir
+ci-dessous ; `charge-phase7-recherche.json`, `charge-phase7-question.json`).
 
-**Lecture.** Le débit est **stable** (≈ 9 à 10 par minute) quel que soit le nombre d'utilisateurs,
-sans perte de processus ni de connexion : au-delà de la capacité, les demandes attendent puis
-sont refusées proprement. La limite vient du **reclassement sur CPU** (bge-reranker-v2-m3 sur
-20 passages : 0,9 s pour des passages courts, **5,4 s pour des passages de 300 mots** comme ceux
-du corpus réel) et non de la génération : le GPU simulé n'a jamais eu plus de 4 générations
-simultanées. Avant correctifs, le même essai perdait des processus dès 5 utilisateurs et
-échouait à 100 % à 20 (graphique).
+| Utilisateurs | Recherches/min (20 → **10**) | Durée médiane | Questions/min (20 → **10**) | 1er morceau médian | Échecs avec 10 passages |
+|---|---|---|---|---|---|
+| 1 | 6,7 → **12,5** | 8,7 → **4,4 s** | 5,2 → **7,8** | 8,8 → **4,7 s** | 0 |
+| 5 | 9,5 → **20,4** | 38 → **14 s** | 9,4 → **18,5** | 32 → **13 s** | 0 |
+| 10 | 8,8 → **20,7** | 42 → **19 s** | 7,6 → **20,2** | 45 → **20 s** | 0 |
+| 20 | 9,1 → **19,6** | 43 → **41 s** | 10,6 → **17,1** | 81 → **42 s** | 0 recherche ; 5 questions sur 37 « serveur occupé » |
+
+**Lecture.** Le débit est **stable** quel que soit le nombre d'utilisateurs, sans perte de
+processus ni de connexion : au-delà de la capacité, les demandes attendent puis sont refusées
+proprement. La limite vient du **reclassement sur CPU** (bge-reranker-v2-m3 : 0,9 s pour 20
+passages courts, **5,4 s pour 20 passages de 300 mots** comme ceux du corpus réel) et non de la
+génération : le GPU simulé n'a jamais eu plus de 4 générations simultanées. Avant correctifs,
+le même essai perdait des processus dès 5 utilisateurs et échouait à 100 % à 20 (graphique).
+
+### Qualité du reclassement selon son réglage (`eval/reclassement.py`, `reclassement-phase7.json`)
+
+Sur l'index réel du serveur et les 37 questions avec réponse : la réponse figure-t-elle dans les
+6 passages transmis au modèle, et à quel rang (le modèle de génération n'intervient pas) ?
+
+| Réglage | Réponse transmise | Réponse en tête | Rang réciproque moyen | Durée médiane |
+|---|---|---|---|---|
+| Sans reclassement | 36/37 | 26 | 0,777 | 0,3 s |
+| 20 passages, 512 jetons (ancien défaut) | 37/37 | 33 | 0,912 | 6,1 s |
+| **10 passages, 512 jetons (nouveau défaut)** | **37/37** | **33** | **0,914** | **3,2 s** |
+| 20 passages, 256 jetons | 35/37 | 29 | 0,838 | 3,2 s |
+| 10 passages, 256 jetons | 36/37 | 29 | 0,843 | 1,8 s |
+
+Même qualité avec 10 passages, deux fois moins de temps : nouveau défaut (révision de l'ADR-0021).
+Couper les passages à 256 jetons fait perdre des réponses (Q20, Q35) : écarté.
 
 ## 3. Anomalies trouvées et corrigées pendant la phase
 
@@ -87,12 +106,11 @@ c'est l'apport principal de la phase.
 - **Pas d'essai sur une machine vierge physique ni sur un vrai GPU** : l'installation a été jouée
   dans des conteneurs sur une machine de développement. À faire sur un serveur loué
   (ROADMAP) : installation, débit de génération réel, tests de charge avec le modèle retenu.
-- **Capacité sur CPU seul : ≈ 10 recherches ou questions par minute sur 4 cœurs**, limitée par le
-  reclassement. Pistes (décision à prendre, §6) : reclasser 10 passages au lieu de 20 ou couper à
-  256 jetons (≈ 3 à 5 fois plus rapide, qualité à remesurer) ; reclassement sur GPU (ONNX Runtime
-  CUDA) ; plus de cœurs.
-- Durée d'attente de 8 à 9 s pour un utilisateur seul sur ce serveur (reclassement sur 2 fils par
-  processus) : acceptable pour un essai, pas pour un usage quotidien sans GPU.
+- **Capacité sur CPU seul : ≈ 20 recherches ou questions par minute sur 4 cœurs**, limitée par le
+  reclassement ; un utilisateur seul attend ≈ 4,5 s avant le début de la réponse. Pistes au-delà :
+  reclassement sur GPU (ONNX Runtime CUDA), plus de cœurs.
+- Qualité du reclassement mesurée sur 37 questions d'un corpus public : à remesurer sur un corpus
+  client plus grand avant de figer le réglage.
 - La limite de générations simultanées s'entend par processus de l'API (ADR-0025).
 - Relais HTTPS ↔ API et API ↔ base non chiffrés sur le réseau interne de Docker : l'hôte fait
   partie du périmètre de confiance.
@@ -104,10 +122,11 @@ c'est l'apport principal de la phase.
 - Processus de l'API = (mémoire visible en Go − 9) / 3, entre 1 et 4 ; fils ONNX = cœurs / processus.
 - 4 recherches simultanées par processus, attente maximale 60 s, puis 503 : en surcharge, le
   service ralentit puis refuse, il ne tombe pas.
+- Reclassement de **10 candidats au lieu de 20** (révision de l'ADR-0021) : même qualité mesurée,
+  capacité doublée.
 
 ## 6. Prochaines tâches
 
-1. **Décision** : réglage du reclassement sur CPU (10 passages, 256 jetons) après mesure de la
-   qualité sur les 40 questions d'évaluation ; ou reclassement sur GPU.
+1. Reclassement sur GPU quand un GPU est présent (ONNX Runtime CUDA), à mesurer sur le serveur loué.
 2. Serveur GPU loué : installation de zéro, modèle `qwen2.5:14b`, tests de charge réels.
 3. Phase 6 (Desktop), selon la feuille de route.

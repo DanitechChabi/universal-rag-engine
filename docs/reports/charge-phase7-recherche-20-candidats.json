@@ -1,0 +1,50 @@
+{
+ "scenario": "recherche",
+ "duree_par_niveau_s": 60,
+ "note": "Après correctifs, 20 candidats reclassés (ancien réglage). 4 cœurs CPU, 16 Go, sans GPU ; 92 documents / 12 941 fragments ; 2 processus API (2 fils ONNX chacun) ; 4 recherches simultanées par processus, attente maximale 60 s",
+ "niveaux": [
+  {
+   "utilisateurs": 1,
+   "requetes": 7,
+   "erreurs": 0,
+   "debit_par_minute": 6.7,
+   "duree_p50_s": 8.651,
+   "duree_p95_s": 12.167,
+   "duree_p99_s": 12.167,
+   "duree_moyenne_s": 8.887
+  },
+  {
+   "utilisateurs": 5,
+   "requetes": 14,
+   "erreurs": 0,
+   "debit_par_minute": 9.5,
+   "duree_p50_s": 37.921,
+   "duree_p95_s": 46.563,
+   "duree_p99_s": 46.563,
+   "duree_moyenne_s": 29.035
+  },
+  {
+   "utilisateurs": 10,
+   "requetes": 19,
+   "erreurs": 0,
+   "debit_par_minute": 8.8,
+   "duree_p50_s": 41.867,
+   "duree_p95_s": 86.561,
+   "duree_p99_s": 86.561,
+   "duree_moyenne_s": 51.048
+  },
+  {
+   "utilisateurs": 20,
+   "requetes": 28,
+   "erreurs": 10,
+   "debit_par_minute": 9.1,
+   "duree_p50_s": 43.439,
+   "duree_p95_s": 76.092,
+   "duree_p99_s": 76.092,
+   "duree_moyenne_s": 49.482,
+   "erreurs_types": [
+    "503"
+   ]
+  }
+ ]
+}

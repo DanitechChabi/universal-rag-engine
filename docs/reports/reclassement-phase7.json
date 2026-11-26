@@ -1,0 +1,1361 @@
+{
+ "questions": 37,
+ "passages_transmis": 6,
+ "variantes": [
+  {
+   "variante": "sans reclassement",
+   "reponse_dans_les_passages": 36,
+   "taux": 97.3,
+   "document_attendu_transmis": 36,
+   "rang_reciproque_moyen": 0.777,
+   "reponse_en_tete": 26,
+   "duree_recherche_mediane_s": 0.27,
+   "duree_recherche_p95_s": 0.46,
+   "questions": [
+    {
+     "id": "Q01",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q02",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q03",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q04",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q05",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q06",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q07",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": false,
+     "rang": 8,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q08",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q09",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q10",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q11",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q12",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q13",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q14",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q15",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q16",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q17",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q18",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q19",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q20",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q21",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q22",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q23",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q24",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q25",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 3,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q26",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 5,
+     "document_attendu_transmis": false
+    },
+    {
+     "id": "Q27",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q28",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 3,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q29",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q30",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q31",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q32",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q33",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q34",
+     "categorie": "anglais_vers_francais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q35",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q36",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q37",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    }
+   ]
+  },
+  {
+   "variante": "20 passages, 512 jetons (actuel)",
+   "reponse_dans_les_passages": 37,
+   "taux": 100.0,
+   "document_attendu_transmis": 36,
+   "rang_reciproque_moyen": 0.912,
+   "reponse_en_tete": 33,
+   "duree_recherche_mediane_s": 6.14,
+   "duree_recherche_p95_s": 7.78,
+   "questions": [
+    {
+     "id": "Q01",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q02",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q03",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q04",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q05",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q06",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q07",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q08",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q09",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q10",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q11",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q12",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q13",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q14",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q15",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q16",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q17",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q18",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q19",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q20",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q21",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q22",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q23",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q24",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q25",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q26",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": false
+    },
+    {
+     "id": "Q27",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q28",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q29",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q30",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q31",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q32",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q33",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q34",
+     "categorie": "anglais_vers_francais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q35",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q36",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q37",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    }
+   ]
+  },
+  {
+   "variante": "10 passages, 512 jetons",
+   "reponse_dans_les_passages": 37,
+   "taux": 100.0,
+   "document_attendu_transmis": 36,
+   "rang_reciproque_moyen": 0.914,
+   "reponse_en_tete": 33,
+   "duree_recherche_mediane_s": 3.19,
+   "duree_recherche_p95_s": 4.02,
+   "questions": [
+    {
+     "id": "Q01",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q02",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q03",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q04",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q05",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q06",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q07",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q08",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q09",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q10",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q11",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q12",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q13",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q14",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q15",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q16",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q17",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q18",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q19",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q20",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q21",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q22",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q23",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q24",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q25",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q26",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": false
+    },
+    {
+     "id": "Q27",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q28",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q29",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q30",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q31",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q32",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q33",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q34",
+     "categorie": "anglais_vers_francais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q35",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q36",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q37",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": 3,
+     "document_attendu_transmis": true
+    }
+   ]
+  },
+  {
+   "variante": "20 passages, 256 jetons",
+   "reponse_dans_les_passages": 35,
+   "taux": 94.6,
+   "document_attendu_transmis": 36,
+   "rang_reciproque_moyen": 0.838,
+   "reponse_en_tete": 29,
+   "duree_recherche_mediane_s": 3.16,
+   "duree_recherche_p95_s": 3.37,
+   "questions": [
+    {
+     "id": "Q01",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q02",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q03",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 5,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q04",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q05",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q06",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q07",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q08",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q09",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q10",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q11",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q12",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q13",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q14",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q15",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q16",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q17",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q18",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q19",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q20",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": false,
+     "rang": 7,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q21",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q22",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q23",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q24",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q25",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q26",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": false
+    },
+    {
+     "id": "Q27",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q28",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q29",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q30",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q31",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q32",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q33",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q34",
+     "categorie": "anglais_vers_francais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q35",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": false,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q36",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q37",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": 6,
+     "document_attendu_transmis": true
+    }
+   ]
+  },
+  {
+   "variante": "10 passages, 256 jetons",
+   "reponse_dans_les_passages": 36,
+   "taux": 97.3,
+   "document_attendu_transmis": 36,
+   "rang_reciproque_moyen": 0.843,
+   "reponse_en_tete": 29,
+   "duree_recherche_mediane_s": 1.76,
+   "duree_recherche_p95_s": 2.04,
+   "questions": [
+    {
+     "id": "Q01",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q02",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q03",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q04",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q05",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q06",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q07",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q08",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q09",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q10",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q11",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q12",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q13",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q14",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q15",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q16",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q17",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q18",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q19",
+     "categorie": "tableau",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q20",
+     "categorie": "factuel_natif",
+     "reponse_dans_les_passages": true,
+     "rang": 5,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q21",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q22",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q23",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q24",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q25",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 2,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q26",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": false
+    },
+    {
+     "id": "Q27",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q28",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q29",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q30",
+     "categorie": "factuel_scan",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q31",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q32",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q33",
+     "categorie": "anglais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q34",
+     "categorie": "anglais_vers_francais",
+     "reponse_dans_les_passages": true,
+     "rang": 1,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q35",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": false,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q36",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": null,
+     "document_attendu_transmis": true
+    },
+    {
+     "id": "Q37",
+     "categorie": "multi_documents",
+     "reponse_dans_les_passages": true,
+     "rang": 4,
+     "document_attendu_transmis": true
+    }
+   ]
+  }
+ ]
+}

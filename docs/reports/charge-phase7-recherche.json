@@ -1,50 +1,47 @@
 {
  "scenario": "recherche",
  "duree_par_niveau_s": 60,
- "note": "Après correctifs. 4 cœurs CPU, 16 Go, sans GPU ; reclassement ONNX de 20 candidats ; 92 documents / 12 941 fragments ; 2 processus API (2 fils ONNX chacun) ; 4 recherches simultanées par processus, attente maximale 60 s",
+ "note": "4 cœurs CPU, 16 Go, sans GPU ; reclassement ONNX de 10 candidats ; 92 documents / 12 941 fragments ; 2 processus API (2 fils ONNX chacun) ; 4 recherches simultanées par processus, attente maximale 60 s",
  "niveaux": [
   {
    "utilisateurs": 1,
-   "requetes": 7,
+   "requetes": 13,
    "erreurs": 0,
-   "debit_par_minute": 6.7,
-   "duree_p50_s": 8.651,
-   "duree_p95_s": 12.167,
-   "duree_p99_s": 12.167,
-   "duree_moyenne_s": 8.887
+   "debit_par_minute": 12.5,
+   "duree_p50_s": 4.371,
+   "duree_p95_s": 9.022,
+   "duree_p99_s": 9.022,
+   "duree_moyenne_s": 4.791
   },
   {
    "utilisateurs": 5,
-   "requetes": 14,
+   "requetes": 23,
    "erreurs": 0,
-   "debit_par_minute": 9.5,
-   "duree_p50_s": 37.921,
-   "duree_p95_s": 46.563,
-   "duree_p99_s": 46.563,
-   "duree_moyenne_s": 29.035
+   "debit_par_minute": 20.4,
+   "duree_p50_s": 14.377,
+   "duree_p95_s": 23.675,
+   "duree_p99_s": 29.184,
+   "duree_moyenne_s": 14.231
   },
   {
    "utilisateurs": 10,
-   "requetes": 19,
+   "requetes": 27,
    "erreurs": 0,
-   "debit_par_minute": 8.8,
-   "duree_p50_s": 41.867,
-   "duree_p95_s": 86.561,
-   "duree_p99_s": 86.561,
-   "duree_moyenne_s": 51.048
+   "debit_par_minute": 20.7,
+   "duree_p50_s": 19.302,
+   "duree_p95_s": 41.177,
+   "duree_p99_s": 41.558,
+   "duree_moyenne_s": 24.813
   },
   {
    "utilisateurs": 20,
-   "requetes": 28,
-   "erreurs": 10,
-   "debit_par_minute": 9.1,
-   "duree_p50_s": 43.439,
-   "duree_p95_s": 76.092,
-   "duree_p99_s": 76.092,
-   "duree_moyenne_s": 49.482,
-   "erreurs_types": [
-    "503"
-   ]
+   "requetes": 40,
+   "erreurs": 0,
+   "debit_par_minute": 19.6,
+   "duree_p50_s": 41.093,
+   "duree_p95_s": 74.795,
+   "duree_p99_s": 75.294,
+   "duree_moyenne_s": 43.907
   }
  ]
 }

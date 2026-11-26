@@ -92,7 +92,7 @@ class Retriever:
         collection: str,
         late_check: bool = True,
         reranker=None,
-        rerank_candidates: int = 20,
+        rerank_candidates: int = 10,
         concurrency: int = 4,
         queue_timeout: float = 60.0,
     ) -> None:

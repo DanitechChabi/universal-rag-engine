@@ -1,0 +1,61 @@
+{
+ "scenario": "question",
+ "duree_par_niveau_s": 60,
+ "note": "Après correctifs, 20 candidats reclassés (ancien réglage). 4 cœurs CPU, 16 Go, sans GPU ; 92 documents / 12 941 fragments ; 2 processus API (2 fils ONNX chacun) ; 4 recherches simultanées par processus, attente maximale 60 s ; génération par un GPU simulé (premier jeton 0,4 s, 40 jetons/s, 120 jetons, 4 générations simultanées)",
+ "niveaux": [
+  {
+   "utilisateurs": 1,
+   "requetes": 6,
+   "erreurs": 0,
+   "debit_par_minute": 5.2,
+   "duree_p50_s": 11.786,
+   "duree_p95_s": 12.997,
+   "duree_p99_s": 12.997,
+   "duree_moyenne_s": 11.552,
+   "premier_morceau_p50_s": 8.774,
+   "premier_morceau_p95_s": 9.986
+  },
+  {
+   "utilisateurs": 5,
+   "requetes": 12,
+   "erreurs": 0,
+   "debit_par_minute": 9.4,
+   "duree_p50_s": 34.937,
+   "duree_p95_s": 40.48,
+   "duree_p99_s": 40.48,
+   "duree_moyenne_s": 30.33,
+   "premier_morceau_p50_s": 31.932,
+   "premier_morceau_p95_s": 37.46
+  },
+  {
+   "utilisateurs": 10,
+   "requetes": 18,
+   "erreurs": 1,
+   "debit_par_minute": 7.6,
+   "duree_p50_s": 48.413,
+   "duree_p95_s": 88.348,
+   "duree_p99_s": 88.348,
+   "duree_moyenne_s": 54.307,
+   "premier_morceau_p50_s": 45.399,
+   "premier_morceau_p95_s": 85.337,
+   "erreurs_types": [
+    "200"
+   ]
+  },
+  {
+   "utilisateurs": 20,
+   "requetes": 28,
+   "erreurs": 4,
+   "debit_par_minute": 10.6,
+   "duree_p50_s": 83.772,
+   "duree_p95_s": 88.333,
+   "duree_p99_s": 91.309,
+   "duree_moyenne_s": 68.971,
+   "premier_morceau_p50_s": 80.765,
+   "premier_morceau_p95_s": 85.316,
+   "erreurs_types": [
+    "200"
+   ]
+  }
+ ]
+}
