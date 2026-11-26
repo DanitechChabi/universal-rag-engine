@@ -296,3 +296,18 @@ def test_detection_des_questions_de_suite():
     assert looks_like_follow_up("Combien coûte-t-il par trimestre ?")
     assert looks_like_follow_up("What about its term?")
     assert not looks_like_follow_up("Quel est le capital social minimum des banques dans l'UMOA depuis 2024 ?")
+
+
+def test_limite_de_generations_conservee_quand_le_routeur_est_reconstruit():
+    """Un routeur reconstruit (toutes les 30 s) ne doit pas rouvrir des places déjà occupées."""
+    spec = ModelSpec("limite-1", "m", "a", "local", max_concurrency=1)
+    first = ModelRouter({"a": _Adapter()}, [spec])
+    result, stream = first.chat(Policy(), {DataKind.DOCUMENTS}, [ChatMessage("user", "q")])
+    next(stream)  # génération en cours : la place unique est prise
+    rebuilt = ModelRouter({"a": _Adapter()}, [spec])
+    _, other = rebuilt.chat(Policy(), {DataKind.DOCUMENTS}, [ChatMessage("user", "q")], queue_timeout_s=0.05)
+    with pytest.raises(ProviderError, match="file d'attente pleine"):
+        list(other)
+    list(stream)  # fin de la première génération : la place est rendue
+    _, again = rebuilt.chat(Policy(), {DataKind.DOCUMENTS}, [ChatMessage("user", "q")], queue_timeout_s=0.05)
+    assert list(again) == ["réponse de m"]

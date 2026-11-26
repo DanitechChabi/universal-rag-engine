@@ -1,7 +1,7 @@
 # Déploiement — Universal RAG Engine
 
-Statut : **conception de phase 0**. Rien n'est encore empaqueté. Ordre de
-réalisation : Server (phase 7) avant Desktop (phase 6), voir ADR-0013.
+Statut : **mode Server livré en phase 7** (`infrastructure/`, ADR-0025, `docs/reports/PHASE7.md`) ;
+mode Desktop à venir (phase 6). Ordre de réalisation : Server avant Desktop, voir ADR-0013.
 
 ---
 
@@ -25,7 +25,7 @@ Configuration par variables d'environnement (fichier `.env`, modèle dans
 
 | Service | Image | Exposé | Rôle |
 |---|---|---|---|
-| `caddy` | Caddy | **443** (réseau local) | HTTPS, sert le frontend, relaie `/api` |
+| `caddy` | Caddy 2.10 (`urag-web`) | **443** (réseau local) | HTTPS, sert le frontend, relaie `/api` seulement |
 | `api` | `urag-api` | interne | FastAPI (uvicorn, plusieurs processus) |
 | `worker` | `urag-worker` | interne | tâches : synchronisation, ingestion, OCR, embeddings, sauvegarde |
 | `postgres` | PostgreSQL 16 | interne | données métier, fragments, file de tâches, audit |
@@ -50,16 +50,44 @@ worker se replie sur RapidOCR, entièrement en Python.
 | `tmp` | fichiers temporaires d'extraction | non, purgé |
 | `/etc/urag/master.key` | clé maîtresse des secrets | **à part**, hors des sauvegardes de la base |
 
-### 2.3 Installation (cible)
+### 2.3 Installation et mise à jour
 
-1. Ubuntu Server LTS, Docker, pilote NVIDIA + NVIDIA Container Toolkit si GPU.
-2. Script `infrastructure/scripts/install-server.sh` : vérification du matériel,
-   génération de la clé maîtresse et des mots de passe, création du `.env`,
-   démarrage, création du super administrateur, test de santé.
-3. **Installation hors ligne** : archive contenant les images Docker et les
-   modèles, pour les sites sans Internet.
-4. Mise à jour : nouvelles images + migrations Alembic automatiques au démarrage
-   de l'`api` (sauvegarde préalable obligatoire, retour arrière documenté).
+Prérequis : Linux 64 bits (Ubuntu Server LTS conseillé), Docker et Docker Compose v2, 16 Go de
+mémoire et 40 Go libres au moins ; pilote NVIDIA et NVIDIA Container Toolkit si GPU.
+
+```bash
+# 1. Images (construites, ou chargées depuis une archive pour un site hors ligne)
+docker build -f infrastructure/docker/app.Dockerfile -t urag-app:latest .
+docker build -f infrastructure/docker/web.Dockerfile -t urag-web:latest .
+# 2. Installation (secrets, modèles vérifiés, base, migrations, organisation, HTTPS)
+sudo infrastructure/scripts/install-server.sh --site rag.cabinet.local \
+     --org-name "Cabinet Exemple" --org-slug cabinet --documents-dir /srv/documents
+# 3. Contrôle de bout en bout (connexion, source, indexation, recherche)
+python infrastructure/scripts/verify-install.py --url https://rag.cabinet.local \
+     --login admin --password-file /var/lib/urag/premier-administrateur.txt
+```
+
+| Script (`infrastructure/scripts/`) | Rôle |
+|---|---|
+| `install-server.sh` | vérifications, secrets, `.env` (600), modèles, base, migrations, premier administrateur, démarrage, sauvegarde nocturne, test HTTPS ; relançable sans perte |
+| `fetch-models.sh` | modèles ONNX à révision figée, empreintes SHA-256 ; `--from` pour un site hors ligne |
+| `upgrade.sh` | sauvegarde vérifiée **obligatoire**, images (`--images archive.tar`), migrations, redémarrage, test de santé |
+| `backup.sh`, `restore.sh`, `master-key.sh` | voir §4 |
+| `verify-install.py` | essai de bout en bout par HTTPS |
+
+- **Migrations explicites** (`install-server.sh`, `upgrade.sh`), jamais au démarrage de l'API :
+  elles suivent toujours une sauvegarde vérifiée (ADR-0025).
+- **Certificat** : par défaut, autorité interne du serveur ; installer
+  `<données>/caddy/caddy/pki/authorities/local/root.crt` sur les postes (stratégie de groupe).
+  Certificat de l'entreprise : `--tls-cert` et `--tls-key`.
+- **Dossiers de documents** : montés en lecture seule dans `/documents` ; ils doivent être
+  lisibles par l'uid 10001 (`setfacl -R -m u:10001:rX /srv/documents`). Une source « fichiers
+  locaux » se déclare sur `/documents/<sous-dossier>`.
+- **Proxy d'entreprise** : `docker build --secret id=extra_ca,src=<autorité du proxy>` (le
+  certificat ne reste pas dans l'image) ; images de base surchargeables (`--build-arg
+  PYTHON_IMAGE=…`, `NODE_IMAGE`, `CADDY_IMAGE`) pour passer par un miroir.
+- **Hors ligne** : `docker save` des images, `fetch-models.sh --from`, et `ollama pull` fait
+  ailleurs puis copie du dossier `<données>/ollama`.
 
 ### 2.4 Dimensionnement
 
@@ -134,24 +162,39 @@ Application Tauri (fenêtre, interface React)
 | Élément | Méthode |
 |---|---|
 | PostgreSQL | `pg_dump` format personnalisé, compressé, empreinte SHA-256 |
-| Qdrant | instantanés de collection (ou reconstruction depuis PostgreSQL) |
-| Configuration | `.env` sans secrets + fichiers de configuration |
-| Clé maîtresse | exportée séparément, chiffrée par une phrase de passe administrateur |
-| Licences | incluses dans PostgreSQL |
+| Qdrant | instantané de chaque collection (restauration en secondes ; reconstruction depuis PostgreSQL en dernier recours) |
+| Configuration | `.env` **sans** ses lignes secrètes, `urag.env` |
+| Clé maîtresse | **jamais** dans la sauvegarde : `master-key.sh export` (chiffrée par phrase de passe, PBKDF2 600 000 itérations), à conserver sur un autre support |
+| Manifeste | date, révision du schéma, empreinte (tronquée) de la clé maîtresse, collections, `verified` |
 
-- Sauvegarde manuelle (`/admin/backup`) et planifiée (tâche quotidienne par défaut,
-  RPO 24 h) vers un emplacement distinct (partage réseau, disque externe).
-- **Vérification** : chaque sauvegarde est restaurée automatiquement dans une base
-  temporaire et contrôlée (tables, nombre de lignes, empreinte) ; statut `verified`.
-- Restauration en deux étapes (préparation puis confirmation), journalisée.
-- Procédure testée avant toute mise en production (RTO cible 8 h).
+```bash
+sudo infrastructure/scripts/backup.sh [--dest /mnt/partage/urag] [--keep 14]
+sudo infrastructure/scripts/master-key.sh export /media/cle-usb/urag-master.key.enc
+sudo infrastructure/scripts/restore.sh prepare /var/lib/urag/backups/urag-20261126T021700Z
+sudo infrastructure/scripts/restore.sh confirm /var/lib/urag/backups/urag-20261126T021700Z
+```
+
+- **Planifiée** chaque nuit à 2 h 17 par l'installation (`/etc/cron.d/urag-backup`, RPO 24 h) ;
+  copier aussi les sauvegardes hors du serveur (`--dest` vers un partage ou un disque externe).
+- **Vérification** : chaque sauvegarde est restaurée dans une base temporaire ; les nombres de
+  lignes de 11 tables sont comparés ; elle n'est marquée `verified` (table `backups`) qu'ensuite.
+- **Restauration en deux étapes** : `prepare` contrôle les empreintes et la clé maîtresse et
+  affiche un résumé sans rien modifier ; `confirm`, dans l'heure, arrête les services, remplace
+  base et index, applique les migrations et journalise `backup.restored`.
+- **Serveur perdu** : nouvelle installation, `master-key.sh import`, puis `restore.sh`.
+  Procédure **essayée** en phase 7 : serveur détruit, réinstallé et restauré en 20 s (petit corpus).
 
 ---
 
 ## 5. Supervision
 
-- Logs JSON structurés (sans contenu documentaire ni secret), rotation.
-- Métriques Prometheus (`/metrics` interne) : requêtes, latences, erreurs, tâches,
-  documents, consommation API, CPU, mémoire, disque, GPU/VRAM (exportateur NVIDIA).
-- Tableau de bord technique dans l'interface d'administration ; Grafana facultatif
-  pour les clients qui en ont un.
+- **Santé** : `GET /api/v1/admin/health` (PostgreSQL, Qdrant) ; sondes Docker de l'API et du
+  worker (fichier daté à chaque tour ; une tâche peut durer jusqu'à 15 min).
+- **Journaux JSON** (API, worker, Caddy), sans contenu documentaire, question ni secret ; requêtes
+  journalisées par modèle de route, sans paramètres ; rotation (5 × 20 Mo par service).
+- **Métriques Prometheus** sur `http://api:8000/metrics`, **réseau interne seulement** (jamais
+  relayé par Caddy) : requêtes et durées par route, et agrégats lus en base par `urag_metrics()`
+  (documents par état, fragments, tâches, plus ancienne tâche en attente, jetons sur 24 h par
+  localisation, échecs de connexion sur une heure).
+- CPU, mémoire, disque et GPU : exportateurs standards du client (node_exporter, exportateur
+  NVIDIA DCGM) ; Grafana facultatif.
