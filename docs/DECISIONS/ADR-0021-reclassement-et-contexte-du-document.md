@@ -40,7 +40,8 @@ candidats) montre deux causes distinctes :
 
 - Rang du bon passage avec reclassement (même index) : Q06 8 → **1**, Q20 11 → **3** ;
   les questions déjà au rang 1 le restent (Q01, Q24, Q31).
-- Débit du reclassement : 20 passages courts en 0,8 s (CPU 4 cœurs).
+- Débit du reclassement : 20 passages courts en 0,8 s (CPU 4 cœurs) ; **5,4 s pour 20 passages
+  de 300 mots**, taille réelle du corpus (mesure de charge, docs/reports/PHASE7.md).
 - Effet global : voir le compte rendu de la phase 3.
 
 ## Alternatives écartées

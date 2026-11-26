@@ -117,6 +117,20 @@ par priorité (documents récents d'abord) pour rendre le logiciel utile avant l
 de l'indexation initiale ; durée d'indexation annoncée au client à partir de la
 mesure réelle.
 
+**Capacité mesurée (phase 7, `docs/reports/PHASE7.md`)** : serveur de 4 cœurs et 16 Go sans GPU,
+corpus de 92 documents : ≈ 9 à 10 recherches ou questions par minute, stable de 5 à 20
+utilisateurs simultanés ; au-delà, les demandes attendent (60 s au plus) puis reçoivent
+« serveur occupé » (503). La limite est le **reclassement sur CPU** (≈ 5 s pour 20 passages
+réels), pas la génération. Réglages :
+
+| Paramètre | Défaut | Rôle |
+|---|---|---|
+| `URAG_API_WORKERS` | (mémoire visible en Go − 9) / 3, entre 1 et 4 | processus de l'API ; chacun charge l'encodeur et le reclassement (≈ 2,5 Go) |
+| `URAG_ONNX_THREADS` | cœurs / processus de l'API | fils de calcul ONNX par processus |
+| `URAG_SEARCH_CONCURRENCY` | 4 | recherches simultanées par processus ; les suivantes attendent sans connexion à la base |
+| `URAG_SEARCH_QUEUE_TIMEOUT_S` | 60 | attente maximale avant le refus 503 |
+| `max_concurrency` d'un modèle | écran « IA » | générations simultanées **par processus de l'API** |
+
 **Modèle de génération local** (ADR-0024) : télécharger `qwen2.5:14b` (GPU de 12 Go et plus)
 ou `qwen2.5:7b` (8 Go) dans Ollama, puis le déclarer et le tester dans l'écran « IA » de
 l'administration (`ollama pull qwen2.5:14b`). Mesuré sur un Tesla T4 : 7 à 9 s par réponse.

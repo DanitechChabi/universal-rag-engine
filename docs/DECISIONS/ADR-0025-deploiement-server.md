@@ -60,5 +60,8 @@ accès à Internet, administré par un prestataire informatique et non par un sp
 - Les dossiers de documents sont montés en lecture seule et doivent être lisibles par l'uid 10001.
 - La limite de générations simultanées (`max_concurrency`) s'entend **par processus de l'API** ;
   au-delà, Ollama ou vLLM mettent eux-mêmes en file. Le total est donc `processus × limite`.
+- Chaque processus de l'API charge ses propres modèles d'encodage et de reclassement
+  (≈ 2,5 Go) : leur nombre est fixé selon la mémoire à l'installation, et les recherches sont
+  admises dans une file bornée (refus 503 au-delà), mesures à l'appui (docs/reports/PHASE7.md).
 - Le relais HTTPS et la base n'étant pas chiffrés entre eux sur le réseau interne de Docker, le
   serveur hôte fait partie du périmètre de confiance (comme pour tout service local).
