@@ -35,10 +35,24 @@ def main() -> int:
     password = next((x.split(":", 1)[1].strip() for x in lines if "mot de passe" in x), lines[0].strip())
 
     c = httpx.Client(base_url=f"{args.url.rstrip('/')}/api/v1", verify=not args.insecure, timeout=60, trust_env=False)
-    r = c.post("/auth/login", json={"login": args.login, "password": password})
-    r.raise_for_status()
-    h = {"x-csrf-token": r.json()["csrf_token"]}
-    me = c.get("/auth/me").json()
+    h: dict[str, str] = {}
+
+    def login() -> None:
+        r = c.post("/auth/login", json={"login": args.login, "password": password})
+        r.raise_for_status()
+        h["x-csrf-token"] = r.json()["csrf_token"]
+
+    def get(path: str, **kw) -> dict:
+        """Lecture qui se reconnecte si la session a expiré (jeton d'accès de 15 min)."""
+        r = c.get(path, **kw)
+        if r.status_code == 401:
+            login()
+            r = c.get(path, **kw)
+        r.raise_for_status()
+        return r.json()
+
+    login()
+    me = get("/auth/me")
     print(f"connecté : {me.get('display_name') or args.login}")
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -66,16 +80,17 @@ def main() -> int:
     start = time.monotonic()
     while time.monotonic() - start < args.timeout:
         time.sleep(5)
-        detail = c.get(f"/sources/{source_id}").json()
-        busy = [j for j in c.get("/admin/jobs").json()["items"] if j["status"] in ("queued", "running")]
+        detail = get(f"/sources/{source_id}")
+        busy = [j for j in get("/admin/jobs")["items"] if j["status"] in ("queued", "running")]
         if detail.get("last_sync_at") and not busy:
             break
-    docs = c.get("/documents", params={"source_id": source_id}).json()
+    docs = get("/documents", params={"source_id": source_id})
     statuses: dict[str, int] = {}
     for d in docs.get("items", []):
         statuses[d.get("status", "?")] = statuses.get(d.get("status", "?"), 0) + 1
     print(f"indexation terminée en {time.monotonic() - start:.0f} s : {statuses}")
 
+    login()
     res = c.post("/search", headers=h, json={"query": args.question})
     res.raise_for_status()
     items = res.json()["items"]
