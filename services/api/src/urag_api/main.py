@@ -77,8 +77,23 @@ def create_app(state: AppState) -> FastAPI:
     return app
 
 
+def app_from_settings() -> FastAPI:
+    """Fabrique utilisée par uvicorn : chaque processus construit son propre état."""
+    return create_app(AppState.from_settings(get_settings()))
+
+
 def run() -> None:
     import uvicorn
 
     settings = get_settings()
-    uvicorn.run(create_app(AppState.from_settings(settings)), host="127.0.0.1", port=8000)
+    uvicorn.run(
+        "urag_api.main:app_from_settings",
+        factory=True,
+        host=settings.api_host,
+        port=settings.api_port,
+        workers=settings.api_workers,
+        # Derrière le relais HTTPS (Caddy), seul à joindre l'API sur le réseau interne.
+        proxy_headers=True,
+        forwarded_allow_ips=settings.forwarded_allow_ips,
+        access_log=False,  # journal des requêtes sans chemin ni paramètres : voir la supervision
+    )

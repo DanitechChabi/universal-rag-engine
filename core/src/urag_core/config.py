@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     context_passages: int = 6
 
     cookie_secure: bool = True
+    api_host: str = "127.0.0.1"  # 0.0.0.0 dans le conteneur (réseau interne seulement)
+    api_port: int = 8000
+    api_workers: int = 1
+    forwarded_allow_ips: str = "127.0.0.1"  # adresse du relais HTTPS autorisé à transmettre l'IP cliente
     login_max_failures: int = 5
 
     extra_ollama_options: dict[str, float] = Field(default_factory=dict)

@@ -1,0 +1,112 @@
+# Universal RAG Engine — mode Server (docs/DEPLOYMENT.md §2, ADR-0025).
+# .env : secrets et chemins, générés par scripts/install-server.sh (droits 600, jamais dans Git) ;
+#        lu par Compose pour les substitutions seulement, jamais transmis tel quel aux conteneurs.
+# urag.env : réglages non secrets de l'application (modèle, Tika, durée des sessions…).
+# Seul le port HTTPS est publié. PostgreSQL, Qdrant et Tika sont sur un réseau sans accès à Internet ;
+# l'API, le worker et Ollama ont une sortie (fournisseurs d'IA externes si la politique les autorise,
+# téléchargement des modèles).
+name: urag
+
+x-app-env: &app-env
+  URAG_ENV: production
+  URAG_DATABASE_URL: postgresql+psycopg://urag_app:${URAG_APP_DB_PASSWORD}@postgres:5432/urag
+  URAG_QDRANT_URL: http://qdrant:6333
+  URAG_QDRANT_API_KEY: ${URAG_QDRANT_API_KEY}
+  URAG_OLLAMA_URL: http://ollama:11434
+  URAG_MASTER_KEY_FILE: /run/urag/master.key
+  URAG_EMBEDDING_BACKEND: onnx
+  URAG_EMBEDDING_MODEL_DIR: /models/bge-m3-onnx
+  URAG_RERANK_BACKEND: onnx
+  URAG_RERANK_MODEL_DIR: /models/bge-reranker-v2-m3-onnx
+
+x-app: &app
+  image: ${URAG_APP_IMAGE:-urag-app:latest}
+  restart: unless-stopped
+  env_file: urag.env
+  environment: *app-env
+  volumes:
+    - ${URAG_DATA_DIR}/master.key:/run/urag/master.key:ro
+    - ${URAG_DATA_DIR}/models:/models:ro
+    - ${URAG_DOCUMENTS_DIR}:/documents:ro
+  networks: [internal, egress]
+  depends_on:
+    postgres: {condition: service_healthy}
+    qdrant: {condition: service_started}
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  caddy:
+    image: ${URAG_WEB_IMAGE:-urag-web:latest}
+    restart: unless-stopped
+    ports: ["${URAG_HTTPS_PORT:-443}:443"]
+    environment:
+      URAG_SITE_ADDRESS: ${URAG_SITE_ADDRESS}
+      URAG_TLS: ${URAG_TLS:-internal}
+    volumes:
+      - ${URAG_DATA_DIR}/caddy:/data
+      - ${URAG_DATA_DIR}/certs:/certs:ro
+    networks: [internal, public]
+    depends_on:
+      api: {condition: service_healthy}
+
+  api:
+    <<: *app
+    command: ["urag-api"]
+    environment:
+      <<: *app-env
+      URAG_API_WORKERS: ${URAG_API_WORKERS:-4}
+      URAG_FORWARDED_ALLOW_IPS: "*"  # seul Caddy joint l'API (réseau interne)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/admin/health', timeout=5).status != 200)"]
+      interval: 10s
+      timeout: 6s
+      retries: 30
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: ["urag-worker"]
+
+  postgres:
+    image: ${URAG_POSTGRES_IMAGE:-postgres:16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: urag
+      POSTGRES_PASSWORD: ${URAG_PG_SUPERUSER_PASSWORD}
+    volumes: ["${URAG_DATA_DIR}/postgres:/var/lib/postgresql/data"]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d urag"]
+      interval: 5s
+      retries: 20
+    shm_size: 256m
+
+  qdrant:
+    image: ${URAG_QDRANT_IMAGE:-qdrant/qdrant:v1.15.4}
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${URAG_QDRANT_API_KEY}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - ${URAG_DATA_DIR}/qdrant:/qdrant/storage
+      - ${URAG_DATA_DIR}/qdrant-snapshots:/qdrant/snapshots
+    networks: [internal]
+
+  ollama:
+    image: ${URAG_OLLAMA_IMAGE:-ollama/ollama:0.12.3}
+    restart: unless-stopped
+    volumes: ["${URAG_DATA_DIR}/ollama:/root/.ollama"]
+    networks: [internal, egress]
+    # GPU NVIDIA : ajouter « -f compose.gpu.yml » (scripts/install-server.sh le fait s'il en trouve un).
+
+  tika:
+    image: ${URAG_TIKA_IMAGE:-apache/tika:3.2.3.0}
+    restart: unless-stopped
+    networks: [internal]
+    profiles: [tika]  # formats anciens (DOC, XLS, PPT, RTF, ODT) ; URAG_TIKA_URL=http://tika:9998
+
+networks:
+  internal:
+    internal: true  # aucun accès à Internet depuis ce réseau
+  egress: {}  # sortie vers Internet (API, worker, Ollama)
+  public: {}  # publication du port HTTPS (Caddy)
