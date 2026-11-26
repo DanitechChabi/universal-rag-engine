@@ -1,10 +1,27 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { useSearchParams } from "react-router";
 import { api, ApiError, API } from "../api";
 import { useAuth } from "../auth";
-import { splitCitations, streamChat, type Citation, type ModelInfo } from "../chat";
-import { IconCopy, IconOpen, IconPlus, IconSend, IconStop } from "../components/icons";
+import {
+  splitCitations,
+  streamChat,
+  type Citation,
+  type ModelInfo,
+} from "../chat";
+import {
+  IconCopy,
+  IconOpen,
+  IconPlus,
+  IconSend,
+  IconStop,
+} from "../components/icons";
 import { t } from "../i18n";
 
 type Turn = {
@@ -20,7 +37,11 @@ type Turn = {
   error?: string;
 };
 
-type ConversationSummary = { id: string; title: string | null; updated_at: string };
+type ConversationSummary = {
+  id: string;
+  title: string | null;
+  updated_at: string;
+};
 type ConversationDetail = {
   id: string;
   messages: Array<{
@@ -41,7 +62,10 @@ export function Assistant() {
   const [params, setParams] = useSearchParams();
   const conversationId = params.get("c");
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [selected, setSelected] = useState<{ turn: string; rank: number | null } | null>(null);
+  const [selected, setSelected] = useState<{
+    turn: string;
+    rank: number | null;
+  } | null>(null);
   const [question, setQuestion] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -52,9 +76,11 @@ export function Assistant() {
   const usable = useQuery({
     queryKey: ["models"],
     queryFn: () =>
-      api<{ items: { id: string; name: string; locality: "local" | "external" }[]; external_blocked_by_limit: boolean; notify_on_external: boolean }>(
-        "/models",
-      ),
+      api<{
+        items: { id: string; name: string; locality: "local" | "external" }[];
+        external_blocked_by_limit: boolean;
+        notify_on_external: boolean;
+      }>("/models"),
     staleTime: 30_000,
   });
   const [modelId, setModelId] = useState<string>("");
@@ -96,8 +122,17 @@ export function Assistant() {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [turns]);
 
-  function patch(key: string, change: Partial<Turn> | ((t: Turn) => Partial<Turn>)) {
-    setTurns((all) => all.map((x) => (x.key === key ? { ...x, ...(typeof change === "function" ? change(x) : change) } : x)));
+  function patch(
+    key: string,
+    change: Partial<Turn> | ((t: Turn) => Partial<Turn>),
+  ) {
+    setTurns((all) =>
+      all.map((x) =>
+        x.key === key
+          ? { ...x, ...(typeof change === "function" ? change(x) : change) }
+          : x,
+      ),
+    );
   }
 
   async function ask(e?: FormEvent) {
@@ -108,42 +143,87 @@ export function Assistant() {
     setQuestion("");
     setTurns((all) => [
       ...all,
-      { key: `q-${key}`, role: "user", content: text, citations: [], status: "done" },
-      { key, role: "assistant", content: "", citations: [], status: "streaming" },
+      {
+        key: `q-${key}`,
+        role: "user",
+        content: text,
+        citations: [],
+        status: "done",
+      },
+      {
+        key,
+        role: "assistant",
+        content: "",
+        citations: [],
+        status: "streaming",
+      },
     ]);
     setSelected(null);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      await streamChat(text, conversationId, controller.signal, (ev) => {
-        switch (ev.name) {
-          case "meta":
-            patch(key, { model: ev.data.model, locality: ev.data.model?.locality ?? null, rewritten: ev.data.question_reformulee });
-            if (!conversationId) {
-              createdHere.current = ev.data.conversation_id;
-              setParams({ c: ev.data.conversation_id }, { replace: true });
-            }
-            break;
-          case "token":
-            patch(key, (x) => ({ content: x.content + ev.data.text }));
-            break;
-          case "citations":
-            patch(key, { citations: ev.data.items });
-            break;
-          case "done":
-            // Texte validé par le serveur : citations vérifiées, liens et images retirés.
-            patch(key, { content: ev.data.answer, insufficient: ev.data.insufficient, status: "done" });
-            if (!ev.data.insufficient) setSelected({ turn: key, rank: null });
-            break;
-          case "error":
-            patch(key, { status: "error", error: ev.data.code === "ai.policy" ? a.noModel : a.unavailable });
-            break;
-        }
-      }, modelId || null);
-      patch(key, (x) => (x.status === "streaming" ? { status: "error", error: a.interrupted } : {}));
+      await streamChat(
+        text,
+        conversationId,
+        controller.signal,
+        (ev) => {
+          switch (ev.name) {
+            case "meta":
+              patch(key, {
+                model: ev.data.model,
+                locality: ev.data.model?.locality ?? null,
+                rewritten: ev.data.question_reformulee,
+              });
+              if (!conversationId) {
+                createdHere.current = ev.data.conversation_id;
+                setParams({ c: ev.data.conversation_id }, { replace: true });
+              }
+              break;
+            case "token":
+              patch(key, (x) => ({ content: x.content + ev.data.text }));
+              break;
+            case "citations":
+              patch(key, { citations: ev.data.items });
+              break;
+            case "done":
+              // Texte validé par le serveur : citations vérifiées, liens et images retirés.
+              patch(key, {
+                content: ev.data.answer,
+                insufficient: ev.data.insufficient,
+                status: "done",
+              });
+              if (!ev.data.insufficient) setSelected({ turn: key, rank: null });
+              break;
+            case "error":
+              patch(key, {
+                status: "error",
+                error:
+                  ev.data.code === "ai.policy"
+                    ? a.noModel
+                    : ev.data.code === "search.busy"
+                      ? a.busy
+                      : a.unavailable,
+              });
+              break;
+          }
+        },
+        modelId || null,
+      );
+      patch(key, (x) =>
+        x.status === "streaming"
+          ? { status: "error", error: a.interrupted }
+          : {},
+      );
     } catch (err) {
       if (controller.signal.aborted) patch(key, { status: "stopped" });
-      else patch(key, { status: "error", error: err instanceof ApiError && err.status === 403 ? t.errors.forbidden : a.unavailable });
+      else
+        patch(key, {
+          status: "error",
+          error:
+            err instanceof ApiError && err.status === 403
+              ? t.errors.forbidden
+              : a.unavailable,
+        });
     } finally {
       abortRef.current = null;
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -170,11 +250,17 @@ export function Assistant() {
   return (
     <div className={`assistant ${current ? "with-sources" : ""}`}>
       <aside className="history" aria-label={a.history}>
-        <button className="btn btn-primary" type="button" onClick={newConversation}>
+        <button
+          className="btn btn-primary"
+          type="button"
+          onClick={newConversation}
+        >
           <IconPlus /> {a.newConversation}
         </button>
         <nav className="history-list">
-          {history.data?.items.length === 0 && <p className="small muted">{a.noHistory}</p>}
+          {history.data?.items.length === 0 && (
+            <p className="small muted">{a.noHistory}</p>
+          )}
           {history.data?.items.map((c) => (
             <button
               key={c.id}
@@ -188,7 +274,10 @@ export function Assistant() {
             >
               <span>{c.title || a.untitled}</span>
               <time className="small muted" dateTime={c.updated_at}>
-                {new Date(c.updated_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                {new Date(c.updated_at).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                })}
               </time>
             </button>
           ))}
@@ -235,11 +324,19 @@ export function Assistant() {
             onKeyDown={onKey}
           />
           {streaming ? (
-            <button className="btn" type="button" onClick={() => abortRef.current?.abort()}>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => abortRef.current?.abort()}
+            >
               <IconStop /> {a.stop}
             </button>
           ) : (
-            <button className="btn btn-primary" type="submit" disabled={!question.trim()}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={!question.trim()}
+            >
               <IconSend /> {a.send}
             </button>
           )}
@@ -249,7 +346,12 @@ export function Assistant() {
             <label htmlFor="model" className="small muted">
               {a.model}
             </label>
-            <select id="model" className="input input-sm" value={modelId} onChange={(e) => setModelId(e.target.value)}>
+            <select
+              id="model"
+              className="input input-sm"
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+            >
               <option value="">{a.autoModel(models[0]?.name ?? "")}</option>
               {models.map((x) => (
                 <option key={x.id} value={x.id}>
@@ -264,7 +366,11 @@ export function Assistant() {
             {a.externalWarning(chosen.name)}
           </div>
         )}
-        {usable.data?.external_blocked_by_limit && <div className="alert alert-warn small composer-warning">{a.limitReached}</div>}
+        {usable.data?.external_blocked_by_limit && (
+          <div className="alert alert-warn small composer-warning">
+            {a.limitReached}
+          </div>
+        )}
         <p className="composer-note small muted">{a.note}</p>
       </section>
 
@@ -272,21 +378,43 @@ export function Assistant() {
         <aside className="sources" aria-label={a.sources}>
           <div className="sources-head">
             <h2>{a.sources}</h2>
-            <button className="btn btn-ghost small" type="button" onClick={() => setSelected(null)}>
+            <button
+              className="btn btn-ghost small"
+              type="button"
+              onClick={() => setSelected(null)}
+            >
               {a.close}
             </button>
           </div>
-          {current.citations.length === 0 && <p className="small muted">{a.noSources}</p>}
+          {current.citations.length === 0 && (
+            <p className="small muted">{a.noSources}</p>
+          )}
           {current.citations.map((c) => (
-            <article key={c.rank} className={`source ${selected?.rank === c.rank ? "source-active" : ""}`} id={`source-${c.rank}`}>
+            <article
+              key={c.rank}
+              className={`source ${selected?.rank === c.rank ? "source-active" : ""}`}
+              id={`source-${c.rank}`}
+            >
               <div className="source-title">
                 <span className="cite cite-static">{c.rank}</span>
                 <strong>{c.title ?? a.restricted}</strong>
               </div>
-              {c.pages && <div className="small muted">{c.pages}{c.inferred ? ` · ${a.inferred}` : ""}</div>}
-              {c.excerpt && <blockquote className="excerpt">{c.excerpt}</blockquote>}
+              {c.pages && (
+                <div className="small muted">
+                  {c.pages}
+                  {c.inferred ? ` · ${a.inferred}` : ""}
+                </div>
+              )}
+              {c.excerpt && (
+                <blockquote className="excerpt">{c.excerpt}</blockquote>
+              )}
               {c.title && (
-                <a className="btn btn-ghost small" href={`${API}/documents/${c.document_id}/open`} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="btn btn-ghost small"
+                  href={`${API}/documents/${c.document_id}/open`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <IconOpen /> {a.open}
                 </a>
               )}
@@ -298,47 +426,88 @@ export function Assistant() {
   );
 }
 
-function Answer({ turn, active, onCite, onSources }: { turn: Turn; active: boolean; onCite: (rank: number) => void; onSources: () => void }) {
+function Answer({
+  turn,
+  active,
+  onCite,
+  onSources,
+}: {
+  turn: Turn;
+  active: boolean;
+  onCite: (rank: number) => void;
+  onSources: () => void;
+}) {
   const [copied, setCopied] = useState(false);
   const ranks = new Set(turn.citations.map((c) => c.rank));
   const local = (turn.model?.locality ?? turn.locality) !== "external";
 
   async function copy() {
-    await navigator.clipboard.writeText(turn.content.replace(/\s?\[\d{1,3}\]/g, ""));
+    await navigator.clipboard.writeText(
+      turn.content.replace(/\s?\[\d{1,3}\]/g, ""),
+    );
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
   return (
-    <div className={`msg msg-answer ${active ? "msg-active" : ""} ${turn.insufficient ? "msg-insufficient" : ""}`}>
-      {turn.rewritten && <div className="small muted">{a.rewritten(turn.rewritten)}</div>}
+    <div
+      className={`msg msg-answer ${active ? "msg-active" : ""} ${turn.insufficient ? "msg-insufficient" : ""}`}
+    >
+      {turn.rewritten && (
+        <div className="small muted">{a.rewritten(turn.rewritten)}</div>
+      )}
       <div className="answer-text">
-        {turn.content === "" && turn.status === "streaming" && <span className="muted">{a.searching}</span>}
+        {turn.content === "" && turn.status === "streaming" && (
+          <span className="muted">{a.searching}</span>
+        )}
         {splitCitations(turn.content).map((part, i) =>
           typeof part === "string" ? (
             <span key={i}>{part}</span>
           ) : ranks.has(part) ? (
-            <button key={i} type="button" className="cite" onClick={() => onCite(part)} aria-label={`${a.source} ${part}`}>
+            <button
+              key={i}
+              type="button"
+              className="cite"
+              onClick={() => onCite(part)}
+              aria-label={`${a.source} ${part}`}
+            >
               {part}
             </button>
           ) : null,
         )}
-        {turn.status === "streaming" && turn.content && <span className="caret" aria-hidden />}
+        {turn.status === "streaming" && turn.content && (
+          <span className="caret" aria-hidden />
+        )}
       </div>
-      {turn.status === "stopped" && <div className="alert alert-warn small">{a.stopped}</div>}
-      {turn.status === "error" && <div className="alert alert-error small">{turn.error}</div>}
+      {turn.status === "stopped" && (
+        <div className="alert alert-warn small">{a.stopped}</div>
+      )}
+      {turn.status === "error" && (
+        <div className="alert alert-error small">{turn.error}</div>
+      )}
       {turn.status === "done" && (
         <div className="answer-foot">
           {turn.citations.length > 0 && (
-            <button type="button" className="btn btn-ghost small" onClick={onSources}>
+            <button
+              type="button"
+              className="btn btn-ghost small"
+              onClick={onSources}
+            >
               {a.sourcesCount(turn.citations.length)}
             </button>
           )}
-          <button type="button" className="btn btn-ghost small" onClick={() => void copy()}>
+          <button
+            type="button"
+            className="btn btn-ghost small"
+            onClick={() => void copy()}
+          >
             <IconCopy /> {copied ? a.copied : a.copy}
           </button>
           {(turn.model || turn.locality) && (
-            <span className={`badge ${local ? "badge-ok" : "badge-warn"}`} title={turn.model?.name}>
+            <span
+              className={`badge ${local ? "badge-ok" : "badge-warn"}`}
+              title={turn.model?.name}
+            >
               {local ? a.local : a.external}
               {turn.model ? ` · ${turn.model.name}` : ""}
             </span>

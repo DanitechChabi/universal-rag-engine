@@ -42,11 +42,18 @@ class Settings(BaseSettings):
     late_access_check: bool = True  # droits revérifiés auprès des sources qui le permettent
     rerank_backend: str = "none"  # none | onnx (ADR-0021)
     rerank_model_dir: Path = Path.home() / "urag-models" / "bge-reranker-v2-m3-onnx"
-    rerank_candidates: int = 20
+    rerank_candidates: int = 10  # même qualité que 20, deux fois plus rapide (ADR-0021, mesure phase 7)
+    search_concurrency: int = 4  # recherches simultanées par processus de l'API ; les autres attendent
+    search_queue_timeout_s: float = 60.0  # au-delà : refus « service occupé » (503)
     tika_url: str | None = None  # ex. http://tika:9998 ; absent : formats anciens exclus
     context_passages: int = 6
 
     cookie_secure: bool = True
+    api_host: str = "127.0.0.1"  # 0.0.0.0 dans le conteneur (réseau interne seulement)
+    api_port: int = 8000
+    api_workers: int = 1
+    onnx_threads: int = 0  # fils de calcul ONNX par processus ; 0 : cœurs / processus de l'API (tous pour le worker)
+    forwarded_allow_ips: str = "127.0.0.1"  # adresse du relais HTTPS autorisé à transmettre l'IP cliente
     login_max_failures: int = 5
 
     extra_ollama_options: dict[str, float] = Field(default_factory=dict)

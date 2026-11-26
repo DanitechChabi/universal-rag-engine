@@ -20,7 +20,7 @@ from ..audit import record
 from ..citations import INSUFFICIENT, build_context, pages_label, validate
 from ..extraction import detect_language
 from ..permissions import AccessScope
-from ..retrieval import Retriever, SearchFilters
+from ..retrieval import Retriever, SearchBusy, SearchFilters
 from ..storage import Database
 from ..usage import external_allowed, record_usage
 
@@ -180,44 +180,49 @@ class RagOrchestrator:
         question = question.strip()[:4000]
         rewritten = self.standalone_question(org_id, user_id, conversation_id, question)
         asked = rewritten or question  # question utilisée pour la recherche et transmise au modèle
-        with self.db.org(org_id) as conn:
-            scope = AccessScope.for_user(conn, org_id, user_id)  # recalculé à chaque question
-            conversation_id = self._conversation(conn, org_id, user_id, conversation_id, question)
-            conn.execute(
-                text("INSERT INTO messages (org_id, conversation_id, role, content) VALUES (:o, :c, 'user', :q)"),
-                {"o": org_id, "c": conversation_id, "q": question},
-            )
-            found = self.retriever.search(
-                conn, scope, asked, limit=self.context_passages * 2, candidates=self.candidates, filters=filters
-            )
-            # Passages contenant des consignes adressées à une IA : jamais envoyés au modèle.
-            suspicious = [p for p in found if p.suspicious]
-            passages = [p for p in found if not p.suspicious][: self.context_passages]
-            policy = load_policy(conn, org_id)
-            allow_external = external_allowed(conn, org_id, user_id)  # plafond de consommation dépassé : non
-            record(
-                conn,
-                org_id,
-                "ai.query",
-                actor=user_id,
-                target_type="conversation",
-                target_id=str(conversation_id),
-                details=(
-                    {"question": question, **({"reformulee": rewritten} if rewritten else {})}
-                    if log_question_text(conn, org_id)
-                    else {}
-                ),
-            )
-            if suspicious:
+        try:
+            with self.retriever.admit(), self.db.org(org_id) as conn:
+                scope = AccessScope.for_user(conn, org_id, user_id)  # recalculé à chaque question
+                conversation_id = self._conversation(conn, org_id, user_id, conversation_id, question)
+                conn.execute(
+                    text("INSERT INTO messages (org_id, conversation_id, role, content) VALUES (:o, :c, 'user', :q)"),
+                    {"o": org_id, "c": conversation_id, "q": question},
+                )
+                found = self.retriever.search(
+                    conn, scope, asked, limit=self.context_passages * 2, candidates=self.candidates, filters=filters
+                )
+                # Passages contenant des consignes adressées à une IA : jamais envoyés au modèle.
+                suspicious = [p for p in found if p.suspicious]
+                passages = [p for p in found if not p.suspicious][: self.context_passages]
+                policy = load_policy(conn, org_id)
+                allow_external = external_allowed(conn, org_id, user_id)  # plafond de consommation dépassé : non
                 record(
                     conn,
                     org_id,
-                    "ai.suspicious_excluded",
+                    "ai.query",
                     actor=user_id,
                     target_type="conversation",
                     target_id=str(conversation_id),
-                    details={"chunks": [str(p.chunk_id) for p in suspicious]},
+                    details=(
+                        {"question": question, **({"reformulee": rewritten} if rewritten else {})}
+                        if log_question_text(conn, org_id)
+                        else {}
+                    ),
                 )
+                if suspicious:
+                    record(
+                        conn,
+                        org_id,
+                        "ai.suspicious_excluded",
+                        actor=user_id,
+                        target_type="conversation",
+                        target_id=str(conversation_id),
+                        details={"chunks": [str(p.chunk_id) for p in suspicious]},
+                    )
+
+        except SearchBusy:
+            yield Event("error", {"code": "search.busy", "detail": "Serveur occupé : réessayez dans un instant."})
+            return
 
         message_id = uuid.uuid4()
         if not passages:

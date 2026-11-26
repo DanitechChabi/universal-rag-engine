@@ -1,0 +1,10 @@
+# Génération sur GPU NVIDIA (pilote + NVIDIA Container Toolkit installés sur l'hôte).
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

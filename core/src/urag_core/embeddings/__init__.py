@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import re
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -94,11 +96,9 @@ class OnnxEncoder:
         self._tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
         self._tokenizer.enable_truncation(max_tokens)
         self._tokenizer.enable_padding()
-        options = ort.SessionOptions()
-        if threads:
-            options.intra_op_num_threads = threads
-        self._session = ort.InferenceSession(str(model_path), options, providers=["CPUExecutionProvider"])
+        self._session = ort.InferenceSession(str(model_path), onnx_options(threads), providers=["CPUExecutionProvider"])
         self._inputs = {i.name for i in self._session.get_inputs()}
+        self._lock = threading.Lock()  # un calcul à la fois (même raison que le reclassement)
         self.batch_size = batch_size
         self.model_name = f"bge-m3-onnx-{Path(model_file).stem.removeprefix('model_') or 'fp32'}"
         self.model_revision = hashlib.sha256(f"{model_path.stat().st_size}:{max_tokens}".encode()).hexdigest()[:12]
@@ -114,16 +114,44 @@ class OnnxEncoder:
             feed = {"input_ids": ids, "attention_mask": np.array([e.attention_mask for e in batch], dtype=np.int64)}
             if "token_type_ids" in self._inputs:
                 feed["token_type_ids"] = np.zeros_like(ids)
-            cls = self._session.run(None, feed)[0][:, 0]
+            with self._lock:
+                cls = self._session.run(None, feed)[0][:, 0]
             cls = cls / np.linalg.norm(cls, axis=1, keepdims=True)
             vectors.extend(cls.astype(float).tolist())
         return vectors
 
 
-def build_encoder(settings) -> Encoder:
+def onnx_options(threads: int | None = None):
+    """Options ONNX Runtime pour un serveur partagé (mesures : docs/reports/PHASE7.md §3).
+
+    - pas de réserve mémoire (*arena*) : elle grossit avec chaque nouvelle longueur de lot et ne
+      rend jamais la mémoire (plusieurs Go par processus sous charge) ; sans elle, même débit ;
+    - pas d'attente active des fils de calcul : quand plusieurs processus se partagent les
+      cœurs, les fils qui tournent à vide ralentissent les autres (−20 % mesurés) ;
+    - nombre de fils limité quand plusieurs processus de l'API calculent en même temps.
+    """
+    import onnxruntime as ort
+
+    options = ort.SessionOptions()
+    options.enable_cpu_mem_arena = False
+    options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+    options.add_session_config_entry("session.inter_op.allow_spinning", "0")
+    if threads:
+        options.intra_op_num_threads = threads
+    return options
+
+
+def api_onnx_threads(settings) -> int:
+    """Fils de calcul par processus de l'API : les cœurs partagés entre les processus."""
+    if settings.onnx_threads:
+        return settings.onnx_threads
+    return max(1, (os.cpu_count() or 1) // max(1, settings.api_workers))
+
+
+def build_encoder(settings, threads: int | None = None) -> Encoder:
     """Encodeur selon la configuration : ``onnx`` (dossier du modèle requis) ou ``ollama``."""
     if settings.embedding_backend == "onnx":
-        return OnnxEncoder(settings.embedding_model_dir)
+        return OnnxEncoder(settings.embedding_model_dir, threads=threads or settings.onnx_threads or None)
     return OllamaEncoder(settings.ollama_url, settings.embedding_model, settings.embedding_dimension)
 
 

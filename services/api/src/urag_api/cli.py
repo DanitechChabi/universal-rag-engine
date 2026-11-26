@@ -26,6 +26,16 @@ def admin_url(args) -> str:
     return url
 
 
+def _password(value: str | None, env_name: str | None, prompt: str) -> str:
+    """Mot de passe donné, lu dans une variable d'environnement (installation automatique : il
+    n'apparaît pas dans la liste des processus), ou demandé."""
+    if env_name:
+        value = os.environ.get(env_name)
+        if not value:
+            sys.exit(f"variable {env_name} vide ou absente")
+    return value or getpass.getpass(prompt)
+
+
 def cmd_gen_key(args) -> None:
     generate_master_key(Path(args.path))
     print(f"clé maîtresse créée : {args.path} (à sauvegarder séparément)")
@@ -43,7 +53,7 @@ def cmd_migrate(args) -> None:
 
 
 def cmd_app_password(args) -> None:
-    password = args.password or getpass.getpass("Mot de passe du rôle urag_app : ")
+    password = _password(args.password, args.password_env, "Mot de passe du rôle urag_app : ")
     with create_engine(admin_url(args)).begin() as conn:
         quoted = conn.exec_driver_sql("SELECT quote_literal(%s)", (password,)).scalar_one()
         conn.exec_driver_sql(f"ALTER ROLE urag_app PASSWORD {quoted}")
@@ -104,7 +114,7 @@ def bootstrap(url: str, org_name: str, org_slug: str, login: str, password: str,
 
 
 def cmd_bootstrap(args) -> None:
-    password = args.admin_password or getpass.getpass("Mot de passe de l'administrateur : ")
+    password = _password(args.admin_password, args.admin_password_env, "Mot de passe de l'administrateur : ")
     ids = bootstrap(
         admin_url(args), args.org_name, args.org_slug, args.admin_login, password, args.admin_name or args.admin_login
     )
@@ -121,6 +131,7 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("migrate", help="appliquer les migrations").set_defaults(func=cmd_migrate)
     s = sub.add_parser("app-password", help="définir le mot de passe du rôle urag_app")
     s.add_argument("--password")
+    s.add_argument("--password-env", help="nom de la variable d'environnement qui contient le mot de passe")
     s.set_defaults(func=cmd_app_password)
     s = sub.add_parser("bootstrap", help="créer l'organisation et le premier administrateur")
     s.add_argument("--org-name", required=True)
@@ -128,6 +139,7 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--admin-login", required=True)
     s.add_argument("--admin-name")
     s.add_argument("--admin-password")
+    s.add_argument("--admin-password-env", help="nom de la variable d'environnement qui contient le mot de passe")
     s.set_defaults(func=cmd_bootstrap)
     args = p.parse_args(argv)
     args.func(args)

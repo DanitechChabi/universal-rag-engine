@@ -384,6 +384,24 @@ class AnthropicAdapter:
             raise ProviderError(f"{model.name} : {type(e).__name__}") from e
 
 
+_SLOTS: dict[tuple[str, int], threading.BoundedSemaphore] = {}
+_SLOTS_LOCK = threading.Lock()
+
+
+def generation_slots(model: ModelSpec) -> threading.BoundedSemaphore:
+    """Places de génération d'un modèle, **partagées par tout le processus**.
+
+    Les routeurs sont reconstruits (modification de l'administration, ou toutes les 30 s) : des
+    compteurs propres à chaque routeur laisseraient dépasser la limite pendant les générations en
+    cours. La limite s'entend par processus de l'API (voir docs/DEPLOYMENT.md §2.4).
+    """
+    key = (model.id, model.max_concurrency)
+    with _SLOTS_LOCK:
+        if key not in _SLOTS:
+            _SLOTS[key] = threading.BoundedSemaphore(model.max_concurrency)
+        return _SLOTS[key]
+
+
 @dataclass
 class ModelRouter:
     adapters: dict[str, ProviderAdapter]
@@ -392,7 +410,7 @@ class ModelRouter:
 
     def __post_init__(self) -> None:
         for m in self.models:
-            self._semaphores[m.id] = threading.BoundedSemaphore(m.max_concurrency)
+            self._semaphores[m.id] = generation_slots(m)
 
     def candidates(
         self, policy: Policy, kinds: set[DataKind], requested: str | None = None, allow_external: bool = True

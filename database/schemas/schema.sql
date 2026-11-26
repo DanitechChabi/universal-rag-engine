@@ -686,6 +686,33 @@ CREATE FUNCTION urag_orgs_with_ready_jobs() RETURNS SETOF uuid
     SELECT DISTINCT org_id FROM jobs WHERE status = 'queued' AND run_after <= now()
 $$;
 
+-- Organisations ayant une tâche « en cours » abandonnée (worker arrêté) : parcourues pour la
+-- remettre en file, même quand aucune autre tâche n'est prête (migration 0009).
+CREATE FUNCTION urag_orgs_with_stale_jobs(stale_after_seconds integer) RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+    SELECT DISTINCT org_id FROM jobs
+    WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => stale_after_seconds)
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Métriques de supervision (docs/DEPLOYMENT.md §5) : agrégats de toute l'installation, sans
+-- contenu ni identifiant. Droits de urag_maintenance (lecture seule).
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION urag_metrics() RETURNS TABLE (metric text, label text, value double precision)
+    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+    SELECT 'organizations', '', count(*)::float8 FROM organizations
+    UNION ALL SELECT 'sources', status::text, count(*) FROM sources GROUP BY status
+    UNION ALL SELECT 'documents', status::text, count(*) FROM documents WHERE deleted_at IS NULL GROUP BY status
+    UNION ALL SELECT 'chunks', '', count(*) FROM chunks
+    UNION ALL SELECT 'jobs', status::text, count(*) FROM jobs GROUP BY status
+    UNION ALL SELECT 'oldest_ready_job_seconds', '',
+        coalesce(extract(epoch FROM now() - min(run_after)), 0) FROM jobs WHERE status = 'queued' AND run_after <= now()
+    UNION ALL SELECT 'tokens_24h', locality::text, sum(tokens_in + tokens_out) FROM usage_records
+        WHERE created_at > now() - interval '24 hours' GROUP BY locality
+    UNION ALL SELECT 'login_failures_1h', '', count(*) FROM audit_log
+        WHERE action = 'auth.login' AND outcome = 'failure' AND created_at > now() - interval '1 hour'
+$$;
+
 -- -----------------------------------------------------------------------------
 -- Row Level Security : isolation stricte par organisation
 -- -----------------------------------------------------------------------------
@@ -732,5 +759,9 @@ ALTER FUNCTION urag_audit_purge(interval) OWNER TO urag_maintenance;
 GRANT SELECT ON jobs TO urag_maintenance;
 ALTER FUNCTION urag_orgs_with_ready_jobs() OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_audit_purge(interval) FROM PUBLIC, urag_app;
+ALTER FUNCTION urag_metrics() OWNER TO urag_maintenance;
+REVOKE EXECUTE ON FUNCTION urag_metrics() FROM PUBLIC;
+ALTER FUNCTION urag_orgs_with_stale_jobs(integer) OWNER TO urag_maintenance;
+REVOKE EXECUTE ON FUNCTION urag_orgs_with_stale_jobs(integer) FROM PUBLIC;
 
 COMMIT;

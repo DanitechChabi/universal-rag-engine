@@ -9,7 +9,7 @@ from functools import cached_property
 from urag_core.ai import ModelRouter, ModelSpec, OllamaAdapter
 from urag_core.ai.catalog import RouterCache, load_router
 from urag_core.config import Settings
-from urag_core.embeddings import Encoder, build_encoder
+from urag_core.embeddings import Encoder, api_onnx_threads, build_encoder
 from urag_core.ingestion import IngestionService
 from urag_core.rag import RagOrchestrator
 from urag_core.retrieval import Retriever
@@ -30,7 +30,7 @@ class AppState:
 
     @cached_property
     def encoder(self) -> Encoder:
-        return self.encoder_override or build_encoder(self.settings)
+        return self.encoder_override or build_encoder(self.settings, api_onnx_threads(self.settings))
 
     @cached_property
     def ingestion(self) -> IngestionService:
@@ -49,7 +49,7 @@ class AppState:
     def reranker(self):
         from urag_core.rerank import build_reranker
 
-        return build_reranker(self.settings)
+        return build_reranker(self.settings, api_onnx_threads(self.settings))
 
     @cached_property
     def retriever(self) -> Retriever:
@@ -62,6 +62,8 @@ class AppState:
             self.settings.late_access_check,
             self.reranker,
             self.settings.rerank_candidates,
+            self.settings.search_concurrency,
+            self.settings.search_queue_timeout_s,
         )
 
     @cached_property

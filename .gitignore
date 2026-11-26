@@ -35,3 +35,8 @@ models/
 *.tsbuildinfo
 apps/*/test-results/
 apps/*/playwright-report/
+
+# Installation serveur : fichiers générés (secrets, réglages du site)
+infrastructure/.env
+infrastructure/urag.env
+infrastructure/compose.override.yml

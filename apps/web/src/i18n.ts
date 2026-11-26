@@ -60,6 +60,7 @@ export const t = {
     stopped: "Génération interrompue.",
     interrupted: "La réponse a été interrompue avant la fin.",
     unavailable: "Le modèle de réponse est indisponible. Réessayez dans un instant.",
+    busy: "Le serveur traite déjà beaucoup de questions. Réessayez dans un instant.",
     model: "Modèle de réponse",
     autoModel: (n: string) => `Automatique (${n})`,
     externalWarning: (n: string) =>

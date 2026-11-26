@@ -7,6 +7,7 @@ d'accès renvoie une liste vide (fermé par défaut).
 from __future__ import annotations
 
 import uuid
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -34,11 +35,16 @@ class VectorHit:
 # filtrée sur une organisation parmi plusieurs perd des résultats (mesuré : le bon passage
 # passait du rang 1 à au-delà du rang 30 dès qu'une deuxième organisation était présente).
 TENANT_HNSW = qm.HnswConfigDiff(m=0, payload_m=16)
+UPSERT_BATCH = 256  # points par requête d'écriture
 
 
 class VectorStore:
     def __init__(self, url: str, api_key: str | None = None, timeout: int = 30) -> None:
-        self.client = QdrantClient(url=url, api_key=api_key, timeout=timeout, https=url.startswith("https"))
+        with warnings.catch_warnings():
+            # HTTP sans TLS attendu sur le réseau interne de Docker (Qdrant non publié, ADR-0025) ;
+            # l'avertissement du client répété à chaque démarrage n'apporte rien.
+            warnings.filterwarnings("ignore", "Api key is used with an insecure connection")
+            self.client = QdrantClient(url=url, api_key=api_key, timeout=timeout, https=url.startswith("https"))
 
     def ensure_collection(self, name: str, dimension: int) -> None:
         if self.client.collection_exists(name):
@@ -74,11 +80,17 @@ class VectorStore:
         for p in points:
             if p.payload.get("org_id") != str(org_id):
                 raise ValueError("point sans l'organisation attendue")
-        self.client.upsert(
-            collection_name=collection,
-            points=[qm.PointStruct(id=str(p.id), vector=p.vector, payload=p.payload) for p in points],
-            wait=True,
-        )
+        # Par lots : un gros document (plus de mille fragments) envoyé d'un bloc dépassait le délai
+        # de 30 s sur une machine chargée (OCR en parallèle) — trouvé en phase 7 sur le corpus public.
+        for start in range(0, len(points), UPSERT_BATCH):
+            self.client.upsert(
+                collection_name=collection,
+                points=[
+                    qm.PointStruct(id=str(p.id), vector=p.vector, payload=p.payload)
+                    for p in points[start : start + UPSERT_BATCH]
+                ],
+                wait=True,
+            )
 
     def search(
         self,

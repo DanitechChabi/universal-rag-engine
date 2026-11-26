@@ -1,0 +1,56 @@
+# Relais HTTPS : sert l'interface web et relaie /api vers l'API (réseau interne).
+# URAG_SITE_ADDRESS : nom ou adresse du serveur (ex. rag.cabinet.local, 192.168.1.20).
+# URAG_TLS : « internal » (autorité de certification propre au serveur, réseau local)
+#            ou « /certs/cert.pem /certs/key.pem » (certificat de l'entreprise).
+{
+	admin off
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$URAG_SITE_ADDRESS} {
+	tls {$URAG_TLS}
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	handle /api/* {
+		request_body {
+			max_size 50MB
+		}
+		reverse_proxy api:8000 {
+			# Réponses de l'assistant diffusées au fil de l'eau (SSE) : aucune mise en tampon.
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv/web
+		header Content-Security-Policy "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		# Ni cookies ni en-têtes d'autorisation dans les journaux.
+		format filter {
+			wrap json
+			fields {
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Csrf-Token delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+}

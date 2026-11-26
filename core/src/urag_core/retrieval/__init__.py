@@ -9,13 +9,21 @@
 5. Revérification auprès de la source (droits effectifs) quand elle le permet.
 6. Reclassement facultatif des premiers candidats autorisés (ADR-0021) ; sommaires et index
    placés après les passages de contenu.
+
+Admission : ``Retriever.admit()`` limite le nombre de recherches simultanées par processus. Les
+suivantes attendent **avant** d'ouvrir une connexion à la base, puis sont refusées
+(``SearchBusy``) au-delà du délai d'attente : en surcharge, le service ralentit puis refuse
+proprement au lieu d'épuiser les connexions ou la mémoire (docs/reports/PHASE7.md).
 """
 
 from __future__ import annotations
 
 import dataclasses
 import re
+import threading
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 
 from sqlalchemy import Connection, text
@@ -72,6 +80,10 @@ def references_in(query: str) -> list[str]:
     return list(dict.fromkeys(m.group(0).strip() for m in _REFERENCE.finditer(query)))[:5]
 
 
+class SearchBusy(RuntimeError):
+    """Trop de recherches en cours : réessayer plus tard."""
+
+
 class Retriever:
     def __init__(
         self,
@@ -80,7 +92,9 @@ class Retriever:
         collection: str,
         late_check: bool = True,
         reranker=None,
-        rerank_candidates: int = 20,
+        rerank_candidates: int = 10,
+        concurrency: int = 4,
+        queue_timeout: float = 60.0,
     ) -> None:
         self.vectors = vectors
         self.encoder = encoder
@@ -88,6 +102,18 @@ class Retriever:
         self.late_check = late_check  # revérification auprès des sources qui le permettent
         self.reranker = reranker  # reclassement des premiers candidats (ADR-0021), facultatif
         self.rerank_candidates = rerank_candidates
+        self._slots = threading.BoundedSemaphore(max(1, concurrency))
+        self.queue_timeout = queue_timeout
+
+    @contextmanager
+    def admit(self) -> Iterator[None]:
+        """Place réservée pour une recherche ; à prendre avant d'ouvrir la connexion à la base."""
+        if not self._slots.acquire(timeout=self.queue_timeout):
+            raise SearchBusy("trop de recherches en cours")
+        try:
+            yield
+        finally:
+            self._slots.release()
 
     def dense(self, scope: AccessScope, query: str, limit: int, filters: SearchFilters) -> list[uuid.UUID]:
         vector = self.encoder.encode([query])[0]
