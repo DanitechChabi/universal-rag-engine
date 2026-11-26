@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     rerank_backend: str = "none"  # none | onnx (ADR-0021)
     rerank_model_dir: Path = Path.home() / "urag-models" / "bge-reranker-v2-m3-onnx"
     rerank_candidates: int = 20
+    search_concurrency: int = 4  # recherches simultanées par processus de l'API ; les autres attendent
+    search_queue_timeout_s: float = 60.0  # au-delà : refus « service occupé » (503)
     tika_url: str | None = None  # ex. http://tika:9998 ; absent : formats anciens exclus
     context_passages: int = 6
 

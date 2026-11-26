@@ -1,0 +1,54 @@
+{
+ "scenario": "recherche",
+ "duree_par_niveau_s": 60,
+ "note": "4 cœurs CPU, sans GPU, reclassement ONNX sur 20 candidats, 92 documents / 12 908 fragments, 2 processus API",
+ "niveaux": [
+  {
+   "utilisateurs": 1,
+   "requetes": 13,
+   "erreurs": 0,
+   "debit_par_minute": 12.2,
+   "duree_p50_s": 4.939,
+   "duree_p95_s": 6.762,
+   "duree_p99_s": 6.762,
+   "duree_moyenne_s": 4.9
+  },
+  {
+   "utilisateurs": 5,
+   "requetes": 7,
+   "erreurs": 0,
+   "debit_par_minute": 6.0,
+   "duree_p50_s": 59.264,
+   "duree_p95_s": 65.817,
+   "duree_p99_s": 65.817,
+   "duree_moyenne_s": 46.657
+  },
+  {
+   "utilisateurs": 10,
+   "requetes": 28,
+   "erreurs": 17,
+   "debit_par_minute": 7.9,
+   "duree_p50_s": 50.127,
+   "duree_p95_s": 56.786,
+   "duree_p99_s": 56.786,
+   "duree_moyenne_s": 49.63,
+   "erreurs_types": [
+    "502"
+   ]
+  },
+  {
+   "utilisateurs": 20,
+   "requetes": 68,
+   "erreurs": 68,
+   "debit_par_minute": 0.0,
+   "duree_p50_s": null,
+   "duree_p95_s": null,
+   "duree_p99_s": null,
+   "duree_moyenne_s": null,
+   "erreurs_types": [
+    "500",
+    "502"
+   ]
+  }
+ ]
+}

@@ -62,6 +62,8 @@ class AppState:
             self.settings.late_access_check,
             self.reranker,
             self.settings.rerank_candidates,
+            self.settings.search_concurrency,
+            self.settings.search_queue_timeout_s,
         )
 
     @cached_property

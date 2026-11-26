@@ -12,7 +12,7 @@ from sqlalchemy import text
 from urag_core.audit import record
 from urag_core.citations import pages_label
 from urag_core.permissions import AccessScope
-from urag_core.retrieval import SearchFilters
+from urag_core.retrieval import SearchBusy, SearchFilters
 
 from ..deps import CAN_ASK, CurrentUser, get_state, problem, require
 from ..state import AppState
@@ -36,17 +36,20 @@ class SearchIn(BaseModel):
 
 @router.post("/search")
 def search(body: SearchIn, user: CurrentUser = Depends(require(*CAN_ASK)), state: AppState = Depends(get_state)):
-    with state.db.org(user.org_id) as conn:
-        scope = AccessScope.for_user(conn, user.org_id, user.user_id)
-        passages = state.retriever.search(
-            conn,
-            scope,
-            body.query,
-            limit=body.limit,
-            candidates=state.settings.retrieval_candidates,
-            filters=body.filters.to_core(),
-        )
-        record(conn, user.org_id, "search.query", actor=user.user_id, details={"results": len(passages)})
+    try:
+        with state.retriever.admit(), state.db.org(user.org_id) as conn:
+            scope = AccessScope.for_user(conn, user.org_id, user.user_id)
+            passages = state.retriever.search(
+                conn,
+                scope,
+                body.query,
+                limit=body.limit,
+                candidates=state.settings.retrieval_candidates,
+                filters=body.filters.to_core(),
+            )
+            record(conn, user.org_id, "search.query", actor=user.user_id, details={"results": len(passages)})
+    except SearchBusy:
+        raise problem(503, "search.busy", "Serveur occupé : réessayez dans un instant") from None
     return {
         "items": [
             {

@@ -686,6 +686,14 @@ CREATE FUNCTION urag_orgs_with_ready_jobs() RETURNS SETOF uuid
     SELECT DISTINCT org_id FROM jobs WHERE status = 'queued' AND run_after <= now()
 $$;
 
+-- Organisations ayant une tâche « en cours » abandonnée (worker arrêté) : parcourues pour la
+-- remettre en file, même quand aucune autre tâche n'est prête (migration 0009).
+CREATE FUNCTION urag_orgs_with_stale_jobs(stale_after_seconds integer) RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+    SELECT DISTINCT org_id FROM jobs
+    WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => stale_after_seconds)
+$$;
+
 -- -----------------------------------------------------------------------------
 -- Métriques de supervision (docs/DEPLOYMENT.md §5) : agrégats de toute l'installation, sans
 -- contenu ni identifiant. Droits de urag_maintenance (lecture seule).
@@ -753,5 +761,7 @@ ALTER FUNCTION urag_orgs_with_ready_jobs() OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_audit_purge(interval) FROM PUBLIC, urag_app;
 ALTER FUNCTION urag_metrics() OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_metrics() FROM PUBLIC;
+ALTER FUNCTION urag_orgs_with_stale_jobs(integer) OWNER TO urag_maintenance;
+REVOKE EXECUTE ON FUNCTION urag_orgs_with_stale_jobs(integer) FROM PUBLIC;
 
 COMMIT;

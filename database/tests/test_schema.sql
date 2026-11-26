@@ -243,6 +243,13 @@ INSERT INTO jobs (org_id, kind) VALUES ('a0000000-0000-0000-0000-000000000001', 
 SET urag.org_id = '';
 SELECT pg_temp.check((SELECT array_agg(o) FROM urag_orgs_with_ready_jobs() o) = ARRAY['a0000000-0000-0000-0000-000000000001'::uuid],
     'le worker trouve l''organisation qui a une tâche prête');
+SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM urag_orgs_with_stale_jobs(600)),
+    'aucune tâche abandonnée tant que le worker donne signe de vie');
+SET urag.org_id = 'a0000000-0000-0000-0000-000000000001';
+UPDATE jobs SET heartbeat_at = now() - interval '1 hour' WHERE status = 'running';
+SET urag.org_id = '';
+SELECT pg_temp.check((SELECT array_agg(o) FROM urag_orgs_with_stale_jobs(600) o) = ARRAY['a0000000-0000-0000-0000-000000000001'::uuid],
+    'le worker trouve l''organisation qui a une tâche abandonnée');
 
 -- 14. Organisation B : isolée de A.
 SET urag.org_id = 'b0000000-0000-0000-0000-000000000001';

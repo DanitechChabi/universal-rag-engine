@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -99,6 +100,7 @@ class OnnxEncoder:
             options.intra_op_num_threads = threads
         self._session = ort.InferenceSession(str(model_path), options, providers=["CPUExecutionProvider"])
         self._inputs = {i.name for i in self._session.get_inputs()}
+        self._lock = threading.Lock()  # un calcul à la fois (même raison que le reclassement)
         self.batch_size = batch_size
         self.model_name = f"bge-m3-onnx-{Path(model_file).stem.removeprefix('model_') or 'fp32'}"
         self.model_revision = hashlib.sha256(f"{model_path.stat().st_size}:{max_tokens}".encode()).hexdigest()[:12]
@@ -114,7 +116,8 @@ class OnnxEncoder:
             feed = {"input_ids": ids, "attention_mask": np.array([e.attention_mask for e in batch], dtype=np.int64)}
             if "token_type_ids" in self._inputs:
                 feed["token_type_ids"] = np.zeros_like(ids)
-            cls = self._session.run(None, feed)[0][:, 0]
+            with self._lock:
+                cls = self._session.run(None, feed)[0][:, 0]
             cls = cls / np.linalg.norm(cls, axis=1, keepdims=True)
             vectors.extend(cls.astype(float).tolist())
         return vectors

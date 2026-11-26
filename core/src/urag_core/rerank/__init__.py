@@ -12,6 +12,7 @@ localement avec ONNX Runtime.
 from __future__ import annotations
 
 import math
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -50,6 +51,9 @@ class OnnxReranker:
         if threads:
             options.intra_op_num_threads = threads
         self._session = ort.InferenceSession(str(model_path), options, providers=["CPUExecutionProvider"])
+        # Un seul calcul à la fois par processus : un calcul occupe déjà tous les cœurs, et des
+        # calculs simultanés n'augmentent pas le débit mais multiplient la mémoire (~0,5 Go chacun).
+        self._lock = threading.Lock()
         self.batch_size = batch_size
         self.model_name = f"bge-reranker-v2-m3-onnx-{Path(model_file).stem.removeprefix('model_') or 'fp32'}"
 
@@ -64,7 +68,8 @@ class OnnxReranker:
                 "input_ids": np.array([e.ids for e in batch], dtype=np.int64),
                 "attention_mask": np.array([e.attention_mask for e in batch], dtype=np.int64),
             }
-            logits = self._session.run(None, feed)[0][:, 0]
+            with self._lock:
+                logits = self._session.run(None, feed)[0][:, 0]
             out.extend(1.0 / (1.0 + math.exp(-float(x))) for x in logits)
         return out
 
