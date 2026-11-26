@@ -219,6 +219,10 @@ WITH p AS (INSERT INTO ai_providers (org_id, kind, name, locality)
     VALUES ('a0000000-0000-0000-0000-000000000001', 'anthropic', 'Claude', 'external') RETURNING enabled)
 SELECT pg_temp.check(NOT enabled, 'un fournisseur ajouté est désactivé par défaut') FROM p;
 
+-- 12 bis. Métriques : des nombres seulement, accessibles à l'application.
+SELECT pg_temp.check((SELECT count(*) FROM urag_metrics() WHERE metric = 'organizations') = 1,
+    'métriques de supervision disponibles');
+
 -- 13. File de tâches : une seule tâche active par clé, prise sans blocage.
 INSERT INTO jobs (org_id, kind, dedup_key) VALUES ('a0000000-0000-0000-0000-000000000001', 'sync_source', 'sync:a4');
 SELECT pg_temp.expect_error($$INSERT INTO jobs (org_id, kind, dedup_key) VALUES ('a0000000-0000-0000-0000-000000000001', 'sync_source', 'sync:a4')$$, '23505');

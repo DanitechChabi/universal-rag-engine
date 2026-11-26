@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import logging
 import signal
+import tempfile
 import time
 import uuid
+from pathlib import Path
 
 from sqlalchemy import text
 from urag_connectors_base import AuthenticationError, TransientError
@@ -85,11 +87,21 @@ class Worker:
         signal.signal(signal.SIGTERM, lambda *_: setattr(self, "_stop", True))
         last_stale_check = 0.0
         while not self._stop:
+            self._heartbeat()
             if time.monotonic() - last_stale_check > 60:
                 self._requeue_stale()
                 last_stale_check = time.monotonic()
             if self.run_once() == 0:
                 time.sleep(idle_sleep)
+
+    HEARTBEAT = Path(tempfile.gettempdir()) / "urag-worker-heartbeat"
+
+    def _heartbeat(self) -> None:
+        """Preuve de vie pour la sonde de santé du conteneur (fichier daté à chaque tour)."""
+        try:
+            self.HEARTBEAT.touch()
+        except OSError:
+            log.warning("battement de cœur impossible à écrire")
 
     def _requeue_stale(self) -> None:
         with self.db.anonymous() as conn:
@@ -117,5 +129,7 @@ def build(settings: Settings, encoder: Encoder | None = None) -> Worker:
 
 
 def run() -> None:
-    logging.basicConfig(level=logging.INFO, format='{"t":"%(asctime)s","lvl":"%(levelname)s","msg":"%(message)s"}')
+    from urag_core.logs import configure
+
+    configure()
     build(get_settings()).run_forever()

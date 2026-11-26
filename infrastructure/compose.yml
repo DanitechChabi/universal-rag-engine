@@ -7,6 +7,11 @@
 # téléchargement des modèles).
 name: urag
 
+# Journaux JSON en rotation : 5 fichiers de 20 Mo par service (docker compose logs).
+x-logging: &logging
+  driver: json-file
+  options: {max-size: 20m, max-file: "5"}
+
 x-app-env: &app-env
   URAG_ENV: production
   URAG_DATABASE_URL: postgresql+psycopg://urag_app:${URAG_APP_DB_PASSWORD}@postgres:5432/urag
@@ -33,11 +38,13 @@ x-app: &app
     postgres: {condition: service_healthy}
     qdrant: {condition: service_started}
   security_opt: ["no-new-privileges:true"]
+  logging: *logging
 
 services:
   caddy:
     image: ${URAG_WEB_IMAGE:-urag-web:latest}
     restart: unless-stopped
+    logging: *logging
     ports: ["${URAG_HTTPS_PORT:-443}:443"]
     environment:
       URAG_SITE_ADDRESS: ${URAG_SITE_ADDRESS}
@@ -66,10 +73,17 @@ services:
   worker:
     <<: *app
     command: ["urag-worker"]
+    healthcheck:  # le worker date un fichier à chaque tour ; une tâche très longue peut durer 15 min
+      test: ["CMD", "python", "-c", "import os,sys,tempfile,time; p=os.path.join(tempfile.gettempdir(),'urag-worker-heartbeat'); sys.exit(not os.path.exists(p) or time.time()-os.path.getmtime(p) > 900)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   postgres:
     image: ${URAG_POSTGRES_IMAGE:-postgres:16}
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_DB: urag
       POSTGRES_PASSWORD: ${URAG_PG_SUPERUSER_PASSWORD}
@@ -84,6 +98,7 @@ services:
   qdrant:
     image: ${URAG_QDRANT_IMAGE:-qdrant/qdrant:v1.15.4}
     restart: unless-stopped
+    logging: *logging
     environment:
       QDRANT__SERVICE__API_KEY: ${URAG_QDRANT_API_KEY}
       QDRANT__TELEMETRY_DISABLED: "true"
@@ -95,6 +110,7 @@ services:
   ollama:
     image: ${URAG_OLLAMA_IMAGE:-ollama/ollama:0.12.3}
     restart: unless-stopped
+    logging: *logging
     volumes: ["${URAG_DATA_DIR}/ollama:/root/.ollama"]
     networks: [internal, egress]
     # GPU NVIDIA : ajouter « -f compose.gpu.yml » (scripts/install-server.sh le fait s'il en trouve un).
@@ -102,6 +118,7 @@ services:
   tika:
     image: ${URAG_TIKA_IMAGE:-apache/tika:3.2.3.0}
     restart: unless-stopped
+    logging: *logging
     networks: [internal]
     profiles: [tika]  # formats anciens (DOC, XLS, PPT, RTF, ODT) ; URAG_TIKA_URL=http://tika:9998
 

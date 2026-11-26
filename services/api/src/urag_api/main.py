@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -10,6 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from urag_core.config import get_settings
 
+from . import metrics
 from .routes import admin, ai_admin, auth, chat, dashboard, documents, identities
 from .state import AppState
 
@@ -52,6 +54,7 @@ def create_app(state: AppState) -> FastAPI:
         response.headers.setdefault("Content-Security-Policy", csp)
         return response
 
+    metrics.install(app, state)
     app.mount(f"{API_PREFIX}/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @app.get(f"{API_PREFIX}/docs", include_in_schema=False)
@@ -86,6 +89,18 @@ def run() -> None:
     import uvicorn
 
     settings = get_settings()
+    if settings.api_workers > 1:
+        # Compteurs partagés entre processus (prometheus_client, mode multiprocessus) : dossier vidé
+        # au démarrage, avant que les processus ne soient créés.
+        import shutil
+        import tempfile
+
+        directory = Path(tempfile.gettempdir()) / "urag-prometheus"
+        shutil.rmtree(directory, ignore_errors=True)
+        directory.mkdir(mode=0o700)
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = str(directory)
+    from urag_core.logs import UVICORN_LOG_CONFIG
+
     uvicorn.run(
         "urag_api.main:app_from_settings",
         factory=True,
@@ -95,5 +110,6 @@ def run() -> None:
         # Derrière le relais HTTPS (Caddy), seul à joindre l'API sur le réseau interne.
         proxy_headers=True,
         forwarded_allow_ips=settings.forwarded_allow_ips,
-        access_log=False,  # journal des requêtes sans chemin ni paramètres : voir la supervision
+        access_log=False,  # remplacé par le journal des requêtes sans paramètres (metrics.py)
+        log_config=UVICORN_LOG_CONFIG,
     )

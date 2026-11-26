@@ -7,6 +7,7 @@ d'accès renvoie une liste vide (fermé par défaut).
 from __future__ import annotations
 
 import uuid
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -38,7 +39,11 @@ TENANT_HNSW = qm.HnswConfigDiff(m=0, payload_m=16)
 
 class VectorStore:
     def __init__(self, url: str, api_key: str | None = None, timeout: int = 30) -> None:
-        self.client = QdrantClient(url=url, api_key=api_key, timeout=timeout, https=url.startswith("https"))
+        with warnings.catch_warnings():
+            # HTTP sans TLS attendu sur le réseau interne de Docker (Qdrant non publié, ADR-0025) ;
+            # l'avertissement du client répété à chaque démarrage n'apporte rien.
+            warnings.filterwarnings("ignore", "Api key is used with an insecure connection")
+            self.client = QdrantClient(url=url, api_key=api_key, timeout=timeout, https=url.startswith("https"))
 
     def ensure_collection(self, name: str, dimension: int) -> None:
         if self.client.collection_exists(name):
