@@ -120,6 +120,10 @@ URAG_PG_SUPERUSER_PASSWORD=$(secret)
 URAG_APP_DB_PASSWORD=$(secret)
 URAG_QDRANT_API_KEY=$(secret)
 ENV
+  # Images choisies à l'installation (miroir, version figée) : mémorisées pour les scripts suivants.
+  for v in URAG_APP_IMAGE URAG_WEB_IMAGE URAG_POSTGRES_IMAGE URAG_QDRANT_IMAGE URAG_OLLAMA_IMAGE URAG_TIKA_IMAGE; do
+    [[ -n "${!v:-}" ]] && echo "$v=${!v}" >> "$ENV_FILE"
+  done
   chmod 600 "$ENV_FILE"
   echo "secrets générés dans $ENV_FILE (droits 600)"
 fi
@@ -175,6 +179,19 @@ if [[ "$PULL_LLM" == 1 ]]; then
   "${COMPOSE[@]}" exec -T ollama ollama pull "$CHAT_MODEL" || echo "ATTENTION : téléchargement du modèle échoué, à relancer"
 fi
 
+step "Sauvegarde quotidienne"
+if [[ -d /etc/cron.d ]]; then
+  cat > /etc/cron.d/urag-backup <<CRON
+# Universal RAG Engine : sauvegarde vérifiée chaque nuit (14 conservées). Journal : /var/log/urag-backup.log
+SHELL=/bin/bash
+17 2 * * * root $INFRA/scripts/backup.sh --kind scheduled >> /var/log/urag-backup.log 2>&1
+CRON
+  chmod 644 /etc/cron.d/urag-backup
+  echo "planifiée à 2 h 17 (/etc/cron.d/urag-backup) ; copiez aussi les sauvegardes hors du serveur (--dest)"
+else
+  echo "ATTENTION : cron absent ; planifiez $INFRA/scripts/backup.sh --kind scheduled chaque jour"
+fi
+
 step "Test de santé (HTTPS)"
 ok=0
 for _ in $(seq 1 60); do
@@ -191,6 +208,6 @@ Installation terminée.
   Adresse        : https://$SITE$( [[ "$HTTPS_PORT" == 443 ]] || echo ":$HTTPS_PORT" )
   Administrateur : voir $ADMIN_SECRET_FILE (mot de passe provisoire, à changer puis supprimer le fichier)
   Clé maîtresse  : $DATA_DIR/master.key — à sauvegarder À PART des sauvegardes de la base
-  Sauvegarde     : infrastructure/scripts/backup.sh (à planifier chaque jour)
+  Sauvegarde     : chaque nuit (backup.sh) ; exportez la clé : master-key.sh export FICHIER
 $( [[ "$TLS" == internal && -z "$TLS_CERT" ]] && echo "  Certificat     : autorité interne du serveur ; à installer sur les postes : $DATA_DIR/caddy/caddy/pki/authorities/local/root.crt" )
 TXT
