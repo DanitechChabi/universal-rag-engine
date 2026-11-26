@@ -61,7 +61,7 @@ services:
     command: ["urag-api"]
     environment:
       <<: *app-env
-      URAG_API_WORKERS: ${URAG_API_WORKERS:-4}
+      URAG_API_WORKERS: ${URAG_API_WORKERS:-2}
       URAG_FORWARDED_ALLOW_IPS: "*"  # seul Caddy joint l'API (réseau interne)
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/admin/health', timeout=5).status != 200)"]

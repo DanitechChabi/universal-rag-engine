@@ -47,10 +47,9 @@ class OnnxReranker:
         self._tokenizer = Tokenizer.from_file(str(model_dir / "tokenizer.json"))
         self._tokenizer.enable_truncation(max_tokens, strategy="only_second")  # la question n'est jamais coupée
         self._tokenizer.enable_padding()
-        options = ort.SessionOptions()
-        if threads:
-            options.intra_op_num_threads = threads
-        self._session = ort.InferenceSession(str(model_path), options, providers=["CPUExecutionProvider"])
+        from ..embeddings import onnx_options
+
+        self._session = ort.InferenceSession(str(model_path), onnx_options(threads), providers=["CPUExecutionProvider"])
         # Un seul calcul à la fois par processus : un calcul occupe déjà tous les cœurs, et des
         # calculs simultanés n'augmentent pas le débit mais multiplient la mémoire (~0,5 Go chacun).
         self._lock = threading.Lock()
@@ -74,10 +73,10 @@ class OnnxReranker:
         return out
 
 
-def build_reranker(settings) -> Reranker | None:
+def build_reranker(settings, threads: int | None = None) -> Reranker | None:
     """``none`` (défaut) ou ``onnx`` (dossier du modèle requis)."""
     if (settings.rerank_backend or "none") == "none":
         return None
     if settings.rerank_backend == "onnx":
-        return OnnxReranker(settings.rerank_model_dir)
+        return OnnxReranker(settings.rerank_model_dir, threads=threads or settings.onnx_threads or None)
     raise RerankError(f"reclassement inconnu : {settings.rerank_backend}")

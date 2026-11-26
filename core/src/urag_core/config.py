@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     api_host: str = "127.0.0.1"  # 0.0.0.0 dans le conteneur (réseau interne seulement)
     api_port: int = 8000
     api_workers: int = 1
+    onnx_threads: int = 0  # fils de calcul ONNX par processus ; 0 : cœurs / processus de l'API (tous pour le worker)
     forwarded_allow_ips: str = "127.0.0.1"  # adresse du relais HTTPS autorisé à transmettre l'IP cliente
     login_max_failures: int = 5
 

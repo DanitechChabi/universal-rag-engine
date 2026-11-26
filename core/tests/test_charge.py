@@ -72,3 +72,18 @@ def test_admission_limitee_puis_refus():
         assert time.perf_counter() - t >= 0.09  # attend avant de refuser
     with r.admit():  # places rendues, y compris après un refus
         pass
+
+
+def test_options_onnx_pour_serveur_partage():
+    from urag_core.config import Settings
+    from urag_core.embeddings import api_onnx_threads, onnx_options
+
+    o = onnx_options(2)
+    assert o.enable_cpu_mem_arena is False and o.intra_op_num_threads == 2
+    assert o.get_session_config_entry("session.intra_op.allow_spinning") == "0"
+    import os
+
+    cores = os.cpu_count() or 1
+    assert api_onnx_threads(Settings(api_workers=2)) == max(1, cores // 2)  # cœurs partagés entre processus
+    assert api_onnx_threads(Settings(api_workers=64)) == 1
+    assert api_onnx_threads(Settings(api_workers=2, onnx_threads=3)) == 3  # valeur imposée

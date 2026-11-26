@@ -68,6 +68,12 @@ mkdir -p "$DATA_DIR"
 free_gb=$(df -Pk "$DATA_DIR" | awk 'NR==2 {print int($4/1048576)}')
 echo "mémoire : ${mem_gb} Go ; espace libre dans $DATA_DIR : ${free_gb} Go"
 (( mem_gb >= 15 )) || echo "ATTENTION : 16 Go de mémoire au moins sont recommandés"
+# Processus de l'API : chacun charge l'encodeur et le reclassement (≈ 2,5 Go) ; le reste de la
+# mémoire va à PostgreSQL, Qdrant, au worker et à Ollama (docs/DEPLOYMENT.md §2.4).
+api_workers=$(( (mem_gb - 9) / 3 ))  # 16 Go (15 visibles) : 2 ; 32 Go : 4
+if (( api_workers < 1 )); then api_workers=1; fi
+if (( api_workers > 4 )); then api_workers=4; fi
+echo "processus de l'API : $api_workers"
 (( free_gb >= 40 )) || echo "ATTENTION : 40 Go d'espace libre au moins sont recommandés (modèles, index, sauvegardes)"
 if [[ "$GPU" == auto ]]; then
   if command -v nvidia-smi >/dev/null && docker info 2>/dev/null | grep -qi nvidia; then GPU=oui; else GPU=non; fi
@@ -115,7 +121,7 @@ URAG_DOCUMENTS_DIR=$DOCUMENTS_DIR
 URAG_SITE_ADDRESS=$SITE
 URAG_TLS=$tls_value
 URAG_HTTPS_PORT=$HTTPS_PORT
-URAG_API_WORKERS=4
+URAG_API_WORKERS=$api_workers
 URAG_PG_SUPERUSER_PASSWORD=$(secret)
 URAG_APP_DB_PASSWORD=$(secret)
 URAG_QDRANT_API_KEY=$(secret)
