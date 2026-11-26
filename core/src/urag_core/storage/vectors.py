@@ -35,6 +35,7 @@ class VectorHit:
 # filtrée sur une organisation parmi plusieurs perd des résultats (mesuré : le bon passage
 # passait du rang 1 à au-delà du rang 30 dès qu'une deuxième organisation était présente).
 TENANT_HNSW = qm.HnswConfigDiff(m=0, payload_m=16)
+UPSERT_BATCH = 256  # points par requête d'écriture
 
 
 class VectorStore:
@@ -79,11 +80,17 @@ class VectorStore:
         for p in points:
             if p.payload.get("org_id") != str(org_id):
                 raise ValueError("point sans l'organisation attendue")
-        self.client.upsert(
-            collection_name=collection,
-            points=[qm.PointStruct(id=str(p.id), vector=p.vector, payload=p.payload) for p in points],
-            wait=True,
-        )
+        # Par lots : un gros document (plus de mille fragments) envoyé d'un bloc dépassait le délai
+        # de 30 s sur une machine chargée (OCR en parallèle) — trouvé en phase 7 sur le corpus public.
+        for start in range(0, len(points), UPSERT_BATCH):
+            self.client.upsert(
+                collection_name=collection,
+                points=[
+                    qm.PointStruct(id=str(p.id), vector=p.vector, payload=p.payload)
+                    for p in points[start : start + UPSERT_BATCH]
+                ],
+                wait=True,
+            )
 
     def search(
         self,

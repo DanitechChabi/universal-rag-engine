@@ -76,3 +76,22 @@ def test_refus_explicite_exclut_le_point(store):
     assert s.search(name, org, same, ["xg:juridique", "xu:bruno"], 10) == []  # le refus l'emporte
     s.set_access_keys(name, org, "d1", ["xg:juridique"], [])
     assert len(s.search(name, org, same, ["xg:juridique", "xu:bruno"], 10)) == 1
+
+
+def test_gros_document_envoye_par_lots(store, monkeypatch):
+    """Phase 7 : un document de plus de mille fragments ne part plus en une seule requête."""
+    s, name = store
+    s.ensure_collection(name, 8)
+    calls: list[int] = []
+    original = s.client.upsert
+
+    def counted(**kw):
+        calls.append(len(kw["points"]))
+        return original(**kw)
+
+    monkeypatch.setattr(s.client, "upsert", counted)
+    org = uuid.uuid4()
+    points = [VectorPoint(uuid.uuid4(), [0.1] * 8, {"org_id": str(org), "access_keys": ["g:tous"]}) for _ in range(600)]
+    s.upsert(name, org, points)
+    assert calls == [256, 256, 88]
+    assert s.client.count(name, exact=True).count == 600
