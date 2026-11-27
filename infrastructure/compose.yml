@@ -23,6 +23,8 @@ x-app-env: &app-env
   URAG_EMBEDDING_MODEL_DIR: /models/bge-m3-onnx
   URAG_RERANK_BACKEND: onnx
   URAG_RERANK_MODEL_DIR: /models/bge-reranker-v2-m3-onnx
+  # Seuls dossiers indexables par une source « fichiers locaux » (le dossier de documents monté).
+  URAG_LOCAL_FILES_ALLOWED_ROOTS: /documents
 
 x-app: &app
   image: ${URAG_APP_IMAGE:-urag-app:latest}

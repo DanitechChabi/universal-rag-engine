@@ -7,7 +7,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from urag_core.audit import record
@@ -25,6 +25,7 @@ from ..deps import (
 from ..state import AppState
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+IP_WINDOW_S = 900  # fenêtre de la limite par adresse
 INVALID = ("auth.invalid", "Identifiant ou mot de passe incorrect")  # même message pour tous les cas
 
 
@@ -89,25 +90,49 @@ def _set_cookies(response: Response, state: AppState, access: str, refresh: str)
 
 @router.post("/login")
 def login(body: LoginIn, request: Request, response: Response, state: AppState = Depends(get_state)):
+    ip = _client_ip(request)
     with state.db.anonymous() as conn:
+        # Même mot de passe essayé sur de nombreux comptes : limite par adresse, avant toute
+        # vérification (le blocage par compte ne voit pas cette attaque).
+        if (
+            ip
+            and conn.execute(
+                text("SELECT urag_login_failures_from(CAST(:ip AS inet), :w)"), {"ip": ip, "w": IP_WINDOW_S}
+            ).scalar_one()
+            >= state.settings.login_max_failures_per_ip
+        ):
+            raise HTTPException(
+                429,
+                detail={
+                    "code": "auth.too_many_attempts",
+                    "title": "Trop d'essais depuis cette adresse, réessayez plus tard",
+                },
+                headers={"Retry-After": str(IP_WINDOW_S)},
+            )
         account = conn.execute(text("SELECT * FROM urag_auth_lookup(:l)"), {"l": body.login}).first()
     now = datetime.now(UTC)
     if account is None:
         state.hasher.verify(None, body.password)  # même coût de calcul : pas d'oracle temporel
         raise problem(401, *INVALID)
-    if account.locked_until is not None and account.locked_until > now:
-        raise problem(423, "auth.locked", "Compte temporairement verrouillé, réessayez plus tard")
-    ok = state.hasher.verify(account.password_hash, body.password) and account.status == "active"
     with state.db.org(account.org_id) as conn:
-        if not ok:
-            failures = account.failed_logins + 1
+        # Ligne du compte verrouillée jusqu'à la fin : des essais envoyés en parallèle passent l'un
+        # après l'autre et lisent chacun le compteur à jour (sinon le blocage se contourne).
+        current = conn.execute(
+            text("SELECT failed_logins, locked_until FROM users WHERE id = :u FOR UPDATE"), {"u": account.user_id}
+        ).one()
+        locked = current.locked_until is not None and current.locked_until > now
+        ok = not locked and state.hasher.verify(account.password_hash, body.password) and account.status == "active"
+        if locked:
+            pass  # aucune vérification du mot de passe pendant le blocage
+        elif not ok:
+            failures = current.failed_logins + 1
             limit = state.settings.login_max_failures
-            locked = None
+            until = None
             if failures >= limit:
-                locked = now + min(timedelta(hours=1), timedelta(minutes=2 ** (failures - limit)))
+                until = now + min(timedelta(hours=1), timedelta(minutes=2 ** (failures - limit)))
             conn.execute(
                 text("UPDATE users SET failed_logins = :f, locked_until = :l WHERE id = :u"),
-                {"f": failures, "l": locked, "u": account.user_id},
+                {"f": failures, "l": until, "u": account.user_id},
             )
             record(
                 conn,
@@ -125,6 +150,8 @@ def login(body: LoginIn, request: Request, response: Response, state: AppState =
             )
             access, refresh, roles = _open_session(conn, state, account.org_id, account.user_id, uuid.uuid4(), request)
             record(conn, account.org_id, "auth.login", actor=account.user_id, ip=_client_ip(request))
+    if locked:
+        raise problem(423, "auth.locked", "Compte temporairement verrouillé, réessayez plus tard")
     if not ok:
         raise problem(401, *INVALID)
     csrf = _set_cookies(response, state, access, refresh)
@@ -185,8 +212,10 @@ def logout(response: Response, user: CurrentUser = Depends(current_user), state:
     with state.db.org(user.org_id) as conn:
         conn.execute(text("UPDATE sessions SET revoked_at = now() WHERE id = :s"), {"s": user.session_id})
         record(conn, user.org_id, "auth.logout", actor=user.user_id)
-    for name in (ACCESS_COOKIE, REFRESH_COOKIE, CSRF_COOKIE):
-        response.delete_cookie(name)
+    # Mêmes chemins et attributs qu'à la création, sinon le navigateur garde les cookies.
+    secure = state.settings.cookie_secure
+    for name, path in ((ACCESS_COOKIE, "/api"), (REFRESH_COOKIE, "/api/v1/auth"), (CSRF_COOKIE, "/")):
+        response.delete_cookie(name, path=path, secure=secure, httponly=name != CSRF_COOKIE, samesite="strict")
 
 
 @router.get("/me")

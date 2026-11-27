@@ -82,7 +82,11 @@ python infrastructure/scripts/verify-install.py --url https://rag.cabinet.local 
   Certificat de l'entreprise : `--tls-cert` et `--tls-key`.
 - **Dossiers de documents** : montés en lecture seule dans `/documents` ; ils doivent être
   lisibles par l'uid 10001 (`setfacl -R -m u:10001:rX /srv/documents`). Une source « fichiers
-  locaux » se déclare sur `/documents/<sous-dossier>`.
+  locaux » se déclare sur `/documents/<sous-dossier>` : c'est le **seul** dossier autorisé
+  (`URAG_LOCAL_FILES_ALLOWED_ROOTS=/documents` dans `compose.yml`) ; toute autre racine est refusée,
+  pour qu'un administrateur documentaire ne puisse pas faire indexer les fichiers du serveur.
+  Plusieurs organisations sur un même serveur : leur donner des sous-dossiers distincts et
+  vérifier les racines déclarées (la règle est commune à l'installation).
 - **Proxy d'entreprise** : `docker build --secret id=extra_ca,src=<autorité du proxy>` (le
   certificat ne reste pas dans l'image) ; images de base surchargeables (`--build-arg
   PYTHON_IMAGE=…`, `NODE_IMAGE`, `CADDY_IMAGE`) pour passer par un miroir.

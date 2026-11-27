@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import zipfile
 from dataclasses import dataclass, field
 from importlib.metadata import version as _version
 from pathlib import Path
@@ -405,11 +406,34 @@ def extract_with_tika(path: Path, tika_url: str, timeout: float = 120.0) -> Extr
     )
 
 
+# Formats Office récents = archives ZIP : contrôlées avant ouverture (« bombe de décompression » :
+# quelques Ko qui se décompressent en plusieurs Go et épuisent la mémoire du worker).
+OOXML = {".docx", ".xlsx", ".pptx"}
+MAX_UNCOMPRESSED = 512 * 1024 * 1024
+MAX_RATIO = 200  # compression au-delà de 200:1 sur un gros élément : anormale pour un document
+
+
+def check_archive(path: Path) -> None:
+    try:
+        with zipfile.ZipFile(path) as z:
+            infos = z.infolist()
+    except zipfile.BadZipFile as e:
+        raise ExtractionError(f"fichier Office illisible : {e}") from e
+    total = sum(i.file_size for i in infos)
+    if total > MAX_UNCOMPRESSED:
+        raise UnsupportedFormatError(f"archive trop volumineuse une fois décompressée ({total // 2**20} Mo)")
+    for i in infos:
+        if i.file_size > 10 * 2**20 and i.file_size > MAX_RATIO * max(i.compress_size, 1):
+            raise UnsupportedFormatError(f"archive suspecte : taux de compression anormal ({i.filename})")
+
+
 def extract(path: Path, ocr=None, tika_url: str | None = None) -> ExtractedDocument:
     """Extrait un document ; ``ocr`` (moteur OCR) est utilisé pour les pages et images sans texte,
     ``tika_url`` (service Tika) pour les formats anciens."""
     suffix = path.suffix.lower()
     extractor = EXTRACTORS.get(suffix)
+    if suffix in OOXML:
+        check_archive(path)
     if extractor is None and suffix in LEGACY_FORMATS:
         if not tika_url:
             raise UnsupportedFormatError(f"format ancien {suffix} : service Tika non configuré")

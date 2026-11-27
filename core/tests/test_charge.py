@@ -87,3 +87,17 @@ def test_options_onnx_pour_serveur_partage():
     assert api_onnx_threads(Settings(api_workers=2)) == max(1, cores // 2)  # cœurs partagés entre processus
     assert api_onnx_threads(Settings(api_workers=64)) == 1
     assert api_onnx_threads(Settings(api_workers=2, onnx_threads=3)) == 3  # valeur imposée
+
+
+def test_bombe_de_decompression_refusee(tmp_path):
+    import zipfile
+
+    from urag_core.extraction import UnsupportedFormatError, extract
+
+    bomb = tmp_path / "piege.docx"
+    with zipfile.ZipFile(bomb, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", "<Types/>")
+        z.writestr("word/document.xml", b"\0" * (64 * 2**20))  # 64 Mo de zéros : ~64 Ko compressés
+    assert bomb.stat().st_size < 2**20
+    with pytest.raises(UnsupportedFormatError, match="compression anormal"):
+        extract(bomb)

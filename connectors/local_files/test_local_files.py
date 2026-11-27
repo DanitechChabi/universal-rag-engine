@@ -65,3 +65,28 @@ def test_droits_espace_seulement():
 def test_noms_ignores():
     assert all(is_ignored_name(n) for n in ("~$a.docx", ".~lock.a#", "Thumbs.db", "a.tmp", ".cache"))
     assert not is_ignored_name("rapport.pdf")
+
+
+def test_racine_hors_des_dossiers_autorises_refusee(tmp_path, monkeypatch):
+    allowed = tmp_path / "documents"
+    (allowed / "service").mkdir(parents=True)
+    monkeypatch.setenv("URAG_LOCAL_FILES_ALLOWED_ROOTS", str(allowed))
+    LocalFilesConnector({"roots": [str(allowed / "service")]})  # sous-dossier : accepté
+    for root in ("/", "/run", str(tmp_path), str(allowed / ".." / "autre"), str(allowed) + "-voisin"):
+        with pytest.raises(AccessDeniedError, match="non autorisé"):
+            LocalFilesConnector({"roots": [root]})
+
+
+def test_lien_symbolique_vers_l_exterieur_refuse(tmp_path, monkeypatch):
+    allowed = tmp_path / "documents"
+    allowed.mkdir()
+    (allowed / "raccourci").symlink_to("/etc")
+    monkeypatch.setenv("URAG_LOCAL_FILES_ALLOWED_ROOTS", str(allowed))
+    with pytest.raises(AccessDeniedError):
+        LocalFilesConnector({"roots": [str(allowed / "raccourci")]})  # résolu avant le contrôle
+
+
+def test_sans_dossier_autorise_aucune_source_locale(tmp_path, monkeypatch):
+    monkeypatch.delenv("URAG_LOCAL_FILES_ALLOWED_ROOTS", raising=False)
+    with pytest.raises(AccessDeniedError, match="aucun"):
+        LocalFilesConnector({"roots": [str(tmp_path)]})  # fermé par défaut

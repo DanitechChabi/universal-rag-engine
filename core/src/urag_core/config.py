@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     onnx_threads: int = 0  # fils de calcul ONNX par processus ; 0 : cœurs / processus de l'API (tous pour le worker)
     forwarded_allow_ips: str = "127.0.0.1"  # adresse du relais HTTPS autorisé à transmettre l'IP cliente
     login_max_failures: int = 5
+    login_max_failures_per_ip: int = 20  # échecs par adresse en 15 min, tous comptes confondus ; puis 429
 
     extra_ollama_options: dict[str, float] = Field(default_factory=dict)
 

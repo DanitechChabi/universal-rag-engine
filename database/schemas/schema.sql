@@ -562,6 +562,8 @@ CREATE TABLE audit_log (
     created_at    timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX audit_log_org_time ON audit_log (org_id, created_at DESC);
+CREATE INDEX audit_log_login_failures ON audit_log (ip, created_at)
+    WHERE action = 'auth.login' AND outcome = 'failure';  -- limite par adresse (migration 0010)
 
 CREATE FUNCTION urag_audit_append_only() RETURNS trigger
     LANGUAGE plpgsql AS $$
@@ -694,6 +696,15 @@ CREATE FUNCTION urag_orgs_with_stale_jobs(stale_after_seconds integer) RETURNS S
     WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => stale_after_seconds)
 $$;
 
+-- Échecs de connexion récents depuis une adresse, toutes organisations confondues : limite
+-- contre l'essai d'un même mot de passe sur de nombreux comptes (migration 0010).
+CREATE FUNCTION urag_login_failures_from(client_ip inet, window_seconds integer) RETURNS integer
+    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+    SELECT count(*)::integer FROM audit_log
+    WHERE action = 'auth.login' AND outcome = 'failure' AND ip = client_ip
+      AND created_at > now() - make_interval(secs => window_seconds)
+$$;
+
 -- -----------------------------------------------------------------------------
 -- Métriques de supervision (docs/DEPLOYMENT.md §5) : agrégats de toute l'installation, sans
 -- contenu ni identifiant. Droits de urag_maintenance (lecture seule).
@@ -763,5 +774,7 @@ ALTER FUNCTION urag_metrics() OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_metrics() FROM PUBLIC;
 ALTER FUNCTION urag_orgs_with_stale_jobs(integer) OWNER TO urag_maintenance;
 REVOKE EXECUTE ON FUNCTION urag_orgs_with_stale_jobs(integer) FROM PUBLIC;
+ALTER FUNCTION urag_login_failures_from(inet, integer) OWNER TO urag_maintenance;
+REVOKE EXECUTE ON FUNCTION urag_login_failures_from(inet, integer) FROM PUBLIC;
 
 COMMIT;

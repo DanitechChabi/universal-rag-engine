@@ -6,6 +6,13 @@ Configuration (non secrète) :
     exclude_globs      motifs de chemins relatifs à exclure (ex. "archives/**")
     max_size_bytes     taille maximale (défaut 200 Mo)
 
+Dossiers autorisés : fixés par l'installation dans la variable d'environnement
+``URAG_LOCAL_FILES_ALLOWED_ROOTS`` (dossiers séparés par « : », « ; » sous Windows), jamais
+par la configuration de la source. Une racine hors de ces dossiers est refusée ; sans la
+variable, aucune source locale n'est acceptée (fermé par défaut). Sans cette règle, un
+administrateur documentaire pourrait faire indexer n'importe quel fichier lisible par le
+service (clé maîtresse, configuration, dossiers d'une autre organisation).
+
 Pas de droits propres : chaque document reçoit l'entrée « space ». Le cœur la
 traduit en clé ``sp:<espace>`` seulement si la source est configurée pour hériter
 de l'espace ; sinon le document n'est visible par personne (fermé par défaut).
@@ -55,6 +62,14 @@ DEFAULT_EXTENSIONS = (
     ".jpeg",
     ".md",
 )
+ALLOWED_ROOTS_ENV = "URAG_LOCAL_FILES_ALLOWED_ROOTS"
+
+
+def allowed_roots() -> list[Path]:
+    raw = os.environ.get(ALLOWED_ROOTS_ENV, "")
+    return [Path(r).expanduser().resolve() for r in raw.split(os.pathsep) if r.strip()]
+
+
 IGNORED_NAMES = {"thumbs.db", "desktop.ini", ".ds_store"}
 IGNORED_PREFIXES = ("~$", ".~lock.", "._")
 IGNORED_SUFFIXES = (".tmp", ".temp", ".swp", ".part", ".crdownload")
@@ -82,6 +97,13 @@ class LocalFilesConnector(BaseConnector):
         if not roots:
             raise UnsupportedError("au moins un dossier racine est requis")
         self.roots = [Path(r).expanduser().resolve() for r in roots]
+        permitted = allowed_roots()
+        outside = [str(r) for r in self.roots if not any(r.is_relative_to(a) for a in permitted)]
+        if outside:
+            raise AccessDeniedError(
+                f"dossier non autorisé par l'installation : {', '.join(outside)} "
+                f"(dossiers autorisés : {', '.join(map(str, permitted)) or 'aucun'} ; {ALLOWED_ROOTS_ENV})"
+            )
         self.extensions = tuple(e.lower() for e in config.get("include_extensions") or DEFAULT_EXTENSIONS)
         self.exclude_globs = tuple(config.get("exclude_globs") or ())
         self.max_size = int(config.get("max_size_bytes") or 200 * 1024 * 1024)

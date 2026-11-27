@@ -14,7 +14,7 @@ développeur aidé de Claude Code (`AUDIT_FAISABILITE.md` §8).
 | 5 | IA hybride : routeur, Ollama, premier fournisseur externe, politiques, quotas, coûts | 3–4 sem. | scénarios 14, 15 ; tests de politique | **livrée** (`docs/reports/PHASE5.md`) ; modèle local recommandé mesuré sur GPU (ADR-0024) ; adaptateurs Ollama, compatible OpenAI, Gemini et Anthropic (Claude) |
 | 7 | Server : Docker Compose de production, HTTPS, supervision, sauvegarde/restauration, tests de charge | 4–6 sem. | installation sur serveur vierge ; restauration testée ; rapport de charge | **livrée sur serveur d'essai** (`docs/reports/PHASE7.md`) : installation de zéro, sinistre et restauration, mises à jour, rapport de charge sur CPU ; reste l'essai sur un **serveur GPU loué** (installation vierge et charge réelle) |
 | 6 | Desktop : Tauri, services embarqués, installateur signé, mises à jour | 6–10 sem. | installation sur Windows 11 vierge sans prérequis | à faire — PC Windows 16 Go, certificat de signature |
-| 8 | Validation : tests utilisateurs, sécurité, documentation, licences, installations pilotes | 4–8 sem. | critères de recette du MVP (section 21) | à faire |
+| 8 | Validation : tests utilisateurs, sécurité, documentation, licences, installations pilotes | 4–8 sem. | critères de recette du MVP (section 21) | **en cours** : licences (`docs/LICENCES.md`, contrôle en CI) et revue de sécurité (`docs/reports/SECURITE-PHASE8.md`, 7 défauts corrigés) faites ; restent tests utilisateurs, test d'intrusion, documentation, installations pilotes |
 
 ---
 

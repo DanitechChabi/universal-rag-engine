@@ -206,6 +206,12 @@ INSERT INTO audit_log (org_id, action) VALUES ('a0000000-0000-0000-0000-00000000
 SELECT pg_temp.expect_error($$UPDATE audit_log SET action = 'falsifié'$$, '42501');
 SELECT pg_temp.expect_error($$DELETE FROM audit_log$$, '42501');
 SELECT pg_temp.expect_error($$SELECT urag_audit_purge(interval '365 days')$$, '42501');
+INSERT INTO audit_log (org_id, action, outcome, ip)
+    VALUES ('a0000000-0000-0000-0000-000000000001', 'auth.login', 'failure', '192.0.2.7');
+SET urag.org_id = '';  -- compté sans organisation (avant d'identifier le compte), sans lire le journal
+SELECT pg_temp.check(urag_login_failures_from('192.0.2.7', 900) = 1
+    AND urag_login_failures_from('192.0.2.8', 900) = 0, 'échecs de connexion comptés par adresse');
+SET urag.org_id = 'a0000000-0000-0000-0000-000000000001';
 
 -- 12. Politique IA : « local uniquement » interdit tout envoi externe.
 INSERT INTO ai_policies (org_id) VALUES ('a0000000-0000-0000-0000-000000000001');

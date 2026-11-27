@@ -253,6 +253,7 @@ def main() -> int:
                 json=[{"principal_type": "user", "principal_id": str(ids["user_id"])}],
             )
             roots = [str(args.files.resolve()), str((EVAL / "corpus" / "synthetic").resolve())]
+            os.environ.setdefault("URAG_LOCAL_FILES_ALLOWED_ROOTS", os.pathsep.join(roots))
             source = client.post(
                 "/api/v1/sources",
                 headers=h,

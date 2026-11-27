@@ -96,7 +96,10 @@ Un changement de droits change le hachage des clés et invalide le cache.
   requêtes qui modifient. Desktop : API liée à `127.0.0.1` avec un secret de
   démarrage partagé entre Tauri et le service local.
 - Verrouillage : 5 échecs ⇒ 1 min, puis durée doublée à chaque série (max. 1 h) ;
-  message d'erreur identique pour compte inconnu et mauvais mot de passe.
+  message d'erreur identique pour compte inconnu et mauvais mot de passe. Les essais d'un même
+  compte sont traités l'un après l'autre (ligne verrouillée en base) : des essais simultanés
+  ne contournent pas le blocage. Le compte super-administrateur ne peut être ni désactivé ni
+  modifié dans ses rôles par un administrateur d'organisation.
 - Comptes désactivés : refus immédiat, sessions révoquées. **À chaque requête**, l'API vérifie en
   base que la session est ouverte et le compte actif, et relit les rôles : un rôle retiré ou une
   session fermée s'applique à la requête suivante, sans attendre l'expiration du jeton (phase 4).
@@ -201,7 +204,16 @@ restaurations.
   réseau interne Docker.
 - Qdrant protégé par clé d'API même en réseau interne.
 - En-têtes de sécurité (CSP stricte, `X-Content-Type-Options`, `Referrer-Policy`).
-- Limitation du débit par utilisateur et par adresse sur la connexion et `/chat`.
+- Connexion : blocage par compte (§3) et **limite par adresse** (20 échecs en 15 minutes, tous
+  comptes confondus, puis 429 avec `Retry-After`), calculée en base pour tous les processus.
+  Recherche et questions : file d'attente bornée par processus, puis 503 « serveur occupé »
+  (phase 7) ; consommation externe bornée par les plafonds (phase 5). Pas de limite de débit
+  par utilisateur au-delà.
+- Sources « fichiers locaux » : racines limitées aux dossiers fixés par l'installation
+  (`URAG_LOCAL_FILES_ALLOWED_ROOTS`), contrôlées par le connecteur à chaque usage (API et
+  worker) ; aucune source locale sans cette variable.
+- Documents Office (archives ZIP) : taille décompressée et taux de compression contrôlés avant
+  ouverture (bombes de décompression).
 - Desktop : aucun port en écoute hors `127.0.0.1`.
 
 ---
@@ -226,3 +238,4 @@ démarrage en cas d'arrêt brutal.
 | Rôles sur chaque route | tests de matrice RBAC générés depuis le tableau §2.1 (phase 1 et 4) |
 | Injection de prompt | corpus d'injection (phase 1, puis chaque version) |
 | Secrets jamais exposés | tests API + recherche de secrets dans les réponses et journaux (phase 5) |
+| Correctifs de la revue de sécurité | `tests/integration/test_phase8.py`, `connectors/local_files/test_local_files.py`, `core/tests/test_charge.py` (phase 8, `docs/reports/SECURITE-PHASE8.md`) |

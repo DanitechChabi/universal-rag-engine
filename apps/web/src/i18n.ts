@@ -8,7 +8,9 @@ export const t = {
     password: "Mot de passe",
     submit: "Se connecter",
     pending: "Connexion…",
-    invalid: "Identifiant ou mot de passe incorrect, ou compte temporairement verrouillé.",
+    invalid: "Identifiant ou mot de passe incorrect.",
+    locked: "Compte temporairement verrouillé après plusieurs échecs. Réessayez dans quelques minutes.",
+    tooMany: "Trop d'essais de connexion depuis ce poste. Réessayez dans 15 minutes.",
     unavailable: "Le service est indisponible. Réessayez dans un instant.",
   },
   nav: {

@@ -155,6 +155,7 @@ def main() -> int:
     app_url = make_url(admin_db).set(username=role, password=role_password).render_as_string(hide_password=False)
 
     work = Path(tempfile.mkdtemp(prefix="urag-e2e-"))
+    os.environ.setdefault("URAG_LOCAL_FILES_ALLOWED_ROOTS", str(work))  # seule racine indexable
     corpus = build_corpus(work / "corpus")
     for junk in ("~$brouillon.docx", "Thumbs.db"):
         (corpus / junk).unlink(missing_ok=True)

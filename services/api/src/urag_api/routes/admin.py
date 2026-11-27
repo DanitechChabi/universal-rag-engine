@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from urag_connectors_base import ConnectorError, load_connector_class
+from urag_connectors_base import AccessDeniedError, ConnectorError, load_connector_class
 from urag_core.audit import record
 from urag_core.jobs import enqueue
 from urag_core.security import WeakPasswordError
@@ -161,6 +161,14 @@ def create_source(
 ):
     if SECRET_FIELDS & {k.lower() for k in body.config}:
         raise problem(422, "source.secret_in_config", "Les identifiants se saisissent à part (chiffrés)")
+    if body.kind == "local_files":
+        # Contrôle des dossiers autorisés par l'installation (refait par le worker à chaque usage).
+        try:
+            load_connector_class(body.kind)(dict(body.config))
+        except AccessDeniedError as e:
+            raise problem(422, "source.root_not_allowed", str(e)) from None
+        except ConnectorError as e:
+            raise problem(422, "source.bad_config", str(e)) from None
     with state.db.org(user.org_id) as conn:
         if conn.execute(text("SELECT 1 FROM spaces WHERE id = :s"), {"s": body.space_id}).first() is None:
             raise problem(422, "source.bad_space", "Espace inconnu")

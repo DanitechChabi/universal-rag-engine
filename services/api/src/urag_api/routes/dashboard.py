@@ -96,8 +96,16 @@ def update_user(
             422, "user.self_lockout", "Vous ne pouvez ni vous désactiver ni retirer votre propre rôle d'administrateur"
         )
     with state.db.org(user.org_id) as conn:
-        if conn.execute(text("SELECT 1 FROM users WHERE id = :u"), {"u": user_id}).first() is None:
+        target = conn.execute(
+            text("""SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = u.id AND role = 'super_admin') AS sa
+                    FROM users u WHERE u.id = :u"""),
+            {"u": user_id},
+        ).first()
+        if target is None:
             raise problem(404, "user.not_found", "Utilisateur introuvable")
+        if target.sa and "super_admin" not in user.roles and (body.status is not None or body.roles is not None):
+            # Le compte d'administration de l'installation ne dépend pas d'un administrateur d'organisation.
+            raise problem(403, "user.protected", "Seul un super-administrateur peut modifier ce compte")
         if body.display_name is not None:
             conn.execute(
                 text("UPDATE users SET display_name = :d WHERE id = :u"), {"d": body.display_name, "u": user_id}
@@ -113,7 +121,8 @@ def update_user(
                     {"u": user_id},
                 )
         if body.roles is not None:
-            conn.execute(text("DELETE FROM user_roles WHERE user_id = :u"), {"u": user_id})
+            # super_admin n'est jamais attribué ni retiré par cet écran (rôle de l'installation).
+            conn.execute(text("DELETE FROM user_roles WHERE user_id = :u AND role <> 'super_admin'"), {"u": user_id})
             for role in sorted(set(body.roles)):
                 conn.execute(
                     text("INSERT INTO user_roles (org_id, user_id, role) VALUES (:o, :u, CAST(:r AS user_role))"),

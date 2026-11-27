@@ -43,6 +43,7 @@ def create_app(state: AppState) -> FastAPI:
             status_code=exc.status_code,
             media_type="application/problem+json",
             content={"type": "about:blank", "status": exc.status_code, **detail},
+            headers=getattr(exc, "headers", None),  # ex. Retry-After
         )
 
     @app.middleware("http")

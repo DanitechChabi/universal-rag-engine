@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import secrets
 import sys
+import tempfile
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -19,6 +20,9 @@ import httpx
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
+
+# Sources locales des tests : dossiers temporaires seulement (règle de l'installation).
+os.environ.setdefault("URAG_LOCAL_FILES_ALLOWED_ROOTS", tempfile.gettempdir())
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 

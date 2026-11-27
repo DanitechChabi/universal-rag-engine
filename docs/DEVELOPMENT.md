@@ -41,6 +41,16 @@ URAG_COOKIE_SECURE=false
 URAG_TMP_DIR=.urag-dev/tmp
 ```
 
+Dossiers qu'une source « fichiers locaux » a le droit d'indexer (lus par le connecteur dans
+l'environnement du processus, pas dans `.env`) :
+
+```bash
+export URAG_LOCAL_FILES_ALLOWED_ROOTS=$HOME/urag-corpus   # plusieurs dossiers : séparés par « : »
+```
+
+Sans cette variable, aucune source locale n'est acceptée (fermé par défaut, revue de sécurité
+de la phase 8).
+
 ```
 uv run urag-admin gen-key .urag-dev/master.key
 uv run urag-api        # http://127.0.0.1:8000/api/v1/docs

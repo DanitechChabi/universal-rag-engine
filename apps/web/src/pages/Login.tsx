@@ -20,7 +20,10 @@ export function Login() {
     try {
       await login(String(form.get("login") ?? ""), String(form.get("password") ?? ""));
     } catch (err) {
-      setError(err instanceof ApiError && err.status < 500 ? t.login.invalid : t.login.unavailable);
+      if (!(err instanceof ApiError) || err.status >= 500) setError(t.login.unavailable);
+      else if (err.status === 423) setError(t.login.locked);
+      else if (err.status === 429) setError(t.login.tooMany);
+      else setError(t.login.invalid);
     } finally {
       setPending(false);
     }
