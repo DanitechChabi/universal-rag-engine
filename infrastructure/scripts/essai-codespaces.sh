@@ -24,7 +24,9 @@ for tool in python3 openssl curl; do command -v "$tool" >/dev/null || missing+=(
 if (( ${#missing[@]} )); then
   sudo apt-get update -q && sudo apt-get install -y -q "${missing[@]}"
 fi
-docker info >/dev/null 2>&1 || { echo "Docker ne répond pas : attendez la fin du démarrage du codespace et relancez." >&2; exit 1; }
+# Au premier démarrage du codespace, Docker peut mettre quelques secondes à répondre.
+for _ in $(seq 1 60); do docker info >/dev/null 2>&1 && break; sleep 2; done
+docker info >/dev/null 2>&1 || { echo "Docker ne répond pas : relancez ce script dans un instant." >&2; exit 1; }
 
 step "Images (≈ 10 minutes la première fois)"
 # URAG_BUILD_ARGS : options supplémentaires (proxy d'entreprise, miroir d'images), facultatives.
@@ -58,12 +60,16 @@ else
   touch "$DATA/.essai-indexe"
 fi
 
+# Copie lisible par l'utilisateur du codespace (privé), pour l'ouvrir dans l'éditeur.
+ACCES="$HOME/ACCES-ESSAI.txt"
+sudo cat "$DATA/server/premier-administrateur.txt" > "$ACCES"
+chmod 600 "$ACCES"
+
 cat <<TXT
 
 Essai prêt.
   1. Onglet « PORTS » de Codespaces : ouvrez l'adresse du port $PORT (icône du globe).
-  2. Identifiant : admin ; mot de passe provisoire :
-       sudo cat $DATA/server/premier-administrateur.txt
+  2. Identifiant et mot de passe provisoire : fichier $ACCES
   3. Questions d'essai : docs/ESSAI-CODESPACES.md.
 Arrêtez le codespace après l'essai (le temps gratuit est compté pendant qu'il tourne).
 TXT

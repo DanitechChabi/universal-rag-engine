@@ -9,42 +9,29 @@ Limites de l'essai : pas de GPU, donc un **petit modèle de génération** (qwen
 répond en 30 secondes à 1 minute, et moins fiable que le modèle recommandé sur un vrai serveur.
 La recherche, les citations, l'administration et les droits fonctionnent comme en production.
 
-## 1. Créer le codespace (2 minutes)
+## 1. Lancer l'essai : un lien, puis attendre ≈ 20 minutes
 
-1. Sur un **ordinateur** (un téléphone convient mal au terminal), ouvrez la page du dépôt sur
-   github.com.
-2. Bouton vert **« Code »**, onglet **« Codespaces »**, menu **« … »** à droite, puis
-   **« New with options… »**.
-3. Choisissez la **branche** à essayer (ex. `claude/phase-8-licences-securite`) et le type de
-   machine **4-core / 16 GB**, puis **« Create codespace »**.
-4. Un éditeur s'ouvre dans le navigateur, avec un **terminal** en bas (sinon : menu ☰ →
-   Terminal → New Terminal).
+1. Connecté à GitHub (de préférence sur un ordinateur), ouvrez :
+   **https://codespaces.new/DanitechChabi/universal-rag-engine/tree/claude/phase-8-licences-securite**
+2. Vérifiez que la machine est **4-core / 16 GB**, puis **« Create codespace »**.
+3. Attendez : tout s'installe seul (construction, 6 documents publics, modèles, indexation,
+   vérification d'une recherche). Pour suivre l'avancement : en bas de l'éditeur, le lien
+   « View creation log » ou l'onglet « TERMINAL ».
 
-## 2. Lancer l'essai (≈ 15 à 20 minutes la première fois)
-
-Dans le terminal, collez :
+Si l'installation s'est interrompue, relancez-la dans le terminal (sans rien perdre) :
 
 ```bash
 bash infrastructure/scripts/essai-codespaces.sh
 ```
 
-Le script construit l'application, télécharge 6 documents publics (BCEAO, FSB), installe le
-serveur, télécharge les modèles, indexe les documents et vérifie une recherche. Il se termine par
-« Essai prêt ».
+## 2. Ouvrir l'application
 
-Mot de passe provisoire de l'administrateur :
+- L'application s'ouvre normalement seule dans un nouvel onglet. Sinon : onglet **« PORTS »** →
+  ligne **8443 « Universal RAG Engine »** → icône du **globe**.
+- **Identifiant et mot de passe** : dans l'éditeur, ouvrez le fichier `~/ACCES-ESSAI.txt`
+  (menu ☰ → File → Open File…, ou dans le terminal : `cat ~/ACCES-ESSAI.txt`).
 
-```bash
-sudo cat ~/urag-essai/server/premier-administrateur.txt
-```
-
-## 3. Ouvrir l'application
-
-Onglet **« PORTS »** (à côté de « TERMINAL ») → ligne **8443 « Universal RAG Engine »** → icône
-du **globe** : l'application s'ouvre dans un nouvel onglet, en HTTPS. Identifiant **admin**, puis
-le mot de passe ci-dessus.
-
-## 4. Questions à essayer
+## 3. Questions à essayer
 
 | Question | Réponse attendue |
 |---|---|
@@ -66,13 +53,13 @@ avec **votre propre clé** (ex. Groq ou OpenRouter, offres gratuites), autorisez
 politique, puis testez le modèle. Les extraits des documents partent alors chez ce fournisseur :
 à réserver à des documents publics comme ceux de l'essai.
 
-## 5. Arrêter, reprendre, supprimer
+## 4. Arrêter, reprendre, supprimer
 
 - **Arrêter** : menu ☰ → « Codespaces : Stop Current Codespace » (ou github.com/codespaces). Le
   temps gratuit n'est décompté que pendant que le codespace tourne. Il s'arrête aussi seul après
   30 minutes d'inactivité.
-- **Reprendre** : github.com/codespaces → votre codespace. Puis, dans le terminal :
-  `cd infrastructure && sudo docker compose up -d` (les données sont conservées).
+- **Reprendre** : github.com/codespaces → votre codespace ; les services redémarrent seuls et
+  les données sont conservées.
 - **Supprimer** après l'essai : github.com/codespaces → « … » → Delete. L'espace disque est
   aussi décompté (15 Go-mois gratuits) tant que le codespace existe.
 

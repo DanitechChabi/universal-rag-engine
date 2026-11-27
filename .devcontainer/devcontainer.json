@@ -7,8 +7,11 @@
   },
   // Machine de 4 cœurs et 16 Go : 120 heures-cœur gratuites par mois, soit ≈ 30 heures.
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  // Création : tout l'essai s'installe seul (≈ 20 min) ; reprise : services relancés.
+  "postCreateCommand": "bash infrastructure/scripts/essai-codespaces.sh",
+  "postStartCommand": "if [ -f infrastructure/.env ]; then cd infrastructure && sudo docker compose up -d; fi",
   "forwardPorts": [8443],
   "portsAttributes": {
-    "8443": { "label": "Universal RAG Engine", "protocol": "http", "onAutoForward": "notify" }
+    "8443": { "label": "Universal RAG Engine", "protocol": "http", "onAutoForward": "openBrowser" }
   }
 }
