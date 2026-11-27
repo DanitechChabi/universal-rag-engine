@@ -47,7 +47,7 @@ services:
     image: ${URAG_WEB_IMAGE:-urag-web:latest}
     restart: unless-stopped
     logging: *logging
-    ports: ["${URAG_HTTPS_PORT:-443}:443"]
+    ports: ["${URAG_BIND_ADDRESS:-0.0.0.0}:${URAG_HTTPS_PORT:-443}:${URAG_WEB_CONTAINER_PORT:-443}"]
     environment:
       URAG_SITE_ADDRESS: ${URAG_SITE_ADDRESS}
       URAG_TLS: ${URAG_TLS:-internal}

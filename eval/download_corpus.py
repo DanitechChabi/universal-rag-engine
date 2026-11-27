@@ -47,9 +47,13 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--dest", required=True, type=Path)
     p.add_argument("--update-lock", action="store_true", help="accepter les nouvelles empreintes")
+    p.add_argument("--only", help="identifiants séparés par des virgules (sous-ensemble, ex. pour un essai)")
     args = p.parse_args()
     args.dest.mkdir(parents=True, exist_ok=True)
     sources = json.loads(SOURCES.read_text(encoding="utf-8"))["documents"]
+    if args.only:
+        wanted = {x.strip() for x in args.only.split(",")}
+        sources = [d for d in sources if d["id"] in wanted]
     lock = json.loads(LOCK.read_text(encoding="utf-8")) if LOCK.exists() else {}
     changed, failed = [], []
     for doc in sources:

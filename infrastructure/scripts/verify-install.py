@@ -40,14 +40,16 @@ def main() -> int:
     def login() -> None:
         r = c.post("/auth/login", json={"login": args.login, "password": password})
         r.raise_for_status()
-        h["x-csrf-token"] = r.json()["csrf_token"]
+        # Jeton porteur plutôt que cookies : ceux-ci sont « Secure » et ne repartent pas en HTTP
+        # simple (installation derrière un relais HTTPS, vérifiée en local).
+        h["Authorization"] = f"Bearer {r.json()['access_token']}"
 
     def get(path: str, **kw) -> dict:
         """Lecture qui se reconnecte si la session a expiré (jeton d'accès de 15 min)."""
-        r = c.get(path, **kw)
+        r = c.get(path, headers=h, **kw)
         if r.status_code == 401:
             login()
-            r = c.get(path, **kw)
+            r = c.get(path, headers=h, **kw)
         r.raise_for_status()
         return r.json()
 

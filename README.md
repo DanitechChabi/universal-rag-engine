@@ -25,6 +25,7 @@ Démarrage : [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 | [Modèles d'IA](docs/AI_MODELS.md) | routeur, politiques, embeddings, licences |
 | [Contrats d'API](docs/API.md) | conventions, routes, rôles, flux de réponse |
 | [Déploiement](docs/DEPLOYMENT.md) | Server, Desktop, sauvegarde, supervision |
+| [Essai gratuit](docs/ESSAI-CODESPACES.md) | Essayer le produit dans GitHub Codespaces, sans carte bancaire |
 | [Plan de tests](docs/TESTING.md) | niveaux, scénarios, qualité RAG, sécurité, charge |
 | [Feuille de route](docs/ROADMAP.md) | phases, conditions de sortie, décisions |
 | [Développement](docs/DEVELOPMENT.md) | lancer la pile, l'API, le worker et les tests |

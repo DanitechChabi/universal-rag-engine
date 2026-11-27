@@ -80,6 +80,9 @@ python infrastructure/scripts/verify-install.py --url https://rag.cabinet.local 
 - **Certificat** : par défaut, autorité interne du serveur ; installer
   `<données>/caddy/caddy/pki/authorities/local/root.crt` sur les postes (stratégie de groupe).
   Certificat de l'entreprise : `--tls-cert` et `--tls-key`.
+- **Derrière un relais HTTPS existant** (relais de l'entreprise, GitHub Codespaces pour un essai :
+  `docs/ESSAI-CODESPACES.md`) : `install-server.sh --behind-proxy` ; Caddy sert alors en HTTP
+  simple, publié sur `127.0.0.1` seulement, et c'est le relais qui chiffre.
 - **Dossiers de documents** : montés en lecture seule dans `/documents` ; ils doivent être
   lisibles par l'uid 10001 (`setfacl -R -m u:10001:rX /srv/documents`). Une source « fichiers
   locaux » se déclare sur `/documents/<sous-dossier>` : c'est le **seul** dossier autorisé

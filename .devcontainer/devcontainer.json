@@ -1,0 +1,14 @@
+{
+  // Essai du mode Server dans GitHub Codespaces (docs/ESSAI-CODESPACES.md).
+  "name": "Universal RAG Engine — essai",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  // Machine de 4 cœurs et 16 Go : 120 heures-cœur gratuites par mois, soit ≈ 30 heures.
+  "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  "forwardPorts": [8443],
+  "portsAttributes": {
+    "8443": { "label": "Universal RAG Engine", "protocol": "http", "onAutoForward": "notify" }
+  }
+}

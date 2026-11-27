@@ -12,7 +12,7 @@ set -euo pipefail
 INFRA=$(cd "$(dirname "$0")/.." && pwd)
 SITE="" ORG_NAME="" ORG_SLUG="" ADMIN_LOGIN="admin"
 DATA_DIR=/var/lib/urag DOCUMENTS_DIR=/srv/documents HTTPS_PORT=443
-TLS=internal MODELS_FROM="" CHAT_MODEL="qwen2.5:14b" PULL_LLM=1 GPU=auto
+TLS=internal MODELS_FROM="" CHAT_MODEL="qwen2.5:14b" PULL_LLM=1 GPU=auto BEHIND_PROXY=0
 
 usage() {
   cat <<'TXT'
@@ -29,6 +29,8 @@ Options :
   --chat-model NOM        modèle de génération local (défaut : qwen2.5:14b, ADR-0024)
   --no-llm                ne pas télécharger le modèle de génération
   --gpu oui|non|auto      génération sur GPU NVIDIA (défaut : détection)
+  --behind-proxy          derrière un relais HTTPS existant (ex. GitHub Codespaces, relais de
+                          l'entreprise) : HTTP simple, publié sur 127.0.0.1 seulement
 TXT
 }
 
@@ -48,6 +50,7 @@ while [[ $# -gt 0 ]]; do
     --chat-model) CHAT_MODEL=$2; shift 2 ;;
     --no-llm) PULL_LLM=0; shift ;;
     --gpu) GPU=$2; shift 2 ;;
+    --behind-proxy) BEHIND_PROXY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "option inconnue : $1" >&2; usage; exit 2 ;;
   esac
@@ -114,11 +117,19 @@ else
   else
     tls_value="$TLS"
   fi
+  site_value=$SITE bind_value=0.0.0.0 container_port=443
+  if [[ $BEHIND_PROXY == 1 ]]; then
+    # Le relais fournit le HTTPS : Caddy sert en HTTP (port 8080 du conteneur), joignable depuis
+    # cette machine seulement.
+    site_value="http://:8080" bind_value=127.0.0.1 container_port=8080
+  fi
   cat > "$ENV_FILE" <<ENV
 # Généré par install-server.sh le $(date -Iseconds). Contient des secrets : ne pas copier, ne pas committer.
 URAG_DATA_DIR=$DATA_DIR
 URAG_DOCUMENTS_DIR=$DOCUMENTS_DIR
-URAG_SITE_ADDRESS=$SITE
+URAG_SITE_ADDRESS=$site_value
+URAG_BIND_ADDRESS=$bind_value
+URAG_WEB_CONTAINER_PORT=$container_port
 URAG_TLS=$tls_value
 URAG_HTTPS_PORT=$HTTPS_PORT
 URAG_API_WORKERS=$api_workers
@@ -198,22 +209,24 @@ else
   echo "ATTENTION : cron absent ; planifiez $INFRA/scripts/backup.sh --kind scheduled chaque jour"
 fi
 
-step "Test de santé (HTTPS)"
+step "Test de santé"
+if [[ $BEHIND_PROXY == 1 ]]; then health_url="http://127.0.0.1:$HTTPS_PORT/api/v1/admin/health"
+else health_url="https://$SITE:$HTTPS_PORT/api/v1/admin/health"; fi
 ok=0
 for _ in $(seq 1 60); do
-  if curl -fsS -k --noproxy "*" --resolve "$SITE:$HTTPS_PORT:127.0.0.1" "https://$SITE:$HTTPS_PORT/api/v1/admin/health" 2>/dev/null \
+  if curl -fsS -k --noproxy "*" --resolve "$SITE:$HTTPS_PORT:127.0.0.1" "$health_url" 2>/dev/null \
       | grep -q '"status":"ok"'; then ok=1; break; fi
   sleep 3
 done
-[[ $ok == 1 ]] || fail "le service ne répond pas en HTTPS ; voir : docker compose logs"
+[[ $ok == 1 ]] || fail "le service ne répond pas ; voir : docker compose logs"
 echo "service en bonne santé"
 
 cat <<TXT
 
 Installation terminée.
-  Adresse        : https://$SITE$( [[ "$HTTPS_PORT" == 443 ]] || echo ":$HTTPS_PORT" )
+  Adresse        : $( if [[ $BEHIND_PROXY == 1 ]]; then echo "celle du relais HTTPS (port local $HTTPS_PORT)"; else echo "https://$SITE$( [[ "$HTTPS_PORT" == 443 ]] || echo ":$HTTPS_PORT" )"; fi )
   Administrateur : voir $ADMIN_SECRET_FILE (mot de passe provisoire, à changer puis supprimer le fichier)
   Clé maîtresse  : $DATA_DIR/master.key — à sauvegarder À PART des sauvegardes de la base
   Sauvegarde     : chaque nuit (backup.sh) ; exportez la clé : master-key.sh export FICHIER
-$( [[ "$TLS" == internal && -z "$TLS_CERT" ]] && echo "  Certificat     : autorité interne du serveur ; à installer sur les postes : $DATA_DIR/caddy/caddy/pki/authorities/local/root.crt" )
+$( [[ "$TLS" == internal && -z "$TLS_CERT" && $BEHIND_PROXY == 0 ]] && echo "  Certificat     : autorité interne du serveur ; à installer sur les postes : $DATA_DIR/caddy/caddy/pki/authorities/local/root.crt" )
 TXT
