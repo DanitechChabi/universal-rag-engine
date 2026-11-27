@@ -18,7 +18,7 @@ export type ChatEvent =
   | { name: "sources"; data: { candidates: number } }
   | { name: "token"; data: { text: string } }
   | { name: "citations"; data: { items: Citation[] } }
-  | { name: "done"; data: { insufficient: boolean; answer: string; reponse_incomplete?: boolean } }
+  | { name: "done"; data: { insufficient: boolean; answer: string; reponse_incomplete?: boolean; conversation?: boolean } }
   | { name: "error"; data: { code: string; detail: string } };
 
 export function parseSse(buffer: string): { events: ChatEvent[]; rest: string } {

@@ -175,6 +175,14 @@ Le contenu des documents est **toujours** une donnée non fiable.
    document piégé (2 réponses sur 40).
 7. Jeu de tests d'injection (`docs/TESTING.md` §5) exécuté à chaque version.
 
+### Échanges ordinaires (ADR-0027)
+
+Salutations, remerciements et questions sur l'assistant reçoivent une réponse naturelle du
+modèle **sans recherche ni extrait** ; il ne reçoit que la conversation, le prénom, le nom de
+l'organisation et quelques **titres** de documents accessibles (droits appliqués). Toute réponse
+contenant un nombre absent de ces données est remplacée par une présentation sobre : aucun fait
+non sourcé n'est affiché.
+
 ---
 
 ## 7. Journal d'audit

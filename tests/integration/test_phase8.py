@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from urag_api.main import create_app
 
-from tests.integration.test_phase1 import PASSWORD, env  # noqa: F401
+from tests.integration.test_phase1 import PASSWORD, env, sync  # noqa: F401
 
 pytestmark = pytest.mark.integration
 
@@ -107,3 +107,73 @@ def test_05_limite_des_echecs_par_adresse(env, database):
     assert r.headers["retry-after"] == "900"
     r = TestClient(app, client=(other, 50000)).post("/api/v1/auth/login", json={"login": name, "password": PASSWORD})
     assert r.status_code == 200  # les autres adresses ne sont pas touchées
+
+
+def _converse(env, who: str, message: str, reply: str):
+    """Pose un message en remplaçant la réponse du modèle factice ; renvoie (évènements, messages envoyés)."""
+    from tests.integration.conftest import sse_events
+
+    adapter, sent = env["adapter"], {}
+
+    def chat(model, messages, result):
+        sent["messages"] = messages
+        result.tokens_in, result.tokens_out = 50, 12
+        yield reply
+
+    original, adapter.chat = adapter.chat, chat
+    try:
+        r = env["client"].post("/api/v1/chat", headers=env[who], json={"question": message})
+    finally:
+        adapter.chat = original
+    assert r.status_code == 200, r.text
+    return sse_events(r.text), sent.get("messages")
+
+
+def test_06_conversation_naturelle_sans_recherche(env):
+    """« Bonjour » : réponse du modèle, naturelle, sans recherche ni extrait, avec les titres accessibles."""
+    sync(env)
+    events, messages = _converse(env, "bob", "Bonjour !", "Bonjour bob ! Que puis-je chercher pour vous ?")
+    names = [n for n, _ in events]
+    done = dict(events)["done"]
+    assert dict(events)["meta"]["conversation"] is True and done["conversation"] is True
+    assert done["answer"] == "Bonjour bob ! Que puis-je chercher pour vous ?" and not done["insufficient"]
+    assert "sources" not in names and dict(events)["citations"]["items"] == []
+    system = messages[0].content
+    assert "bob" in system and "titres seulement" in system  # prénom et documents accessibles
+    assert "EXTRAITS" not in "".join(m.content for m in messages)  # aucun contenu de document
+    # Suite de la conversation : l'échange précédent est transmis au modèle.
+    conv = dict(events)["meta"]["conversation_id"]
+    from tests.integration.conftest import sse_events
+
+    adapter, sent = env["adapter"], {}
+
+    def chat(model, msgs, result):
+        sent["m"] = msgs
+        yield "Avec plaisir !"
+
+    original, adapter.chat = adapter.chat, chat
+    try:
+        r = env["client"].post(
+            "/api/v1/chat", headers=env["bob"], json={"question": "Merci beaucoup", "conversation_id": conv}
+        )
+    finally:
+        adapter.chat = original
+    assert dict(sse_events(r.text))["done"]["answer"] == "Avec plaisir !"
+    assert any(m.role == "assistant" and "Bonjour bob" in m.content for m in sent["m"])
+
+
+def test_07_conversation_sans_fait_non_source(env):
+    """Si le modèle avance un chiffre en simple conversation, la réponse est remplacée."""
+    events, _ = _converse(env, "bob", "Salut", "Salut ! Le taux directeur est de 3,5 % en ce moment.")
+    done = dict(events)["done"]
+    assert "3,5" not in done["answer"] and "documentaire" in done["answer"]
+
+
+def test_08_question_documentaire_inchangee(env):
+    """Une question précédée d'une salutation reste une question documentaire, avec ses sources."""
+    from tests.integration.conftest import sse_events
+
+    sync(env)
+    r = env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Bonjour, quel est le loyer ?"})
+    events = dict(sse_events(r.text))
+    assert not events["done"].get("conversation") and events["citations"]["items"]

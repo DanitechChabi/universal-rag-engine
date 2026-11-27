@@ -192,7 +192,7 @@ export function Assistant() {
                 insufficient: ev.data.insufficient,
                 status: "done",
               });
-              if (!ev.data.insufficient) setSelected({ turn: key, rank: null });
+              if (!ev.data.insufficient && !ev.data.conversation) setSelected({ turn: key, rank: null });
               break;
             case "error":
               patch(key, {

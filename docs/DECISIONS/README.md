@@ -30,5 +30,6 @@ Une fiche par décision structurante : contexte, décision, alternatives écart�
 | [ADR-0024](ADR-0024-modele-local-par-defaut.md) | Modèle de génération local recommandé : Qwen2.5 14B (mesuré sur GPU) | acceptée |
 | [ADR-0025](ADR-0025-deploiement-server.md) | Déploiement Server : images, réseaux, secrets, sauvegarde vérifiée, supervision | acceptée |
 | [ADR-0026](ADR-0026-dossiers-autorises-et-limites-de-connexion.md) | Dossiers indexables fixés par l'installation ; limites de connexion | acceptée |
+| [ADR-0027](ADR-0027-echanges-ordinaires.md) | Échanges ordinaires : réponse naturelle du modèle, sans document ni fait | acceptée |
 
 Modèle pour une nouvelle fiche : `ADR-XXXX-titre.md` avec les sections Contexte, Décision, Alternatives écartées, Conséquences.
