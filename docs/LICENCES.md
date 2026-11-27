@@ -14,11 +14,11 @@ commerciale ou inconnue. Il tourne dans l'intégration continue (`.github/workfl
 une nouvelle dépendance interdite bloque la fusion. Inventaire généré :
 `docs/reports/licences-dependances.md`.
 
-Résultat de l'audit : **91 dépendances livrées, aucune refusée**.
+Résultat de l'audit : **92 dépendances livrées, aucune refusée** (dont `reportlab`, BSD, pour l'export PDF).
 
 | Classe | Nombre | Paquets |
 |---|---|---|
-| Permissive (MIT, BSD, Apache-2.0, PSF, ISC…) | 83 | dont les 11 paquets de l'interface web (React, React Router, TanStack Query : MIT) |
+| Permissive (MIT, BSD, Apache-2.0, PSF, ISC…) | 84 | dont les 11 paquets de l'interface web (React, React Router, TanStack Query : MIT) |
 | Copyleft faible | 4 | `psycopg`, `psycopg-binary` (LGPL-3.0) ; `certifi`, `tqdm` (MPL-2.0) |
 | Autre système (Windows, navigateur) | 4 | `colorama`, `pywin32`, `tzdata`, `httpx2-jsfetch` : non installés sous Linux, à contrôler à la construction du mode Desktop |
 

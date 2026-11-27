@@ -24,4 +24,5 @@ export const IconOpen = svg("M14 4h6v6M20 4l-9 9M18 14v6H4V6h6");
 export const IconPlus = svg("M12 5v14M5 12h14");
 export const IconEdit = svg("M4 20h4L19 9l-4-4L4 16zM14 6l4 4");
 export const IconTrash = svg("M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6");
+export const IconDownload = svg("M12 4v11M7 10l5 5 5-5M5 20h14");
 export const IconSearch = svg("M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4");

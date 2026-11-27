@@ -3,7 +3,7 @@
 Généré par `tools/verifier_licences.py` (ne pas modifier à la main). Explications et
 obligations : `docs/LICENCES.md`.
 
-91 dépendances ; 4 sous copyleft faible ; 0 refusées ou inconnues.
+92 dépendances ; 4 sous copyleft faible ; 0 refusées ou inconnues.
 
 | Écosystème | Paquet | Version | Licence | Classe |
 |---|---|---|---|---|
@@ -83,6 +83,7 @@ obligations : `docs/LICENCES.md`.
 | Python | PyYAML | 6.0.4 | MIT License | permissive |
 | Python | qdrant-client | 1.15.1 | Apache Software License | permissive |
 | Python | rapidocr | 3.10.0 | Apache-2.0 | permissive |
+| Python | reportlab | 5.1.0 | BSD License | permissive |
 | Python | requests | 2.34.2 | Apache Software License | permissive |
 | Python | shapely | 2.2.0 | BSD-3-Clause | permissive |
 | Python | six | 1.17.0 | MIT License | permissive |

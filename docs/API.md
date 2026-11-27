@@ -107,7 +107,7 @@ sont créées à la synchronisation et **ne donnent aucun droit** avant confirma
 | GET | `/conversations/{id}` | auteur | messages + citations (droits revérifiés : extrait retiré et réponse masquée, `masked`, si un document cité n'est plus accessible) |
 | PATCH | `/conversations/{id}` | auteur | renommer (`{title}`) |
 | DELETE | `/conversations/{id}` | auteur | suppression réelle (messages et citations effacés ; audit `conversation.delete`) |
-| GET | `/conversations/{id}/export?format=pdf\|docx\|md` | auteur | export |
+| GET | `/conversations/{id}/export?format=pdf\|docx\|md[&message_id=]` | auteur | export de la conversation, ou d'une réponse avec sa question ; sources citées (document, pages, source, date) ; mêmes règles de droits que la lecture ; audit `conversation.export` |
 | POST | `/messages/{id}/feedback` | auteur | `{value: 1 \| -1, comment?}` (signaler une réponse incorrecte) |
 
 `/chat/{id}` du cahier des charges est couvert par `/conversations/{id}`.

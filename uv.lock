@@ -1677,6 +1677,8 @@ source = { editable = "services/api" }
 dependencies = [
     { name = "fastapi" },
     { name = "prometheus-client" },
+    { name = "python-docx" },
+    { name = "reportlab" },
     { name = "urag-core" },
     { name = "uvicorn" },
 ]
@@ -1685,6 +1687,8 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "prometheus-client", specifier = ">=0.21" },
+    { name = "python-docx", specifier = ">=1.1" },
+    { name = "reportlab", specifier = ">=4.2" },
     { name = "urag-core", editable = "core" },
     { name = "uvicorn", specifier = ">=0.32" },
 ]

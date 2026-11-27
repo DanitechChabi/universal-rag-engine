@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import uuid
+from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from urag_core.audit import record
@@ -146,6 +148,53 @@ def _own_conversation(conn, conversation_id: uuid.UUID, user: CurrentUser):
     return conv
 
 
+@router.get("/conversations/{conversation_id}/export")
+def export_conversation(
+    conversation_id: uuid.UUID,
+    format: Literal["pdf", "docx", "md"] = "pdf",  # noqa: A002 - nom du paramètre public (docs/API.md)
+    message_id: uuid.UUID | None = None,
+    user: CurrentUser = Depends(require(*CAN_ASK)),
+    state: AppState = Depends(get_state),
+):
+    """Export de la conversation, ou d'une seule réponse (``message_id``) avec sa question (§8.4, §10.4)."""
+    from ..export import FORMATS, filename
+
+    view = conversation_view(state, user, conversation_id)
+    if message_id is not None:
+        ids = [m["id"] for m in view["messages"]]
+        if str(message_id) not in ids:
+            raise problem(404, "message.not_found", "Réponse introuvable")
+        i = ids.index(str(message_id))
+        start = i - 1 if i > 0 and view["messages"][i - 1]["role"] == "user" else i
+        view = {**view, "messages": view["messages"][start : i + 1]}
+    with state.db.org(user.org_id) as conn:
+        who = conn.execute(
+            text("""SELECT u.display_name, o.name FROM users u JOIN organizations o ON o.id = u.org_id
+                    WHERE u.id = :u"""),
+            {"u": user.user_id},
+        ).one()
+        record(
+            conn,
+            user.org_id,
+            "conversation.export",
+            actor=user.user_id,
+            target_type="conversation",
+            target_id=str(conversation_id),
+            details={"format": format, "reponse_seule": message_id is not None},
+        )
+    build, media_type, ext = FORMATS[format]
+    content = build(view, who.name, who.display_name)
+    name = filename(view["title"], ext)
+    return Response(
+        content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename=\"export.{ext}\"; filename*=UTF-8''{quote(name)}",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @router.patch("/conversations/{conversation_id}", status_code=204)
 def rename_conversation(
     conversation_id: uuid.UUID,
@@ -182,6 +231,11 @@ def delete_conversation(
 def conversation(
     conversation_id: uuid.UUID, user: CurrentUser = Depends(require(*CAN_ASK)), state: AppState = Depends(get_state)
 ):
+    return conversation_view(state, user, conversation_id)
+
+
+def conversation_view(state: AppState, user: CurrentUser, conversation_id: uuid.UUID) -> dict:
+    """Conversation telle que l'utilisateur a le droit de la voir maintenant (lecture et export)."""
     with state.db.org(user.org_id) as conn:
         conv = _own_conversation(conn, conversation_id, user)
         scope = AccessScope.for_user(conn, user.org_id, user.user_id)
@@ -193,9 +247,10 @@ def conversation(
         cites = conn.execute(
             text("""
             SELECT c.message_id, c.rank, c.document_id, c.page_start, c.page_end, c.excerpt, d.title,
+                   d.source_modified_at, s.name AS source_name,
                    (urag_doc_visible(d.access_keys, d.deny_keys, CAST(:keys AS text[])) AND d.acl_status = 'complete'
                     AND d.deleted_at IS NULL) AS accessible
-            FROM citations c JOIN documents d ON d.id = c.document_id
+            FROM citations c JOIN documents d ON d.id = c.document_id JOIN sources s ON s.id = d.source_id
             WHERE c.message_id = ANY(CAST(:ids AS uuid[])) ORDER BY c.rank"""),
             {"keys": list(scope.keys), "ids": [str(m.id) for m in messages]},
         ).all()
@@ -209,6 +264,8 @@ def conversation(
                 "pages": _pages(c.page_start, c.page_end) if c.accessible else None,
                 "title": c.title if c.accessible else None,
                 "excerpt": c.excerpt if c.accessible else None,
+                "source": c.source_name if c.accessible else None,
+                "modified": c.source_modified_at.date().isoformat() if c.accessible and c.source_modified_at else None,
                 "accessible": c.accessible,
             }
         )

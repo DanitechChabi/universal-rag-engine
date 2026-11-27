@@ -198,6 +198,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .history-actions button { border: 0; background: transparent; border-radius: var(--radius-sm); padding: 4px; cursor: pointer; color: var(--text-2); display: inline-flex; }
 .history-actions button:hover { background: var(--surface-2); color: inherit; }
 .history-rename { width: 100%; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+.export-links { display: inline-flex; gap: 2px; }
+.export-links svg { width: 14px; height: 14px; }
 .msg-masked { font-style: italic; opacity: .75; }
 .thread { display: grid; grid-template-rows: 1fr auto; grid-auto-rows: auto; min-height: 0; }
 .messages { overflow: auto; padding: 28px clamp(16px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px; }

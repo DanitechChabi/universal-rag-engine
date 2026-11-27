@@ -53,6 +53,8 @@ export const t = {
     confirmDelete: (title: string) =>
       `Supprimer définitivement la conversation « ${title} » ? Ses messages seront effacés.`,
     actionFailed: "L'opération a échoué. Réessayez.",
+    export: "Exporter la réponse",
+    exportTitle: (format: string) => `Exporter cette réponse et ses sources (${format})`,
     conversation: "Conversation",
     searching: "Recherche dans les documents…",
     sources: "Sources",

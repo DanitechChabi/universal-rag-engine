@@ -242,3 +242,58 @@ def test_11_reponse_masquee_apres_retrait_des_droits(env):
         assert any(m["role"] == "user" and "loyer" in m["content"] for m in after)  # sa question reste visible
     finally:
         c.put(f"/api/v1/spaces/{env['space']}/grants", headers=env["admin_a"], json=grants)
+
+
+def test_12_export_des_reponses(env):
+    """§8.4, §10.4 : export Markdown, Word et PDF, avec les sources ; jamais pour autrui."""
+    import io
+
+    import pypdfium2
+    from docx import Document
+
+    sync(env)
+    c = env["client"]
+    conv = _ask(env, "bob", "Quel est le montant du loyer mensuel ?")
+    _ask_in = c.post(
+        "/api/v1/chat", headers=env["bob"], json={"question": "Et la date de signature ?", "conversation_id": conv}
+    )
+    assert _ask_in.status_code == 200
+    url = f"/api/v1/conversations/{conv}/export"
+
+    md = c.get(url, headers=env["bob"], params={"format": "md"})
+    assert md.status_code == 200 and md.headers["content-type"].startswith("text/markdown")
+    assert "attachment" in md.headers["content-disposition"] and md.headers["cache-control"] == "no-store"
+    text_md = md.text
+    assert "Quel est le montant du loyer" in text_md and "450 000" in text_md and "**Sources**" in text_md
+    assert "date de signature" in text_md  # toute la conversation
+
+    docx = c.get(url, headers=env["bob"], params={"format": "docx"})
+    body = "\n".join(p.text for p in Document(io.BytesIO(docx.content)).paragraphs)
+    assert "450 000" in body and "Sources" in body and "vérifiez-les" in body
+
+    pdf = c.get(url, headers=env["bob"], params={"format": "pdf"})
+    assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
+    doc = pypdfium2.PdfDocument(pdf.content)
+    pdf_text = "".join(doc[i].get_textpage().get_text_range() for i in range(len(doc)))
+    assert "450 000" in pdf_text and "Sources" in pdf_text and "montant du loyer" in pdf_text
+
+    # Une seule réponse, avec sa question.
+    view = c.get(f"/api/v1/conversations/{conv}", headers=env["bob"]).json()["messages"]
+    first_answer = next(m for m in view if m["role"] == "assistant")
+    one = c.get(url, headers=env["bob"], params={"format": "md", "message_id": first_answer["id"]}).text
+    assert "montant du loyer" in one and "date de signature" not in one
+
+    assert c.get(url, headers=env["carol"], params={"format": "pdf"}).status_code == 404
+    assert c.get(url, headers=env["bob"], params={"format": "exe"}).status_code == 422
+
+
+def test_13_export_respecte_le_retrait_des_droits(env):
+    c = env["client"]
+    conv = _ask(env, "bob", "Quel est le montant du loyer mensuel ?")
+    grants = [{"principal_type": "user", "principal_id": env["bob_id"]}]
+    c.put(f"/api/v1/spaces/{env['space']}/grants", headers=env["admin_a"], json=[])
+    try:
+        md = c.get(f"/api/v1/conversations/{conv}/export", headers=env["bob"], params={"format": "md"}).text
+        assert "masquée" in md and "450 000" not in md and "devenu inaccessible" in md
+    finally:
+        c.put(f"/api/v1/spaces/{env['space']}/grants", headers=env["admin_a"], json=grants)

@@ -17,6 +17,7 @@ import {
 } from "../chat";
 import {
   IconCopy,
+  IconDownload,
   IconEdit,
   IconOpen,
   IconPlus,
@@ -38,6 +39,7 @@ type Turn = {
   rewritten?: string | null;
   status: "streaming" | "done" | "stopped" | "error";
   error?: string;
+  messageId?: string;
 };
 
 type ConversationSummary = {
@@ -144,6 +146,7 @@ export function Assistant() {
             key: m.id,
             role: m.role,
             content: m.content,
+            messageId: m.id,
             citations: m.citations,
             insufficient: m.insufficient || m.masked,
             locality: m.locality,
@@ -210,6 +213,7 @@ export function Assistant() {
           switch (ev.name) {
             case "meta":
               patch(key, {
+                messageId: ev.data.message_id,
                 model: ev.data.model,
                 locality: ev.data.model?.locality ?? null,
                 rewritten: ev.data.question_reformulee,
@@ -388,6 +392,7 @@ export function Assistant() {
               <Answer
                 key={turn.key}
                 turn={turn}
+                conversationId={conversationId}
                 active={selected?.turn === turn.key}
                 onCite={(rank) => setSelected({ turn: turn.key, rank })}
                 onSources={() => setSelected({ turn: turn.key, rank: null })}
@@ -515,11 +520,13 @@ export function Assistant() {
 
 function Answer({
   turn,
+  conversationId,
   active,
   onCite,
   onSources,
 }: {
   turn: Turn;
+  conversationId: string | null;
   active: boolean;
   onCite: (rank: number) => void;
   onSources: () => void;
@@ -590,6 +597,21 @@ function Answer({
           >
             <IconCopy /> {copied ? a.copied : a.copy}
           </button>
+          {turn.status === "done" && turn.messageId && conversationId && (
+            <span className="export-links" aria-label={a.export}>
+              {(["pdf", "docx"] as const).map((format) => (
+                <a
+                  key={format}
+                  className="btn btn-ghost small"
+                  href={`${API}/conversations/${conversationId}/export?format=${format}&message_id=${turn.messageId}`}
+                  download
+                  title={a.exportTitle(format === "pdf" ? "PDF" : "Word")}
+                >
+                  <IconDownload /> {format === "pdf" ? "PDF" : "Word"}
+                </a>
+              ))}
+            </span>
+          )}
           {(turn.model || turn.locality) && (
             <span
               className={`badge ${local ? "badge-ok" : "badge-warn"}`}

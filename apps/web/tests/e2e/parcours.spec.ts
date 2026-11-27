@@ -230,3 +230,21 @@ test("historique : rechercher, renommer et supprimer une conversation (§8.4)", 
   await expect(renamed).toHaveCount(0);
   await expect(history).toBeVisible();
 });
+
+test("export d'une réponse en PDF et en Word, avec ses sources (§10.4)", async ({ page }) => {
+  await login(page, "alice");
+  const answer = await ask(page, "Quel est le loyer mensuel du bail ?");
+  for (const [label, ext, magic] of [
+    ["PDF", ".pdf", "%PDF"],
+    ["Word", ".docx", "PK"],
+  ] as const) {
+    const [download] = await Promise.all([page.waitForEvent("download"), answer.getByRole("link", { name: label }).click()]);
+    expect(download.suggestedFilename()).toMatch(new RegExp(`\\${ext}$`));
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const body = Buffer.concat(chunks);
+    expect(body.subarray(0, magic.length).toString()).toBe(magic);
+    expect(body.length).toBeGreaterThan(1000);
+  }
+});
