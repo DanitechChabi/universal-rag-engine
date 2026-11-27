@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useSearchParams } from "react-router";
-import { api, ApiError, API } from "../api";
+import { api, ApiError, API, del } from "../api";
 import { useAuth } from "../auth";
 import {
   splitCitations,
@@ -17,10 +17,13 @@ import {
 } from "../chat";
 import {
   IconCopy,
+  IconEdit,
   IconOpen,
   IconPlus,
   IconSend,
+  IconSearch,
   IconStop,
+  IconTrash,
 } from "../components/icons";
 import { t } from "../i18n";
 
@@ -49,6 +52,7 @@ type ConversationDetail = {
     role: "user" | "assistant";
     content: string;
     insufficient: boolean;
+    masked?: boolean;
     locality: string | null;
     citations: Citation[];
   }>;
@@ -87,10 +91,46 @@ export function Assistant() {
   const models = usable.data?.items ?? [];
   const chosen = models.find((x) => x.id === modelId) ?? models[0];
 
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [renaming, setRenaming] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const history = useQuery({
-    queryKey: ["conversations"],
-    queryFn: () => api<{ items: ConversationSummary[] }>("/conversations"),
+    queryKey: ["conversations", query],
+    queryFn: () =>
+      api<{ items: ConversationSummary[] }>(
+        `/conversations${query ? `?q=${encodeURIComponent(query)}` : ""}`,
+      ),
   });
+
+  async function rename(id: string, title: string) {
+    setRenaming(null);
+    const value = title.trim();
+    if (!value) return;
+    try {
+      await api(`/conversations/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: value }),
+      });
+    } catch {
+      window.alert(a.actionFailed);
+    }
+    void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+  }
+
+  async function remove(id: string, title: string) {
+    if (!window.confirm(a.confirmDelete(title || a.untitled))) return;
+    try {
+      await del(`/conversations/${id}`);
+      if (id === conversationId) newConversation();
+    } catch {
+      window.alert(a.actionFailed);
+    }
+    void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+  }
 
   useEffect(() => {
     if (!conversationId) return; // conversation vidée par « Nouvelle conversation », jamais en différé
@@ -105,7 +145,7 @@ export function Assistant() {
             role: m.role,
             content: m.content,
             citations: m.citations,
-            insufficient: m.insufficient,
+            insufficient: m.insufficient || m.masked,
             locality: m.locality,
             status: "done",
           })),
@@ -192,7 +232,8 @@ export function Assistant() {
                 insufficient: ev.data.insufficient,
                 status: "done",
               });
-              if (!ev.data.insufficient && !ev.data.conversation) setSelected({ turn: key, rank: null });
+              if (!ev.data.insufficient && !ev.data.conversation)
+                setSelected({ turn: key, rank: null });
               break;
             case "error":
               patch(key, {
@@ -257,30 +298,76 @@ export function Assistant() {
         >
           <IconPlus /> {a.newConversation}
         </button>
+        <label className="history-search">
+          <IconSearch />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={a.searchHistory}
+            aria-label={a.searchHistory}
+            maxLength={200}
+          />
+        </label>
         <nav className="history-list">
           {history.data?.items.length === 0 && (
-            <p className="small muted">{a.noHistory}</p>
+            <p className="small muted">{query ? a.noMatch : a.noHistory}</p>
           )}
-          {history.data?.items.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className="history-item"
-              aria-current={c.id === conversationId ? "page" : undefined}
-              onClick={() => {
-                createdHere.current = null;
-                setParams({ c: c.id });
-              }}
-            >
-              <span>{c.title || a.untitled}</span>
-              <time className="small muted" dateTime={c.updated_at}>
-                {new Date(c.updated_at).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "short",
-                })}
-              </time>
-            </button>
-          ))}
+          {history.data?.items.map((c) =>
+            renaming === c.id ? (
+              <input
+                key={c.id}
+                className="history-rename"
+                aria-label={a.renameLabel}
+                defaultValue={c.title ?? ""}
+                maxLength={200}
+                autoFocus
+                onBlur={(e) => void rename(c.id, e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                  if (e.key === "Escape") setRenaming(null);
+                }}
+              />
+            ) : (
+              <div key={c.id} className="history-row">
+                <button
+                  type="button"
+                  className="history-item"
+                  aria-current={c.id === conversationId ? "page" : undefined}
+                  onClick={() => {
+                    createdHere.current = null;
+                    setParams({ c: c.id });
+                  }}
+                >
+                  <span>{c.title || a.untitled}</span>
+                  <time className="small muted" dateTime={c.updated_at}>
+                    {new Date(c.updated_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </time>
+                </button>
+                <div className="history-actions">
+                  <button
+                    type="button"
+                    title={a.rename}
+                    aria-label={`${a.rename} : ${c.title || a.untitled}`}
+                    onClick={() => setRenaming(c.id)}
+                  >
+                    <IconEdit />
+                  </button>
+                  <button
+                    type="button"
+                    title={a.deleteConversation}
+                    aria-label={`${a.deleteConversation} : ${c.title || a.untitled}`}
+                    onClick={() => void remove(c.id, c.title ?? "")}
+                  >
+                    <IconTrash />
+                  </button>
+                </div>
+              </div>
+            ),
+          )}
         </nav>
       </aside>
 

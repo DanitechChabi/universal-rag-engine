@@ -188,6 +188,17 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .history-item:hover { background: var(--surface-2); }
 .history-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.history-search { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; background: var(--surface); }
+.history-search svg, .history-actions svg { width: 16px; height: 16px; flex: none; }
+.history-search input { border: 0; background: transparent; flex: 1; min-width: 0; font: inherit; font-size: 14px; color: inherit; outline: none; padding: 4px 0; }
+.history-row { position: relative; }
+.history-row .history-item { width: 100%; padding-right: 64px; }
+.history-actions { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; opacity: 0; }
+.history-row:hover .history-actions, .history-row:focus-within .history-actions { opacity: 1; }
+.history-actions button { border: 0; background: transparent; border-radius: var(--radius-sm); padding: 4px; cursor: pointer; color: var(--text-2); display: inline-flex; }
+.history-actions button:hover { background: var(--surface-2); color: inherit; }
+.history-rename { width: 100%; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--surface); color: inherit; }
+.msg-masked { font-style: italic; opacity: .75; }
 .thread { display: grid; grid-template-rows: 1fr auto; grid-auto-rows: auto; min-height: 0; }
 .messages { overflow: auto; padding: 28px clamp(16px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px; }
 .empty { margin: auto 0; display: grid; gap: 8px; max-width: 640px; }

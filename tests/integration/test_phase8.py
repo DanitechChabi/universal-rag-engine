@@ -177,3 +177,68 @@ def test_08_question_documentaire_inchangee(env):
     r = env["client"].post("/api/v1/chat", headers=env["bob"], json={"question": "Bonjour, quel est le loyer ?"})
     events = dict(sse_events(r.text))
     assert not events["done"].get("conversation") and events["citations"]["items"]
+
+
+def _ask(env, who: str, question: str) -> str:
+    from tests.integration.conftest import sse_events
+
+    r = env["client"].post("/api/v1/chat", headers=env[who], json={"question": question})
+    assert r.status_code == 200, r.text
+    return dict(sse_events(r.text))["meta"]["conversation_id"]
+
+
+def test_09_conversations_renommer_rechercher(env):
+    """§8.4 : renommage et recherche dans l'historique, limités à ses propres conversations."""
+    sync(env)
+    c = env["client"]
+    conv = _ask(env, "bob", "Quel est le montant du loyer mensuel ?")
+    assert (
+        c.patch(f"/api/v1/conversations/{conv}", headers=env["bob"], json={"title": "Bail du siège"}).status_code == 204
+    )
+    assert c.patch(f"/api/v1/conversations/{conv}", headers=env["carol"], json={"title": "x"}).status_code == 404
+    assert c.patch(f"/api/v1/conversations/{conv}", headers=env["bob"], json={"title": ""}).status_code == 422
+
+    def found(who, q):
+        r = c.get("/api/v1/conversations", headers=env[who], params={"q": q})
+        assert r.status_code == 200
+        return {x["id"] for x in r.json()["items"]}
+
+    assert conv in found("bob", "siège")  # titre
+    assert conv in found("bob", "LOYER mensuel")  # question posée, sans tenir compte de la casse
+    assert conv not in found("bob", "450 000")  # jamais dans les réponses
+    assert conv not in found("bob", "%")  # joker SQL pris à la lettre
+    assert conv not in found("carol", "siège")  # jamais les conversations d'autrui
+
+
+def test_10_suppression_reelle_d_une_conversation(env, database):
+    c = env["client"]
+    conv = _ask(env, "bob", "Quel est le montant du loyer ?")
+    assert c.delete(f"/api/v1/conversations/{conv}", headers=env["carol"]).status_code == 404
+    assert c.delete(f"/api/v1/conversations/{conv}", headers=env["bob"]).status_code == 204
+    assert c.get(f"/api/v1/conversations/{conv}", headers=env["bob"]).status_code == 404
+    assert conv not in {x["id"] for x in c.get("/api/v1/conversations", headers=env["bob"]).json()["items"]}
+    with create_engine(database["admin_url"]).connect() as conn:
+        left = conn.execute(text("SELECT count(*) FROM messages WHERE conversation_id = :c"), {"c": conv}).scalar_one()
+        audit = conn.execute(
+            text("SELECT count(*) FROM audit_log WHERE action = 'conversation.delete' AND target_id = :c"), {"c": conv}
+        ).scalar_one()
+    assert left == 0 and audit == 1  # contenu effacé ; trace de l'action conservée
+
+
+def test_11_reponse_masquee_apres_retrait_des_droits(env):
+    """§8.4 : une conversation ne redonne jamais accès à un document dont les droits ont été retirés."""
+    c = env["client"]
+    conv = _ask(env, "bob", "Quel est le montant du loyer mensuel ?")
+    before = c.get(f"/api/v1/conversations/{conv}", headers=env["bob"]).json()["messages"]
+    answer = next(m for m in before if m["role"] == "assistant")
+    assert answer["citations"] and not answer["masked"]
+    grants = [{"principal_type": "user", "principal_id": env["bob_id"]}]
+    c.put(f"/api/v1/spaces/{env['space']}/grants", headers=env["admin_a"], json=[])
+    try:
+        after = c.get(f"/api/v1/conversations/{conv}", headers=env["bob"]).json()["messages"]
+        masked = next(m for m in after if m["role"] == "assistant")
+        assert masked["masked"] and "masquée" in masked["content"] and "450" not in masked["content"]
+        assert all(x["excerpt"] is None for x in masked["citations"])
+        assert any(m["role"] == "user" and "loyer" in m["content"] for m in after)  # sa question reste visible
+    finally:
+        c.put(f"/api/v1/spaces/{env['space']}/grants", headers=env["admin_a"], json=grants)

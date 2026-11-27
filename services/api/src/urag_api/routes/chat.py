@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -76,6 +76,9 @@ class ChatIn(BaseModel):
     filters: Filters = Field(default_factory=Filters)
 
 
+MASKED = "Réponse masquée : un document qu'elle cite ne vous est plus accessible."
+
+
 def _pages(start: int | None, end: int | None) -> str:
     if start is None:
         return ""
@@ -107,14 +110,72 @@ def chat(body: ChatIn, user: CurrentUser = Depends(require(*CAN_ASK)), state: Ap
 
 
 @router.get("/conversations")
-def conversations(user: CurrentUser = Depends(require(*CAN_ASK)), state: AppState = Depends(get_state)):
+def conversations(
+    q: str | None = Query(default=None, max_length=200),
+    user: CurrentUser = Depends(require(*CAN_ASK)),
+    state: AppState = Depends(get_state),
+):
+    """Ses conversations ; ``q`` : recherche littérale dans les titres et dans ses propres questions
+    (jamais dans les réponses, qui peuvent reprendre un document devenu inaccessible)."""
+    like = "%" + (q or "").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
     with state.db.org(user.org_id) as conn:
         rows = conn.execute(
-            text("""SELECT id, title, updated_at FROM conversations
-                                    WHERE user_id = :u AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 200"""),
-            {"u": user.user_id},
+            text("""SELECT c.id, c.title, c.updated_at FROM conversations c
+                    WHERE c.user_id = :u AND c.deleted_at IS NULL
+                      AND (CAST(:q AS text) IS NULL
+                           OR c.title ILIKE :like ESCAPE '\\'
+                           OR EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.role = 'user'
+                                      AND m.content ILIKE :like ESCAPE '\\'))
+                    ORDER BY c.updated_at DESC LIMIT 200"""),
+            {"u": user.user_id, "q": q.strip() if q and q.strip() else None, "like": like},
         ).all()
     return {"items": [{"id": str(r.id), "title": r.title, "updated_at": r.updated_at} for r in rows]}
+
+
+class ConversationPatch(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+def _own_conversation(conn, conversation_id: uuid.UUID, user: CurrentUser):
+    conv = conn.execute(
+        text("SELECT id, title, user_id FROM conversations WHERE id = :c AND deleted_at IS NULL"),
+        {"c": conversation_id},
+    ).first()
+    if conv is None or conv.user_id != user.user_id:
+        raise problem(404, "conversation.not_found", "Conversation introuvable")
+    return conv
+
+
+@router.patch("/conversations/{conversation_id}", status_code=204)
+def rename_conversation(
+    conversation_id: uuid.UUID,
+    body: ConversationPatch,
+    user: CurrentUser = Depends(require(*CAN_ASK)),
+    state: AppState = Depends(get_state),
+):
+    with state.db.org(user.org_id) as conn:
+        _own_conversation(conn, conversation_id, user)
+        conn.execute(
+            text("UPDATE conversations SET title = :t WHERE id = :c"), {"t": body.title.strip(), "c": conversation_id}
+        )
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+def delete_conversation(
+    conversation_id: uuid.UUID, user: CurrentUser = Depends(require(*CAN_ASK)), state: AppState = Depends(get_state)
+):
+    """Suppression réelle : messages et citations effacés (cascade) ; l'audit garde la trace de l'action."""
+    with state.db.org(user.org_id) as conn:
+        _own_conversation(conn, conversation_id, user)
+        conn.execute(text("DELETE FROM conversations WHERE id = :c"), {"c": conversation_id})
+        record(
+            conn,
+            user.org_id,
+            "conversation.delete",
+            actor=user.user_id,
+            target_type="conversation",
+            target_id=str(conversation_id),
+        )
 
 
 @router.get("/conversations/{conversation_id}")
@@ -122,12 +183,7 @@ def conversation(
     conversation_id: uuid.UUID, user: CurrentUser = Depends(require(*CAN_ASK)), state: AppState = Depends(get_state)
 ):
     with state.db.org(user.org_id) as conn:
-        conv = conn.execute(
-            text("SELECT id, title, user_id FROM conversations WHERE id = :c AND deleted_at IS NULL"),
-            {"c": conversation_id},
-        ).first()
-        if conv is None or conv.user_id != user.user_id:
-            raise problem(404, "conversation.not_found", "Conversation introuvable")
+        conv = _own_conversation(conn, conversation_id, user)
         scope = AccessScope.for_user(conn, user.org_id, user.user_id)
         messages = conn.execute(
             text("""SELECT id, role::text AS role, content, insufficient, created_at, locality::text AS locality
@@ -156,6 +212,9 @@ def conversation(
                 "accessible": c.accessible,
             }
         )
+    # §8.4 : une réponse qui cite un document devenu inaccessible n'est plus affichée (son texte peut
+    # reprendre le contenu du document) ; la question de l'utilisateur reste visible.
+    masked = {mid for mid, items in by_message.items() if any(not c["accessible"] for c in items)}
     return {
         "id": str(conv.id),
         "title": conv.title,
@@ -163,7 +222,8 @@ def conversation(
             {
                 "id": str(m.id),
                 "role": m.role,
-                "content": m.content,
+                "content": MASKED if m.id in masked else m.content,
+                "masked": m.id in masked,
                 "insufficient": m.insufficient,
                 "locality": m.locality,
                 "created_at": m.created_at,

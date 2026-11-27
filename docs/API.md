@@ -103,10 +103,10 @@ sont créées à la synchronisation et **ne donnent aucun droit** avant confirma
 | POST | `/search` | U et + | `{query, filters?, limit?}` ⇒ passages autorisés avec score, document, pages (sans génération) |
 | POST | `/chat` | U et + | `{conversation_id?, question, filters?, model_id?}` ⇒ flux SSE (§3) |
 | POST | `/chat/{message_id}/cancel` | auteur | interrompt la génération |
-| GET | `/conversations` | auteur | ses conversations ; `q` pour rechercher dans l'historique |
-| GET | `/conversations/{id}` | auteur | messages + citations (extraits rouverts avec droits revérifiés) |
-| PATCH | `/conversations/{id}` | auteur | renommer |
-| DELETE | `/conversations/{id}` | auteur | suppression |
+| GET | `/conversations` | auteur | ses conversations ; `q` : recherche littérale dans les titres et ses propres questions (jamais dans les réponses) |
+| GET | `/conversations/{id}` | auteur | messages + citations (droits revérifiés : extrait retiré et réponse masquée, `masked`, si un document cité n'est plus accessible) |
+| PATCH | `/conversations/{id}` | auteur | renommer (`{title}`) |
+| DELETE | `/conversations/{id}` | auteur | suppression réelle (messages et citations effacés ; audit `conversation.delete`) |
 | GET | `/conversations/{id}/export?format=pdf\|docx\|md` | auteur | export |
 | POST | `/messages/{id}/feedback` | auteur | `{value: 1 \| -1, comment?}` (signaler une réponse incorrecte) |
 

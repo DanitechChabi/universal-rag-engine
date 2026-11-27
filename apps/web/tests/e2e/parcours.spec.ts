@@ -201,3 +201,32 @@ test("IA hybride : choisir un modèle externe (scénario 14), puis couper l'exte
   const local = await ask(alice, "Quel est le loyer mensuel du bail ?");
   await expect(local.getByText("Modèle local · demo-local")).toBeVisible();
 });
+
+test("historique : rechercher, renommer et supprimer une conversation (§8.4)", async ({ page }) => {
+  await login(page, "alice");
+  await ask(page, "Quelle est la durée du préavis du bail ?");
+  const history = page.getByRole("navigation").filter({ has: page.locator(".history-item") });
+  const row = page.locator(".history-row").filter({ hasText: "préavis" }).first();
+  await expect(row).toBeVisible();
+  // Renommer
+  await row.hover();
+  await row.getByRole("button", { name: /^Renommer/ }).click();
+  const field = page.getByLabel("Nouveau titre de la conversation");
+  await field.fill("Préavis du bail Alpha");
+  await field.press("Enter");
+  await expect(page.locator(".history-row").filter({ hasText: "Préavis du bail Alpha" })).toBeVisible();
+  // Rechercher : par le titre, puis un terme absent
+  const search = page.getByLabel("Rechercher dans l'historique");
+  await search.fill("bail alpha");
+  await expect(page.locator(".history-row")).toHaveCount(1);
+  await search.fill("introuvable-xyz");
+  await expect(page.getByText("Aucune conversation ne correspond.")).toBeVisible();
+  await search.fill("");
+  // Supprimer (confirmation acceptée)
+  page.once("dialog", (d) => void d.accept());
+  const renamed = page.locator(".history-row").filter({ hasText: "Préavis du bail Alpha" });
+  await renamed.hover();
+  await renamed.getByRole("button", { name: /^Supprimer/ }).click();
+  await expect(renamed).toHaveCount(0);
+  await expect(history).toBeVisible();
+});
