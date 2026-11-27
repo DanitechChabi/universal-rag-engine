@@ -45,6 +45,8 @@ jobs:
           cache: pnpm
       - name: Interface web — dépendances
         run: pnpm install --frozen-lockfile
+      - name: Licences des dépendances livrées (aucune AGPL/SSPL/GPL)
+        run: uv run python tools/verifier_licences.py
       - name: Interface web — types, tests unitaires, construction
         working-directory: apps/web
         run: pnpm exec tsc -b && pnpm exec vitest run && pnpm exec vite build
